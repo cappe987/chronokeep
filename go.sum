@@ -1,0 +1,4 @@
+github.com/facebook/time v0.0.0-20250403163257-8d0fb0aa9add h1:MvMjSs/uycTZki3d7hTMaFkkcy0o5+wuoW0EuH+Jo9A=
+github.com/facebook/time v0.0.0-20250403163257-8d0fb0aa9add/go.mod h1:L2ByaDwtmRZqKbQijPDsbSap2f8GsPSuiF1tw/mMKmY=
+golang.org/x/sys v0.31.0 h1:ioabZlmFYtWhL+TRYpcnNlLwhyxaM9kWTDEmfnprqik=
+golang.org/x/sys v0.31.0/go.mod h1:BJP2sWEmIv4KK5OTEluFJCKSidICx8ciO85XgH3Ak8k=
