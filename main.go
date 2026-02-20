@@ -304,7 +304,11 @@ func pkt_mode(args []string) {
 	}
 
 	// Enable RX timestamps. Delay requests need to be timestamped by ptp4u on receipt
-	if err := timestamp.EnableTimestamps(timestamp.SW, port.EFd, port.IfaceStr); err != nil {
+	netif, err := net.InterfaceByName(port.IfaceStr)
+	if err != nil {
+		log.Fatalf("Failed fetching interface")
+	}
+	if err := timestamp.EnableTimestamps(timestamp.SW, port.EFd, netif); err != nil {
 		log.Fatal(err)
 	}
 
