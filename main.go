@@ -4,6 +4,7 @@ import (
 	//"bytes"
 	"encoding/binary"
 	"os"
+	"os/signal"
 
 	//"encoding/hex"
 	"flag"
@@ -52,7 +53,6 @@ type Options struct {
 	human_readable    bool
 	ingressLatency    uint64
 	egressLatency     uint64
-	header_offset     uint
 	nonstop_flag      bool
 	twoStepFlag       bool
 	interval          time.Duration
@@ -77,11 +77,15 @@ type Options struct {
 	// char *interface;
 	// int sequence_types[SEQUENCE_MAX];
 	// int sequence_length;
+
+	// TODO: time/timestamp needs to be patched to support this.
 	// enum delay_mechanism dm;
 	// enum hwtstamp_clk_types clk_type;
+	// header_offset     uint
 
 }
 
+// TODO: Replace with proper function, this assumes host is LE
 func htons(i uint16) uint16 {
 	return (i<<8)&0xff00 | i>>8
 }
@@ -155,6 +159,9 @@ func (port *Port) receive(buf []byte, oob []byte) (*PacketData, error) {
 	switch port.Layer {
 	case LayerMac:
 		bytes, _, rxTS, err := timestamp.ReadPacketWithRXTimestampBuf(port.EFd, buf, oob)
+		if err != nil {
+			return nil, err
+		}
 		p, err := ptp.DecodePacket(buf[14:bytes])
 		if err != nil {
 			return nil, err
@@ -177,20 +184,37 @@ func (port *Port) receive(buf []byte, oob []byte) (*PacketData, error) {
 	return nil, nil
 }
 
-func (port *Port) rx_mode(opts *Options, c chan PacketData) error {
+func (port *Port) ReceiveOne(opts *Options) (*PacketData, error) {
+	buf := make([]byte, timestamp.PayloadSizeBytes)
+	oob := make([]byte, timestamp.ControlSizeBytes)
+	pd, err := port.receive(buf, oob)
+	if err != nil {
+		return nil, err
+	}
+	return pd, nil
+}
+
+func (port *Port) RxMode(opts *Options, ch chan PacketData, quit chan int) {
 
 	buf := make([]byte, timestamp.PayloadSizeBytes)
 	oob := make([]byte, timestamp.ControlSizeBytes)
 	for {
+		select {
+		case _ = <-quit:
+			close(ch)
+			return
+		default:
+		}
+
 		pd, err := port.receive(buf, oob)
 		if err != nil {
 			continue
 		}
-		c <- *pd
+		ch <- *pd
 	}
 }
 
-func (port *Port) tx_mode(opts *Options) {
+func (port *Port) TxMode(opts *Options) {
 	syncP := &ptp.SyncDelayReq{
 		Header: ptp.Header{
 			SdoIDAndMsgType: ptp.NewSdoIDAndMsgType(ptp.MessageSync, 0),
@@ -225,10 +249,25 @@ func (port *Port) tx_mode(opts *Options) {
 	}
 }
 
-func pkt_mode(args []string) {
+func HandleRxPacket(pd PacketData) {
+	msgtype := pd.packet.MessageType()
+	sync, ok := pd.packet.(*ptp.SyncDelayReq)
+	if !ok {
+		fmt.Println("Received packet was not a Sync")
+	}
+	rx_ns := pd.rxtstamp.UnixNano() % 1000000000
+	rx_s := pd.rxtstamp.Unix()
+	seq := sync.Header.SequenceID
+	corr := sync.Header.CorrectionField.Duration()
+	domain := sync.Header.DomainNumber
+	fmt.Printf("%s | Seq %d | Dom %d | RXts %d.%09d | Corr %d\n", msgtype, seq, domain, rx_s, rx_ns, corr)
+}
+
+func PktMode(args []string) {
 	var port Port
 	var opts = Options{}
 
+	// TODO: Replace with Cobra + Viper
 	fs := flag.NewFlagSet("pkt", flag.ContinueOnError)
 	fs.StringVar(&opts.iface, "if", "", "Interface name to operate on")
 	fs.BoolVar(&opts.rx_mode, "r", false, "Receive mode")
@@ -261,8 +300,6 @@ func pkt_mode(args []string) {
 	opts.domain = uint8(*domain)
 	opts.interval = time.Duration(*interval) * time.Millisecond
 	opts.seq = uint16(*seq)
-	// fmt.Printf("%v\n", opts)
-	// fmt.Printf("Port %s\n", opts.iface)
 
 	if opts.udp {
 		var ip net.IP
@@ -305,6 +342,7 @@ func pkt_mode(args []string) {
 
 	// Enable RX timestamps. Delay requests need to be timestamped by ptp4u on receipt
 	netif, err := net.InterfaceByName(port.IfaceStr)
+	port.Interface = netif
 	if err != nil {
 		log.Fatalf("Failed fetching interface")
 	}
@@ -318,25 +356,33 @@ func pkt_mode(args []string) {
 	}
 
 	if opts.rx_mode {
-		c := make(chan PacketData)
-
-		go port.rx_mode(&opts, c)
-
-		for pd := range c {
-			msgtype := pd.packet.MessageType()
-			sync, ok := pd.packet.(*ptp.SyncDelayReq)
-			if !ok {
-				fmt.Println("Received packet was not a Sync")
-			}
-			rx_ns := pd.rxtstamp.UnixNano() % 1000000000
-			rx_s := pd.rxtstamp.Unix()
-			seq := sync.Header.SequenceID
-			corr := sync.Header.CorrectionField.Duration()
-			domain := sync.Header.DomainNumber
-			fmt.Printf("%s | Seq %d | Dom %d | RXts %d.%09d | Corr %d\n", msgtype, seq, domain, rx_s, rx_ns, corr)
+		tmo := unix.Timeval{
+			Sec:  0,
+			Usec: 100000, // 100 ms
 		}
+		unix.SetsockoptTimeval(port.EFd, unix.SOL_SOCKET, unix.SO_RCVTIMEO, &tmo)
+
+		ch := make(chan PacketData, 100)
+		quit := make(chan int)
+		sigs := make(chan os.Signal, 1)
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+		go port.RxMode(&opts, ch, quit)
+
+		running := true
+		for running {
+			select {
+			case <-sigs:
+				quit <- 0
+				running = false
+			case pd := <-ch:
+				HandleRxPacket(pd)
+			}
+		}
+		// TODO: Requires HW to test
+		timestamp.DisableTimestamps(port.EFd, port.Interface)
 	} else {
-		port.tx_mode(&opts)
+		port.TxMode(&opts)
 	}
 }
 
@@ -344,7 +390,7 @@ func main() {
 	mode := os.Args[1]
 	args := os.Args[2:]
 	if mode == "pkt" {
-		pkt_mode(args)
+		PktMode(args)
 		return
 	}
 }
