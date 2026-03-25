@@ -219,7 +219,7 @@ func htons(i uint16) uint16 {
 	return (i<<8)&0xff00 | i>>8
 }
 
-func (p *Port) OpenSocket() error {
+func (p *Port) openSocket() error {
 	if p.Layer == LayerMac {
 		eFd, err := syscall.Socket(syscall.AF_PACKET, syscall.SOCK_RAW, syscall.ETH_P_ALL)
 		if err != nil {
@@ -377,12 +377,62 @@ func (port *Port) TxMode(input, output chan PacketData, quit chan int) {
 // 	// fmt.Printf("%v\n", port.txRecord)
 // }
 
-func (port *Port) Init(opts Options) {
-	port.opts = opts
+func (port *Port) Init(opts Options) error {
+	if opts.Udp {
+		var ip net.IP
+		var dest net.IP
+		if !opts.RxMode {
+			ip = net.IPv4(10, 11, 0, 1)
+			// dest := net.IPv4(224, 0, 1, 129)
+			dest = net.IPv4(10, 11, 0, 2)
+		} else {
+			ip = net.IPv4(10, 11, 0, 2)
+			dest = net.IPv4(10, 11, 0, 1)
+		}
+		port.IfaceStr = opts.Iface
+		port.Layer = LayerUDPv4
+		port.IP = ip
+		port.DestIP = dest
+		port.RecordPackets = true
+	} else {
+		port.IfaceStr = opts.Iface
+		port.Layer = LayerMac
+		port.RecordPackets = true
+	}
 	port.portIdentity = ptp.PortIdentity{
 		PortNumber:    1,
 		ClockIdentity: 0x000000fffeaa0000,
 	}
+	port.opts = opts
+	err := port.openSocket()
+	if err != nil {
+		return err
+	}
+
+	// Enable RX timestamps. Delay requests need to be timestamped by ptp4u on receipt
+	netif, err := net.InterfaceByName(port.IfaceStr)
+	port.Interface = netif
+	if err != nil {
+		fmt.Printf("Failed fetching interface\n")
+		return err
+	}
+	if err := timestamp.EnableTimestamps(timestamp.SW, port.EFd, netif); err != nil {
+		fmt.Printf("Failed enabling timestamps\n")
+		return err
+	}
+
+	err = unix.SetNonblock(port.EFd, false)
+	if err != nil {
+		fmt.Printf("Failed to set socket to blocking\n")
+		return err
+	}
+
+	tmo := unix.Timeval{
+		Sec:  0,
+		Usec: 100000, // 100 ms
+	}
+	unix.SetsockoptTimeval(port.EFd, unix.SOL_SOCKET, unix.SO_RCVTIMEO, &tmo)
+	return nil
 }
 
 func (port *Port) BuildPacket(msgtype ptp.MessageType, seq uint16) (ptp.Packet, error) {

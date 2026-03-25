@@ -5,7 +5,6 @@ import (
 	"fmt"
 	. "intime/internal"
 	"log"
-	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -13,7 +12,6 @@ import (
 
 	ptp "github.com/facebook/time/ptp/protocol"
 	timestamp "github.com/facebook/time/timestamp"
-	"golang.org/x/sys/unix"
 )
 
 func PktMode(args []string) {
@@ -54,27 +52,6 @@ func PktMode(args []string) {
 	opts.Interval = time.Duration(*interval) * time.Millisecond
 	opts.Seq = uint16(*seq)
 
-	if opts.Udp {
-		var ip net.IP
-		var dest net.IP
-		if !opts.RxMode {
-			ip = net.IPv4(10, 11, 0, 1)
-			// dest := net.IPv4(224, 0, 1, 129)
-			dest = net.IPv4(10, 11, 0, 2)
-		} else {
-			ip = net.IPv4(10, 11, 0, 2)
-			dest = net.IPv4(10, 11, 0, 1)
-		}
-		port.IfaceStr = opts.Iface
-		port.Layer = LayerUDPv4
-		port.IP = ip
-		port.DestIP = dest
-		port.RecordPackets = true
-	} else {
-		port.IfaceStr = opts.Iface
-		port.Layer = LayerMac
-		port.RecordPackets = true
-	}
 	//fmt.Println("Hello, World!")
 	// if use_l2 {
 	// 	eFd, err = syscall.Socket(syscall.AF_PACKET, syscall.SOCK_RAW, syscall.ETH_P_ALL)
@@ -89,34 +66,11 @@ func PktMode(args []string) {
 	// 	eFd, err = timestamp.ConnFd(eventConn)
 	// }
 
-	port.Init(opts)
-	err = port.OpenSocket()
-
+	err = port.Init(opts)
 	if err != nil {
-		log.Fatalf("Getting event connection FD: %s", err)
+		log.Fatalf("Failed initializing port: %s", err)
 	}
 
-	// Enable RX timestamps. Delay requests need to be timestamped by ptp4u on receipt
-	netif, err := net.InterfaceByName(port.IfaceStr)
-	port.Interface = netif
-	if err != nil {
-		log.Fatalf("Failed fetching interface")
-	}
-	if err := timestamp.EnableTimestamps(timestamp.SW, port.EFd, netif); err != nil {
-		log.Fatal(err)
-	}
-
-	err = unix.SetNonblock(port.EFd, false)
-	if err != nil {
-		log.Fatalf("Failed to set socket to blocking: %s", err)
-	}
-
-	tmo := unix.Timeval{
-		Sec:  0,
-		Usec: 100000, // 100 ms
-	}
-
-	unix.SetsockoptTimeval(port.EFd, unix.SOL_SOCKET, unix.SO_RCVTIMEO, &tmo)
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	if opts.RxMode {
