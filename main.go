@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
+	"intime/cmd"
 	"os"
-	"ptpan/cmd"
 	"time"
 
 	"github.com/pborman/getopt/v2"

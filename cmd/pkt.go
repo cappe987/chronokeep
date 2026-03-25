@@ -3,11 +3,11 @@ package cmd
 import (
 	"flag"
 	"fmt"
+	. "intime/internal"
 	"log"
 	"net"
 	"os"
 	"os/signal"
-	. "ptpan/internal"
 	"syscall"
 	"time"
 

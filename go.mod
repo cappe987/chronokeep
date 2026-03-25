@@ -1,4 +1,4 @@
-module ptpan
+module intime
 
 go 1.23.4
 
