@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"flag"
 	"fmt"
 	. "intime/internal"
 	"log"
@@ -12,27 +11,29 @@ import (
 
 	ptp "github.com/facebook/time/ptp/protocol"
 	timestamp "github.com/facebook/time/timestamp"
+	"github.com/pborman/getopt/v2"
 )
 
-func PktMode(args []string) {
+func PktMode() {
 	var port Port
 	var opts = Options{}
+	domain := 0
+	interval := 1000
+	help := false
 
-	// TODO: Replace with getopt?
-	fs := flag.NewFlagSet("pkt", flag.ContinueOnError)
-	fs.StringVar(&opts.Iface, "if", "", "Interface name to operate on")
-	fs.BoolVar(&opts.RxMode, "r", false, "Receive mode")
-	fs.BoolVar(&opts.Udp, "4", false, "Use UDP instead of L2")
-	fs.IntVar(&opts.Count, "c", 1, "Number of packets to transmit")
-	fs.Uint64Var(&opts.IngressLatency, "ilat", 0, "Ingress latency")
-	fs.Uint64Var(&opts.EgressLatency, "elat", 0, "Egress latency")
-	var interval = fs.Uint("interval", 1000, "TX packet interval (ms)")
-	var domain = fs.Int("domain", 0, "PTP domain")
-	var seq = fs.Int("seq", 0, "Starting SequenceID")
-
-	err := fs.Parse(args)
-
-	if err != nil {
+	getopt.FlagLong(&domain, "domain", 'd', "PTP domain")
+	getopt.FlagLong(&interval, "interval", 'I', "TX packet interval (ms)")
+	getopt.FlagLong(&opts.Iface, "iface", 'i', "Interface to operate on")
+	getopt.FlagLong(&opts.Seq, "seq", 's', "Starting SequenceID")
+	getopt.FlagLong(&opts.IngressLatency, "ilat", 0, "Ingress latency")
+	getopt.FlagLong(&opts.EgressLatency, "elat", 0, "Egress latency")
+	getopt.FlagLong(&opts.RxMode, "rx", 'r', "Receive only")
+	getopt.FlagLong(&opts.Udp, "", '4', "Use UDP instead of L2")
+	getopt.FlagLong(&opts.Count, "count", 'c', "Number of packets to transmit")
+	getopt.FlagLong(&help, "help", 'h', "Show this help menu")
+	getopt.Parse()
+	if help {
+		getopt.Usage()
 		return
 	}
 
@@ -40,33 +41,18 @@ func PktMode(args []string) {
 		fmt.Println("Must specify interface with -if")
 		return
 	}
-	if *domain > 255 {
+	if domain > 255 {
 		fmt.Println("Domain must be 0-255")
 		return
 	}
-	if *interval < 0 {
+	if interval < 0 {
 		fmt.Println("Interval must be >= 0")
 		return
 	}
-	opts.Domain = uint8(*domain)
-	opts.Interval = time.Duration(*interval) * time.Millisecond
-	opts.Seq = uint16(*seq)
+	opts.Domain = uint8(domain)
+	opts.Interval = time.Duration(interval) * time.Millisecond
 
-	//fmt.Println("Hello, World!")
-	// if use_l2 {
-	// 	eFd, err = syscall.Socket(syscall.AF_PACKET, syscall.SOCK_RAW, syscall.ETH_P_ALL)
-	// 	interf, err = net.InterfaceByName(iface)
-	// } else {
-	// 	eventConn, err := net.ListenUDP("udp", &net.UDPAddr{IP: ip, Port: port})
-	// 	if err != nil {
-	// 		log.Fatalf("Listening error: %s", err)
-	// 	}
-	// 	defer eventConn.Close()
-	// 	// get connection file descriptor
-	// 	eFd, err = timestamp.ConnFd(eventConn)
-	// }
-
-	err = port.Init(opts, 0, 1)
+	err := port.Init(opts, 0, 1)
 	if err != nil {
 		log.Fatalf("Failed initializing port: %s", err)
 	}

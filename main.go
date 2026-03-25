@@ -42,38 +42,17 @@ func main() {
 	}
 
 	arg := os.Args[1]
-	args := os.Args[2:]
-	// os.Args = append(os.Args[:1], args...)
+	// Drop the 'mode' arg
+	os.Args = os.Args[1:]
+	// args := os.Args[2:]
 	// fmt.Printf("Mode: %s\n", arg)
 	// fmt.Printf("Args: %v\n", os.Args)
 	if arg == "pkt" {
-		cmd.PktMode(args)
+		cmd.PktMode()
 		return
 	} else if arg == "-v" || arg == "--version" || arg == "version" {
 		fmt.Println("intime - v0.1")
 	} else {
 		Usage()
 	}
-
-	// version := false
-	// help := false
-	// s := ""
-
-	// getopt.FlagLong(&version, "version", 'v', "Print version")
-	// getopt.FlagLong(&help, "help", 'h', "Print this menu")
-	// getopt.FlagLong(&s, "iface", 'i', "Interface to use")
-
-	// getopt.Parse()
-
-	// if help {
-	// 	// getopt.Usage()
-	// 	Usage()
-	// 	return
-	// }
-	// if version {
-	// 	fmt.Println("intime - v0.1")
-	// 	return
-	// }
-
-	// Usage()
 }
