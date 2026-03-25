@@ -377,14 +377,14 @@ func (port *Port) TxMode(input, output chan PacketData, quit chan int) {
 // 	// fmt.Printf("%v\n", port.txRecord)
 // }
 
-func (port *Port) Init(opts Options) error {
+func (port *Port) Init(opts Options, clockid uint16, portnum uint16) error {
 	if opts.Udp {
 		var ip net.IP
 		var dest net.IP
 		if !opts.RxMode {
 			ip = net.IPv4(10, 11, 0, 1)
-			// dest := net.IPv4(224, 0, 1, 129)
-			dest = net.IPv4(10, 11, 0, 2)
+			dest = net.IPv4(224, 0, 1, 129)
+			// dest = net.IPv4(10, 11, 0, 2)
 		} else {
 			ip = net.IPv4(10, 11, 0, 2)
 			dest = net.IPv4(10, 11, 0, 1)
@@ -399,9 +399,12 @@ func (port *Port) Init(opts Options) error {
 		port.Layer = LayerMac
 		port.RecordPackets = true
 	}
+	// Use portnum in clockid to make it unique for each port since we will
+	// never run as a BC/TC.
+	// TODO: Should other instances use other portnums?
 	port.portIdentity = ptp.PortIdentity{
-		PortNumber:    1,
-		ClockIdentity: 0x000000fffeaa0000,
+		PortNumber:    portnum,
+		ClockIdentity: 0xbeef00fffeaa0000 + ptp.ClockIdentity(clockid),
 	}
 	port.opts = opts
 	err := port.openSocket()

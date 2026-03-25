@@ -66,7 +66,7 @@ func PktMode(args []string) {
 	// 	eFd, err = timestamp.ConnFd(eventConn)
 	// }
 
-	err = port.Init(opts)
+	err = port.Init(opts, 0, 1)
 	if err != nil {
 		log.Fatalf("Failed initializing port: %s", err)
 	}
@@ -91,7 +91,7 @@ func PktMode(args []string) {
 			}
 		}
 	} else {
-		ch := make(chan PacketData, 100)
+		rxCh := make(chan PacketData, 100)
 		quit := make(chan int)
 
 		txCh := make(chan PacketData, 100)
@@ -100,7 +100,7 @@ func PktMode(args []string) {
 		timer := time.NewTicker(1 * time.Second)
 
 		go port.TxMode(txCh, outCh, quit)
-		go port.RxMode(ch, quit)
+		go port.RxMode(rxCh, quit)
 
 		count := 0
 		seq := opts.Seq
@@ -110,7 +110,7 @@ func PktMode(args []string) {
 			case <-sigs:
 				quit <- 0
 				running = false
-			case pd2 := <-ch:
+			case pd2 := <-rxCh:
 				pd2.Print()
 			// case <-sigs:
 			// running = false
