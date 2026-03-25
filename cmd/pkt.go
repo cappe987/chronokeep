@@ -20,6 +20,7 @@ func PktMode() {
 	domain := 0
 	interval := 1000
 	help := false
+	opts.Count = 1
 
 	getopt.FlagLong(&domain, "domain", 'd', "PTP domain")
 	getopt.FlagLong(&interval, "interval", 'I', "TX packet interval (ms)")
@@ -29,7 +30,7 @@ func PktMode() {
 	getopt.FlagLong(&opts.EgressLatency, "elat", 0, "Egress latency")
 	getopt.FlagLong(&opts.RxMode, "rx", 'r', "Receive only")
 	getopt.FlagLong(&opts.Udp, "", '4', "Use UDP instead of L2")
-	getopt.FlagLong(&opts.Count, "count", 'c', "Number of packets to transmit")
+	getopt.FlagLong(&opts.Count, "count", 'c', "Number of packets to transmit. 0=infinite")
 	getopt.FlagLong(&help, "help", 'h', "Show this help menu")
 	getopt.Parse()
 	if help {
@@ -59,12 +60,10 @@ func PktMode() {
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	rxCh := make(chan PacketData, 100)
+	quit := make(chan int)
 	if opts.RxMode {
-
-		ch := make(chan PacketData, 100)
-		quit := make(chan int)
-
-		go port.RxMode(ch, quit)
+		go port.RxMode(rxCh, quit)
 
 		running := true
 		for running {
@@ -72,55 +71,52 @@ func PktMode() {
 			case <-sigs:
 				quit <- 0
 				running = false
-			case pd := <-ch:
+			case pd := <-rxCh:
 				pd.Print()
 			}
 		}
 	} else {
-		rxCh := make(chan PacketData, 100)
-		quit := make(chan int)
-
 		txCh := make(chan PacketData, 100)
 		outCh := make(chan PacketData, 100)
-		// quit := make(chan int)
-		timer := time.NewTicker(1 * time.Second)
+		ticker := time.NewTicker(opts.Interval)
 
 		go port.TxMode(txCh, outCh, quit)
 		go port.RxMode(rxCh, quit)
 
-		count := 0
-		seq := opts.Seq
+		count := 1
+		infinite := false
+		txPacket(port, &opts, txCh)
+		if opts.Count == 0 {
+			infinite = true
+		} else if opts.Count == 1 {
+			stopTx(txCh, ticker)
+		}
 		running := true
 		for running {
 			select {
 			case <-sigs:
 				quit <- 0
 				running = false
-			case pd2 := <-rxCh:
-				pd2.Print()
-			// case <-sigs:
-			// running = false
-			case pd2, ok := <-outCh:
+			case pd := <-rxCh:
+				pd.Print()
+			case pd, ok := <-outCh:
 				if !ok {
 					running = false
 					continue
 				}
-				if pd2.Packet == nil {
+				if pd.Packet == nil {
+					fmt.Printf("Invalid packet from txtstamp\n")
 					continue
 				}
-				pd2.Print()
-			case <-timer.C:
-				pkt, err := port.BuildPacket(ptp.MessageSync, seq)
-				if err != nil {
-					log.Fatalf("Failed building packet: %s", err)
+				pd.Print()
+			case <-ticker.C:
+				txPacket(port, &opts, txCh)
+				if infinite {
+					continue
 				}
-				pd := PacketData{Packet: pkt, IsTx: true}
-				txCh <- pd
-				seq += 1
 				count += 1
 				if count >= opts.Count {
-					close(txCh)
-					timer.Stop()
+					stopTx(txCh, ticker)
 					continue
 				}
 			}
@@ -128,4 +124,19 @@ func PktMode() {
 	}
 	// TODO: Requires HW to test
 	timestamp.DisableTimestamps(port.EFd, port.Interface)
+}
+
+func stopTx(txCh chan PacketData, ticker *time.Ticker) {
+	close(txCh)
+	ticker.Stop()
+}
+
+func txPacket(port Port, opts *Options, txCh chan PacketData) {
+	pkt, err := port.BuildPacket(ptp.MessageSync, opts.Seq)
+	if err != nil {
+		log.Fatalf("Failed building packet: %s", err)
+	}
+	pd := PacketData{Packet: pkt, IsTx: true}
+	txCh <- pd
+	opts.Seq += 1
 }
