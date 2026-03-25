@@ -27,6 +27,7 @@ const (
 )
 
 type PacketData struct {
+	IsTx     bool
 	Packet   ptp.Packet
 	HwTstamp time.Time
 	SwTstamp time.Time
@@ -65,19 +66,21 @@ func (pd *PacketData) GetHeader() *ptp.Header {
 	}
 }
 
-func (pd *PacketData) Print(tstext string) {
+func (pd *PacketData) Print() {
 	msgtype := pd.Packet.MessageType()
 	hdr := pd.GetHeader()
-	// sync, ok := pd.Packet.(*ptp.SyncDelayReq)
-	// if !ok {
-	// 	fmt.Println("Received packet was not a Sync")
-	// }
 	rx_ns := pd.HwTstamp.UnixNano() % 1000000000
 	rx_s := pd.HwTstamp.Unix()
 	seq := hdr.SequenceID
 	corr := hdr.CorrectionField.Duration()
 	domain := hdr.DomainNumber
-	fmt.Printf("%s | Seq %d | Dom %d | %s %d.%09d | Corr %d\n", msgtype, seq, domain, tstext, rx_s, rx_ns, corr)
+	var dir string
+	if pd.IsTx {
+		dir = fmt.Sprintf("%s ->", msgtype)
+	} else {
+		dir = fmt.Sprintf("<- %s", msgtype)
+	}
+	fmt.Printf("%s | Seq %d | Dom %d | hwts %d.%09d | Corr %d\n", dir, seq, domain, rx_s, rx_ns, corr)
 }
 
 type Options struct {
@@ -164,6 +167,7 @@ func (port *Port) receive(buf []byte, oob []byte) (*PacketData, error) {
 			Packet:   p,
 			HwTstamp: hwts,
 			SwTstamp: swts,
+			IsTx:     false,
 		}
 		port.recordRx(*data)
 		return data, nil

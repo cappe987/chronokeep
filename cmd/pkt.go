@@ -111,17 +111,18 @@ func PktMode(args []string) {
 		log.Fatalf("Failed to set socket to blocking: %s", err)
 	}
 
+	tmo := unix.Timeval{
+		Sec:  0,
+		Usec: 100000, // 100 ms
+	}
+
+	unix.SetsockoptTimeval(port.EFd, unix.SOL_SOCKET, unix.SO_RCVTIMEO, &tmo)
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	if opts.RxMode {
-		tmo := unix.Timeval{
-			Sec:  0,
-			Usec: 100000, // 100 ms
-		}
-		unix.SetsockoptTimeval(port.EFd, unix.SOL_SOCKET, unix.SO_RCVTIMEO, &tmo)
 
 		ch := make(chan PacketData, 100)
 		quit := make(chan int)
-		sigs := make(chan os.Signal, 1)
-		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 		go port.RxMode(ch, quit)
 
@@ -132,21 +133,20 @@ func PktMode(args []string) {
 				quit <- 0
 				running = false
 			case pd := <-ch:
-				pd.Print("rxts")
+				pd.Print()
 			}
 		}
-		// TODO: Requires HW to test
-		timestamp.DisableTimestamps(port.EFd, port.Interface)
 	} else {
-		// port.TxMode()
+		ch := make(chan PacketData, 100)
+		quit := make(chan int)
+
 		txCh := make(chan PacketData, 100)
 		outCh := make(chan PacketData, 100)
-		quit := make(chan int)
-		sigs := make(chan os.Signal, 1)
-		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+		// quit := make(chan int)
 		timer := time.NewTicker(1 * time.Second)
 
 		go port.TxMode(txCh, outCh, quit)
+		go port.RxMode(ch, quit)
 
 		count := 0
 		seq := opts.Seq
@@ -154,8 +154,12 @@ func PktMode(args []string) {
 		for running {
 			select {
 			case <-sigs:
-				// quit <- 0
+				quit <- 0
 				running = false
+			case pd2 := <-ch:
+				pd2.Print()
+			// case <-sigs:
+			// running = false
 			case pd2, ok := <-outCh:
 				if !ok {
 					running = false
@@ -164,13 +168,13 @@ func PktMode(args []string) {
 				if pd2.Packet == nil {
 					continue
 				}
-				pd2.Print("txts")
+				pd2.Print()
 			case <-timer.C:
 				pkt, err := port.BuildPacket(ptp.MessageSync, seq)
 				if err != nil {
 					log.Fatalf("Failed building packet: %s", err)
 				}
-				pd := PacketData{Packet: pkt}
+				pd := PacketData{Packet: pkt, IsTx: true}
 				txCh <- pd
 				seq += 1
 				count += 1
@@ -182,4 +186,6 @@ func PktMode(args []string) {
 			}
 		}
 	}
+	// TODO: Requires HW to test
+	timestamp.DisableTimestamps(port.EFd, port.Interface)
 }
