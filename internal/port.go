@@ -27,17 +27,9 @@ const (
 )
 
 type PacketData struct {
-	Packet   ptp.Packet
-	Rxtstamp time.Time
-}
-
-type Port struct {
-	IfaceStr  string
-	IP        net.IP
-	DestIP    net.IP
-	Interface *net.Interface
-	Layer     Layer
-	EFd       int
+	Packet     ptp.Packet
+	HwRxTstamp time.Time
+	SwRxTstamp time.Time
 }
 
 type Options struct {
@@ -63,6 +55,8 @@ type Options struct {
 	Clk_type   string
 	Udp        bool
 
+	RecordPackets bool
+
 	// tstamp_all        int
 	// auto_fup          int
 	// listen   int
@@ -78,21 +72,52 @@ type Options struct {
 
 }
 
+type Port struct {
+	IfaceStr      string
+	IP            net.IP
+	DestIP        net.IP
+	Interface     *net.Interface
+	Layer         Layer
+	EFd           int
+	txRecord      []PacketData
+	rxRecord      []PacketData
+	RecordPackets bool
+	opts          Options
+	portIdentity  ptp.PortIdentity
+}
+
+func (port *Port) recordRx(data PacketData) {
+	if !port.RecordPackets {
+		return
+	}
+	port.rxRecord = append(port.rxRecord, data)
+}
+
+func (port *Port) recordTx(data PacketData) {
+	if !port.RecordPackets {
+		return
+	}
+	port.txRecord = append(port.txRecord, data)
+}
+
 func (port *Port) receive(buf []byte, oob []byte) (*PacketData, error) {
 	switch port.Layer {
 	case LayerMac:
-		bytes, _, rxTS, err := timestamp.ReadPacketWithRXTimestampBuf(port.EFd, buf, oob)
+		bytes, _, hwts, err := timestamp.ReadPacketWithRXTimestampBuf(port.EFd, buf, oob)
 		if err != nil {
 			return nil, err
 		}
+		swts := time.Now()
 		p, err := ptp.DecodePacket(buf[14:bytes])
 		if err != nil {
 			return nil, err
 		}
 		data := &PacketData{
-			Packet:   p,
-			Rxtstamp: rxTS,
+			Packet:     p,
+			HwRxTstamp: hwts,
+			SwRxTstamp: swts,
 		}
+		port.recordRx(*data)
 		return data, nil
 	case LayerUDPv4:
 		_, _, rxTS, err := timestamp.ReadPacketWithRXTimestampBuf(port.EFd, buf, oob)
@@ -117,7 +142,7 @@ func (port *Port) ReceiveOne(opts *Options) (*PacketData, error) {
 	return pd, nil
 }
 
-func (port *Port) RxMode(opts *Options, ch chan PacketData, quit chan int) {
+func (port *Port) RxMode(ch chan PacketData, quit chan int) {
 
 	buf := make([]byte, timestamp.PayloadSizeBytes)
 	oob := make([]byte, timestamp.ControlSizeBytes)
@@ -179,18 +204,20 @@ func (p *Port) OpenSocket() error {
 	return nil
 }
 
-func (port *Port) transmit(syncP *ptp.SyncDelayReq) error {
-	buf := make([]byte, timestamp.PayloadSizeBytes)
+func (port *Port) transmit(pkt *ptp.Packet) error {
+	// buf := make([]byte, timestamp.PayloadSizeBytes)
 
-	n, err := ptp.BytesTo(syncP, buf)
-	n = n - 2 // Trim the unused TLV
+	// n, err := ptp.BytesTo(*pkt, buf)
+	bytes, err := ptp.Bytes(*pkt)
+	// n = n - 2 // Trim the unused TLV
 	if err != nil {
 		log.Fatalf("Failed to generate the sync packet: %v", err)
 	}
 
 	if port.Layer == LayerMac {
 		hdr := []byte{0x01, 0x1b, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xaa, 0xaa, 0xaa, 0x88, 0xf7}
-		packet := append(hdr, buf[:n]...)
+		// packet := append(hdr, buf[:n]...)
+		packet := append(hdr, bytes...)
 		// fmt.Println(len(packet), n)
 		var addr syscall.SockaddrLinklayer
 		addr.Protocol = syscall.ETH_P_1588
@@ -200,44 +227,132 @@ func (port *Port) transmit(syncP *ptp.SyncDelayReq) error {
 		err = syscall.Sendto(port.EFd, packet, 0, &addr)
 	} else if port.Layer == LayerUDPv4 {
 		eclisa := timestamp.IPToSockaddr(port.DestIP, event_port)
-		err = unix.Sendto(port.EFd, buf[:n], 0, eclisa)
+		// err = unix.Sendto(port.EFd, buf[:n], 0, eclisa)
+		err = unix.Sendto(port.EFd, bytes, 0, eclisa)
 	} else {
 		log.Fatal("transmit: not implemented")
 	}
 	return err
 }
 
-func (port *Port) TxMode(opts *Options) {
-	syncP := &ptp.SyncDelayReq{
-		Header: ptp.Header{
-			SdoIDAndMsgType: ptp.NewSdoIDAndMsgType(ptp.MessageSync, 0),
-			Version:         ptp.Version,
-			MessageLength:   uint16(binary.Size(ptp.Header{}) + binary.Size(ptp.SyncDelayReqBody{})), //#nosec G115
-			DomainNumber:    opts.Domain,
-			FlagField:       ptp.FlagTwoStep,
-			SequenceID:      opts.Seq,
-			SourcePortIdentity: ptp.PortIdentity{
-				PortNumber:    1,
-				ClockIdentity: 0x000000fffeaa0000,
-			},
-			LogMessageInterval: 0,
-			ControlField:       0,
-		},
+func (port *Port) transmit_get_ts(pkt *ptp.Packet, oob []byte, toob []byte) (*time.Time, *time.Time, error) {
+	// port.txRecord = append(port.txRecord, pkt)
+	err := port.transmit(pkt)
+	swtx := time.Now()
+	if err != nil {
+		return nil, nil, err
+	}
+	hwtx, _, err := timestamp.ReadTXtimestampBuf(port.EFd, oob, toob)
+	if err != nil {
+		return nil, nil, err
+	}
+	return &hwtx, &swtx, nil
+}
+
+func (port *Port) TxMode() {
+	// syncP := &ptp.SyncDelayReq{
+	// 	Header: ptp.Header{
+	// 		SdoIDAndMsgType: ptp.NewSdoIDAndMsgType(ptp.MessageSync, 0),
+	// 		Version:         ptp.Version,
+	// 		MessageLength:   uint16(binary.Size(ptp.Header{}) + binary.Size(ptp.SyncDelayReqBody{})), //#nosec G115
+	// 		DomainNumber:    opts.Domain,
+	// 		FlagField:       ptp.FlagTwoStep,
+	// 		SequenceID:      opts.Seq,
+	// 		SourcePortIdentity: ptp.PortIdentity{
+	// 			PortNumber:    1,
+	// 			ClockIdentity: 0x000000fffeaa0000,
+	// 		},
+	// 		LogMessageInterval: 0,
+	// 		ControlField:       0,
+	// 	},
+	// }
+	pkt, err := port.buildPacket(ptp.MessageSync, port.opts.Seq)
+	if err != nil {
+		log.Fatalf("Failed building packet: %s", err)
 	}
 
+	seq := port.opts.Seq
 	oob := make([]byte, timestamp.ControlSizeBytes)
 	toob := make([]byte, timestamp.ControlSizeBytes)
-	for _ = range opts.Count {
-		err := port.transmit(syncP)
-		syncP.Header.SequenceID += 1
+	for i := range port.opts.Count {
+		// err := port.transmit(syncP)
+		// if err != nil {
+		// 	continue
+		// }
+		// txTS, _, err := timestamp.ReadTXtimestampBuf(port.EFd, oob, toob)
+		// if err != nil {
+		// 	continue
+		// }
+		hwts, swts, err := port.transmit_get_ts(&pkt, oob, toob)
+		data := PacketData{
+			Packet:     pkt,
+			HwRxTstamp: *hwts,
+			SwRxTstamp: *swts,
+		}
+		port.recordTx(data)
+		seq += 1
+		pkt.SetSequence(seq)
 		if err != nil {
 			continue
 		}
-		txTS, _, err := timestamp.ReadTXtimestampBuf(port.EFd, oob, toob)
-		if err != nil {
-			continue
+		// fmt.Println(swts.UnixNano())
+		tx_ns := data.HwRxTstamp.UnixNano() % 1000000000
+		tx_s := data.HwRxTstamp.Unix()
+		fmt.Printf("hwts %d.%09d\n", tx_s, tx_ns)
+		// fmt.Println(hwts.UnixNano())
+		if i+1 != port.opts.Count {
+			time.Sleep(port.opts.Interval)
 		}
-		fmt.Println(txTS.UnixNano())
-		time.Sleep(opts.Interval)
+	}
+	// fmt.Printf("%v\n", port.txRecord)
+}
+
+func (port *Port) Init(opts Options) {
+	port.opts = opts
+	port.portIdentity = ptp.PortIdentity{
+		PortNumber:    1,
+		ClockIdentity: 0x000000fffeaa0000,
 	}
 }
+
+func (port *Port) buildPacket(msgtype ptp.MessageType, seq uint16) (ptp.Packet, error) {
+	hdr := ptp.Header{
+		SdoIDAndMsgType:    ptp.NewSdoIDAndMsgType(ptp.MessageSync, 0),
+		Version:            ptp.Version,
+		MessageLength:      uint16(binary.Size(ptp.Header{}) + binary.Size(ptp.SyncDelayReqBody{})), //#nosec G115
+		DomainNumber:       port.opts.Domain,
+		FlagField:          ptp.FlagTwoStep, // TODO: check mode
+		SequenceID:         seq,
+		SourcePortIdentity: port.portIdentity,
+		LogMessageInterval: 0,
+		ControlField:       0,
+	}
+	var p ptp.Packet
+	switch msgtype {
+	case ptp.MessageSync, ptp.MessageDelayReq:
+		p = &ptp.SyncDelayReq{Header: hdr}
+	case ptp.MessagePDelayReq:
+		p = &ptp.PDelayReq{Header: hdr}
+	case ptp.MessagePDelayResp:
+		p = &ptp.PDelayResp{Header: hdr}
+	case ptp.MessageFollowUp:
+		p = &ptp.FollowUp{Header: hdr}
+	case ptp.MessageDelayResp:
+		p = &ptp.DelayResp{Header: hdr}
+	case ptp.MessagePDelayRespFollowUp:
+		p = &ptp.PDelayRespFollowUp{Header: hdr}
+	case ptp.MessageAnnounce:
+		p = &ptp.Announce{Header: hdr}
+	case ptp.MessageSignaling:
+		p = &ptp.Signaling{Header: hdr}
+	// case ptp.MessageManagement:
+	// p = &ptp.Management{Header: hdr}
+	default:
+		return nil, fmt.Errorf("unsupported type %s", msgtype)
+	}
+	return p, nil
+}
+
+// func (pkt *ptp.Packet) ToBytes() ([]bytes, n) {
+
+// }

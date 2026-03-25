@@ -22,8 +22,8 @@ func HandleRxPacket(pd PacketData) {
 	if !ok {
 		fmt.Println("Received packet was not a Sync")
 	}
-	rx_ns := pd.Rxtstamp.UnixNano() % 1000000000
-	rx_s := pd.Rxtstamp.Unix()
+	rx_ns := pd.HwRxTstamp.UnixNano() % 1000000000
+	rx_s := pd.HwRxTstamp.Unix()
 	seq := sync.Header.SequenceID
 	corr := sync.Header.CorrectionField.Duration()
 	domain := sync.Header.DomainNumber
@@ -34,7 +34,7 @@ func PktMode(args []string) {
 	var port Port
 	var opts = Options{}
 
-	// TODO: Replace with Cobra + Viper
+	// TODO: Replace with getopt?
 	fs := flag.NewFlagSet("pkt", flag.ContinueOnError)
 	fs.StringVar(&opts.Iface, "if", "", "Interface name to operate on")
 	fs.BoolVar(&opts.Rx_mode, "r", false, "Receive mode")
@@ -83,9 +83,11 @@ func PktMode(args []string) {
 		port.Layer = LayerUDPv4
 		port.IP = ip
 		port.DestIP = dest
+		port.RecordPackets = true
 	} else {
 		port.IfaceStr = opts.Iface
 		port.Layer = LayerMac
+		port.RecordPackets = true
 	}
 	//fmt.Println("Hello, World!")
 	// if use_l2 {
@@ -101,6 +103,7 @@ func PktMode(args []string) {
 	// 	eFd, err = timestamp.ConnFd(eventConn)
 	// }
 
+	port.Init(opts)
 	err = port.OpenSocket()
 
 	if err != nil {
@@ -134,7 +137,7 @@ func PktMode(args []string) {
 		sigs := make(chan os.Signal, 1)
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-		go port.RxMode(&opts, ch, quit)
+		go port.RxMode(ch, quit)
 
 		running := true
 		for running {
@@ -149,6 +152,6 @@ func PktMode(args []string) {
 		// TODO: Requires HW to test
 		timestamp.DisableTimestamps(port.EFd, port.Interface)
 	} else {
-		port.TxMode(&opts)
+		port.TxMode()
 	}
 }
