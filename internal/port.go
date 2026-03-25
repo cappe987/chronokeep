@@ -27,9 +27,57 @@ const (
 )
 
 type PacketData struct {
-	Packet     ptp.Packet
-	HwRxTstamp time.Time
-	SwRxTstamp time.Time
+	Packet   ptp.Packet
+	HwTstamp time.Time
+	SwTstamp time.Time
+}
+
+func (pd *PacketData) GetHeader() *ptp.Header {
+	msgtype := pd.Packet.MessageType()
+	switch msgtype {
+	case ptp.MessageSync, ptp.MessageDelayReq:
+		pkt := pd.Packet.(*ptp.SyncDelayReq)
+		return &pkt.Header
+	case ptp.MessagePDelayReq:
+		pkt := pd.Packet.(*ptp.PDelayReq)
+		return &pkt.Header
+	case ptp.MessagePDelayResp:
+		pkt := pd.Packet.(*ptp.PDelayResp)
+		return &pkt.Header
+	case ptp.MessageFollowUp:
+		pkt := pd.Packet.(*ptp.FollowUp)
+		return &pkt.Header
+	case ptp.MessagePDelayRespFollowUp:
+		pkt := pd.Packet.(*ptp.PDelayRespFollowUp)
+		return &pkt.Header
+	case ptp.MessageAnnounce:
+		pkt := pd.Packet.(*ptp.Announce)
+		return &pkt.Header
+	case ptp.MessageSignaling:
+		pkt := pd.Packet.(*ptp.Signaling)
+		return &pkt.Header
+	case ptp.MessageManagement:
+		pkt := pd.Packet.(*ptp.Management)
+		return &pkt.Header
+	default:
+		fmt.Printf("Invalid message type\n")
+		return nil
+	}
+}
+
+func (pd *PacketData) Print(tstext string) {
+	msgtype := pd.Packet.MessageType()
+	hdr := pd.GetHeader()
+	// sync, ok := pd.Packet.(*ptp.SyncDelayReq)
+	// if !ok {
+	// 	fmt.Println("Received packet was not a Sync")
+	// }
+	rx_ns := pd.HwTstamp.UnixNano() % 1000000000
+	rx_s := pd.HwTstamp.Unix()
+	seq := hdr.SequenceID
+	corr := hdr.CorrectionField.Duration()
+	domain := hdr.DomainNumber
+	fmt.Printf("%s | Seq %d | Dom %d | %s %d.%09d | Corr %d\n", msgtype, seq, domain, tstext, rx_s, rx_ns, corr)
 }
 
 type Options struct {
@@ -49,7 +97,7 @@ type Options struct {
 	Prio              int
 	Seq               uint16
 
-	Rx_mode    bool
+	RxMode     bool
 	Iface      string
 	Delay_mode string
 	Clk_type   string
@@ -113,9 +161,9 @@ func (port *Port) receive(buf []byte, oob []byte) (*PacketData, error) {
 			return nil, err
 		}
 		data := &PacketData{
-			Packet:     p,
-			HwRxTstamp: hwts,
-			SwRxTstamp: swts,
+			Packet:   p,
+			HwTstamp: hwts,
+			SwTstamp: swts,
 		}
 		port.recordRx(*data)
 		return data, nil
@@ -249,63 +297,81 @@ func (port *Port) transmit_get_ts(pkt *ptp.Packet, oob []byte, toob []byte) (*ti
 	return &hwtx, &swtx, nil
 }
 
-func (port *Port) TxMode() {
-	// syncP := &ptp.SyncDelayReq{
-	// 	Header: ptp.Header{
-	// 		SdoIDAndMsgType: ptp.NewSdoIDAndMsgType(ptp.MessageSync, 0),
-	// 		Version:         ptp.Version,
-	// 		MessageLength:   uint16(binary.Size(ptp.Header{}) + binary.Size(ptp.SyncDelayReqBody{})), //#nosec G115
-	// 		DomainNumber:    opts.Domain,
-	// 		FlagField:       ptp.FlagTwoStep,
-	// 		SequenceID:      opts.Seq,
-	// 		SourcePortIdentity: ptp.PortIdentity{
-	// 			PortNumber:    1,
-	// 			ClockIdentity: 0x000000fffeaa0000,
-	// 		},
-	// 		LogMessageInterval: 0,
-	// 		ControlField:       0,
-	// 	},
-	// }
-	pkt, err := port.buildPacket(ptp.MessageSync, port.opts.Seq)
-	if err != nil {
-		log.Fatalf("Failed building packet: %s", err)
-	}
-
-	seq := port.opts.Seq
+func (port *Port) TxMode(input, output chan PacketData, quit chan int) {
 	oob := make([]byte, timestamp.ControlSizeBytes)
 	toob := make([]byte, timestamp.ControlSizeBytes)
-	for i := range port.opts.Count {
-		// err := port.transmit(syncP)
-		// if err != nil {
-		// 	continue
-		// }
-		// txTS, _, err := timestamp.ReadTXtimestampBuf(port.EFd, oob, toob)
-		// if err != nil {
-		// 	continue
-		// }
-		hwts, swts, err := port.transmit_get_ts(&pkt, oob, toob)
-		data := PacketData{
-			Packet:     pkt,
-			HwRxTstamp: *hwts,
-			SwRxTstamp: *swts,
-		}
-		port.recordTx(data)
-		seq += 1
-		pkt.SetSequence(seq)
+	for pd := range input {
+		hwts, swts, err := port.transmit_get_ts(&pd.Packet, oob, toob)
 		if err != nil {
+			fmt.Printf("Error %s\n", err)
 			continue
 		}
-		// fmt.Println(swts.UnixNano())
-		tx_ns := data.HwRxTstamp.UnixNano() % 1000000000
-		tx_s := data.HwRxTstamp.Unix()
-		fmt.Printf("hwts %d.%09d\n", tx_s, tx_ns)
-		// fmt.Println(hwts.UnixNano())
-		if i+1 != port.opts.Count {
-			time.Sleep(port.opts.Interval)
-		}
+		// fmt.Printf("Timestamp %d\n", hwts.UnixNano())
+		pd.HwTstamp = *hwts
+		pd.SwTstamp = *swts
+		port.recordTx(pd)
+		output <- pd
 	}
-	// fmt.Printf("%v\n", port.txRecord)
+	close(output)
 }
+
+// func (port *Port) TxMode() {
+// 	// syncP := &ptp.SyncDelayReq{
+// 	// 	Header: ptp.Header{
+// 	// 		SdoIDAndMsgType: ptp.NewSdoIDAndMsgType(ptp.MessageSync, 0),
+// 	// 		Version:         ptp.Version,
+// 	// 		MessageLength:   uint16(binary.Size(ptp.Header{}) + binary.Size(ptp.SyncDelayReqBody{})), //#nosec G115
+// 	// 		DomainNumber:    opts.Domain,
+// 	// 		FlagField:       ptp.FlagTwoStep,
+// 	// 		SequenceID:      opts.Seq,
+// 	// 		SourcePortIdentity: ptp.PortIdentity{
+// 	// 			PortNumber:    1,
+// 	// 			ClockIdentity: 0x000000fffeaa0000,
+// 	// 		},
+// 	// 		LogMessageInterval: 0,
+// 	// 		ControlField:       0,
+// 	// 	},
+// 	// }
+// 	pkt, err := port.buildPacket(ptp.MessageSync, port.opts.Seq)
+// 	if err != nil {
+// 		log.Fatalf("Failed building packet: %s", err)
+// 	}
+
+// 	seq := port.opts.Seq
+// 	oob := make([]byte, timestamp.ControlSizeBytes)
+// 	toob := make([]byte, timestamp.ControlSizeBytes)
+// 	for i := range port.opts.Count {
+// 		// err := port.transmit(syncP)
+// 		// if err != nil {
+// 		// 	continue
+// 		// }
+// 		// txTS, _, err := timestamp.ReadTXtimestampBuf(port.EFd, oob, toob)
+// 		// if err != nil {
+// 		// 	continue
+// 		// }
+// 		hwts, swts, err := port.transmit_get_ts(&pkt, oob, toob)
+// 		data := PacketData{
+// 			Packet:   pkt,
+// 			HwTstamp: *hwts,
+// 			SwTstamp: *swts,
+// 		}
+// 		port.recordTx(data)
+// 		seq += 1
+// 		pkt.SetSequence(seq)
+// 		if err != nil {
+// 			continue
+// 		}
+// 		// fmt.Println(swts.UnixNano())
+// 		tx_ns := data.HwTstamp.UnixNano() % 1000000000
+// 		tx_s := data.HwTstamp.Unix()
+// 		fmt.Printf("hwts %d.%09d\n", tx_s, tx_ns)
+// 		// fmt.Println(hwts.UnixNano())
+// 		if i+1 != port.opts.Count {
+// 			time.Sleep(port.opts.Interval)
+// 		}
+// 	}
+// 	// fmt.Printf("%v\n", port.txRecord)
+// }
 
 func (port *Port) Init(opts Options) {
 	port.opts = opts
@@ -315,7 +381,7 @@ func (port *Port) Init(opts Options) {
 	}
 }
 
-func (port *Port) buildPacket(msgtype ptp.MessageType, seq uint16) (ptp.Packet, error) {
+func (port *Port) BuildPacket(msgtype ptp.MessageType, seq uint16) (ptp.Packet, error) {
 	hdr := ptp.Header{
 		SdoIDAndMsgType:    ptp.NewSdoIDAndMsgType(ptp.MessageSync, 0),
 		Version:            ptp.Version,

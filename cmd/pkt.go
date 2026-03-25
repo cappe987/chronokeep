@@ -16,20 +16,6 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func HandleRxPacket(pd PacketData) {
-	msgtype := pd.Packet.MessageType()
-	sync, ok := pd.Packet.(*ptp.SyncDelayReq)
-	if !ok {
-		fmt.Println("Received packet was not a Sync")
-	}
-	rx_ns := pd.HwRxTstamp.UnixNano() % 1000000000
-	rx_s := pd.HwRxTstamp.Unix()
-	seq := sync.Header.SequenceID
-	corr := sync.Header.CorrectionField.Duration()
-	domain := sync.Header.DomainNumber
-	fmt.Printf("%s | Seq %d | Dom %d | RXts %d.%09d | Corr %d\n", msgtype, seq, domain, rx_s, rx_ns, corr)
-}
-
 func PktMode(args []string) {
 	var port Port
 	var opts = Options{}
@@ -37,7 +23,7 @@ func PktMode(args []string) {
 	// TODO: Replace with getopt?
 	fs := flag.NewFlagSet("pkt", flag.ContinueOnError)
 	fs.StringVar(&opts.Iface, "if", "", "Interface name to operate on")
-	fs.BoolVar(&opts.Rx_mode, "r", false, "Receive mode")
+	fs.BoolVar(&opts.RxMode, "r", false, "Receive mode")
 	fs.BoolVar(&opts.Udp, "4", false, "Use UDP instead of L2")
 	fs.IntVar(&opts.Count, "c", 1, "Number of packets to transmit")
 	fs.Uint64Var(&opts.IngressLatency, "ilat", 0, "Ingress latency")
@@ -71,7 +57,7 @@ func PktMode(args []string) {
 	if opts.Udp {
 		var ip net.IP
 		var dest net.IP
-		if !opts.Rx_mode {
+		if !opts.RxMode {
 			ip = net.IPv4(10, 11, 0, 1)
 			// dest := net.IPv4(224, 0, 1, 129)
 			dest = net.IPv4(10, 11, 0, 2)
@@ -125,7 +111,7 @@ func PktMode(args []string) {
 		log.Fatalf("Failed to set socket to blocking: %s", err)
 	}
 
-	if opts.Rx_mode {
+	if opts.RxMode {
 		tmo := unix.Timeval{
 			Sec:  0,
 			Usec: 100000, // 100 ms
@@ -146,12 +132,54 @@ func PktMode(args []string) {
 				quit <- 0
 				running = false
 			case pd := <-ch:
-				HandleRxPacket(pd)
+				pd.Print("rxts")
 			}
 		}
 		// TODO: Requires HW to test
 		timestamp.DisableTimestamps(port.EFd, port.Interface)
 	} else {
-		port.TxMode()
+		// port.TxMode()
+		txCh := make(chan PacketData, 100)
+		outCh := make(chan PacketData, 100)
+		quit := make(chan int)
+		sigs := make(chan os.Signal, 1)
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+		timer := time.NewTicker(1 * time.Second)
+
+		go port.TxMode(txCh, outCh, quit)
+
+		count := 0
+		seq := opts.Seq
+		running := true
+		for running {
+			select {
+			case <-sigs:
+				// quit <- 0
+				running = false
+			case pd2, ok := <-outCh:
+				if !ok {
+					running = false
+					continue
+				}
+				if pd2.Packet == nil {
+					continue
+				}
+				pd2.Print("txts")
+			case <-timer.C:
+				pkt, err := port.BuildPacket(ptp.MessageSync, seq)
+				if err != nil {
+					log.Fatalf("Failed building packet: %s", err)
+				}
+				pd := PacketData{Packet: pkt}
+				txCh <- pd
+				seq += 1
+				count += 1
+				if count >= opts.Count {
+					close(txCh)
+					timer.Stop()
+					continue
+				}
+			}
+		}
 	}
 }
