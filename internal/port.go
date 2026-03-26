@@ -158,7 +158,7 @@ func (p *Port) openSocket() error {
 	return nil
 }
 
-func (port *Port) transmit(pkt *ptp.Packet) error {
+func (port *Port) transmitPkt(pkt *ptp.Packet) error {
 	// buf := make([]byte, timestamp.PayloadSizeBytes)
 
 	// n, err := ptp.BytesTo(*pkt, buf)
@@ -191,7 +191,7 @@ func (port *Port) transmit(pkt *ptp.Packet) error {
 
 func (port *Port) transmit_get_ts(pkt *ptp.Packet, oob []byte, toob []byte) (*time.Time, *time.Time, error) {
 	// port.txRecord = append(port.txRecord, pkt)
-	err := port.transmit(pkt)
+	err := port.transmitPkt(pkt)
 	swtx := time.Now()
 	if err != nil {
 		return nil, nil, err
@@ -203,23 +203,39 @@ func (port *Port) transmit_get_ts(pkt *ptp.Packet, oob []byte, toob []byte) (*ti
 	return &hwtx, &swtx, nil
 }
 
-func (port *Port) TxMode(input, output chan PacketData, quit chan int) {
+// TODO: Handle event vs general packets. Now everything expects timestamp
+func (port *Port) Transmit(pd *PacketData) *PacketData {
 	oob := make([]byte, timestamp.ControlSizeBytes)
 	toob := make([]byte, timestamp.ControlSizeBytes)
-	for pd := range input {
-		hwts, swts, err := port.transmit_get_ts(&pd.Packet, oob, toob)
-		if err != nil {
-			fmt.Printf("Error %s\n", err)
-			continue
-		}
-		// fmt.Printf("Timestamp %d\n", hwts.UnixNano())
-		pd.HwTstamp = *hwts
-		pd.SwTstamp = *swts
-		port.recordTx(pd)
-		output <- pd
+	hwts, swts, err := port.transmit_get_ts(&pd.Packet, oob, toob)
+	if err != nil {
+		fmt.Printf("Error %s\n", err)
+		return nil
 	}
-	close(output)
+	// fmt.Printf("Timestamp %d\n", hwts.UnixNano())
+	pd.HwTstamp = *hwts
+	pd.SwTstamp = *swts
+	port.recordTx(*pd)
+	return pd
 }
+
+// func (port *Port) TxMode(input, output chan PacketData, quit chan int) {
+// 	oob := make([]byte, timestamp.ControlSizeBytes)
+// 	toob := make([]byte, timestamp.ControlSizeBytes)
+// 	for pd := range input {
+// 		hwts, swts, err := port.transmit_get_ts(&pd.Packet, oob, toob)
+// 		if err != nil {
+// 			fmt.Printf("Error %s\n", err)
+// 			continue
+// 		}
+// 		// fmt.Printf("Timestamp %d\n", hwts.UnixNano())
+// 		pd.HwTstamp = *hwts
+// 		pd.SwTstamp = *swts
+// 		port.recordTx(pd)
+// 		output <- pd
+// 	}
+// 	close(output)
+// }
 
 func (port *Port) Init(opts CommonOpts, clockid uint16, portnum uint16) error {
 	if opts.Udp {
@@ -276,4 +292,8 @@ func (port *Port) Init(opts CommonOpts, clockid uint16, portnum uint16) error {
 	}
 	unix.SetsockoptTimeval(port.EFd, unix.SOL_SOCKET, unix.SO_RCVTIMEO, &tmo)
 	return nil
+}
+
+func (port *Port) GetVersion() uint8 {
+	return (port.opts.MinorVersion << 4) | ptp.MajorVersion
 }

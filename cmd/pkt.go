@@ -71,63 +71,46 @@ func PktMode() {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	rxCh := make(chan PacketData, 100)
 	quit := make(chan int)
-	if pktOpts.RxMode {
-		go port.RxMode(rxCh, quit)
+	var ticker *time.Ticker
+	txCount := uint32(1)
+	infinite := false
+	running := true
 
-		running := true
-		for running {
-			select {
-			case <-sigs:
-				quit <- 0
-				running = false
-			case pd := <-rxCh:
-				pd.Print()
+	go port.RxMode(rxCh, quit)
+	if pktOpts.RxMode {
+		// Create a ticker and stop it just so the channel exists.
+		// It will never be used in RX mode.
+		ticker = time.NewTicker(time.Second * 100)
+		ticker.Stop()
+	} else { // Start TX
+		if pktOpts.Count == 1 {
+			running = false
+		} else {
+			ticker = time.NewTicker(pktOpts.Interval)
+			if pktOpts.Count == 0 {
+				infinite = true
 			}
 		}
-	} else {
-		txCh := make(chan PacketData, 100)
-		outCh := make(chan PacketData, 100)
-		ticker := time.NewTicker(pktOpts.Interval)
+		txPacket(&port, &pktOpts)
+	}
 
-		go port.TxMode(txCh, outCh, quit)
-		go port.RxMode(rxCh, quit)
-
-		count := uint32(1)
-		infinite := false
-		txPacket(port, &pktOpts, txCh)
-		if pktOpts.Count == 0 {
-			infinite = true
-		} else if pktOpts.Count == 1 {
-			stopTx(txCh, ticker)
-		}
-		running := true
-		for running {
-			select {
-			case <-sigs:
-				quit <- 0
+	for running {
+		select {
+		case <-sigs:
+			quit <- 0
+			running = false
+		case pd := <-rxCh:
+			pd.Print()
+		case <-ticker.C:
+			txPacket(&port, &pktOpts)
+			if infinite {
+				continue
+			}
+			txCount += 1
+			if txCount >= pktOpts.Count {
+				ticker.Stop()
 				running = false
-			case pd := <-rxCh:
-				pd.Print()
-			case pd, ok := <-outCh:
-				if !ok {
-					running = false
-					continue
-				}
-				if pd.Packet == nil {
-					fmt.Printf("Invalid packet from txtstamp\n")
-					continue
-				}
-				pd.Print()
-			case <-ticker.C:
-				txPacket(port, &pktOpts, txCh)
-				if infinite {
-					continue
-				}
-				count += 1
-				if count >= pktOpts.Count {
-					stopTx(txCh, ticker)
-					continue
-				}
+				continue
 			}
 		}
 	}
@@ -135,16 +118,19 @@ func PktMode() {
 	timestamp.DisableTimestamps(port.EFd, port.Interface)
 }
 
-func stopTx(txCh chan PacketData, ticker *time.Ticker) {
-	close(txCh)
-	ticker.Stop()
-}
-
-func txPacket(port Port, pktOpts *PktOpts, txCh chan PacketData) {
+func txPacket(port *Port, pktOpts *PktOpts) {
 	pd, err := port.BuildPacket(ptp.MessageSync, pktOpts.Seq)
 	if err != nil {
 		log.Fatalf("Failed building packet: %s", err)
 	}
-	txCh <- *pd
+	port.Transmit(pd)
+	pd.Print()
+	// if pd.IsSync() {
+	// 	fup, err := port.MakeFollowUp(pd)
+	// 	if err == nil {
+	// 		port.Transmit(fup)
+	// 		fup.Print()
+	// 	}
+	// }
 	pktOpts.Seq += 1
 }

@@ -32,6 +32,10 @@ func (pd *PacketData) Print() {
 	fmt.Printf("%s | Seq %d | Dom %d | hwts %d.%09d | Corr %d\n", dir, seq, domain, rx_s, rx_ns, corr)
 }
 
+func (pd *PacketData) IsSync() bool {
+	return pd.Packet.MessageType() == ptp.MessageSync
+}
+
 func (pd *PacketData) GetHeader() *ptp.Header {
 	msgtype := pd.Packet.MessageType()
 	switch msgtype {
@@ -67,8 +71,8 @@ func (pd *PacketData) GetHeader() *ptp.Header {
 
 func (port *Port) BuildPacket(msgtype ptp.MessageType, seq uint16) (*PacketData, error) {
 	hdr := ptp.Header{
-		SdoIDAndMsgType:    ptp.NewSdoIDAndMsgType(ptp.MessageSync, 0),
-		Version:            ptp.Version,
+		SdoIDAndMsgType:    ptp.NewSdoIDAndMsgType(ptp.MessageSync, port.opts.TransportSpecific),
+		Version:            port.GetVersion(),
 		MessageLength:      uint16(binary.Size(ptp.Header{}) + binary.Size(ptp.SyncDelayReqBody{})), //#nosec G115
 		DomainNumber:       port.opts.Domain,
 		FlagField:          ptp.FlagTwoStep, // TODO: check mode and pkt type
@@ -134,8 +138,38 @@ func (port *Port) MakeResponsePDelay(pdelayReq *PacketData) (*PacketData, error)
 
 // Make a FollowUp for a Sync
 func (port *Port) MakeFollowUp(sync *PacketData) (*PacketData, error) {
+	// TODO: Verify domain first?
+	msgtype := sync.Packet.MessageType()
+	if msgtype != ptp.MessageSync {
+		return nil, fmt.Errorf("Expected Sync. Got %s\n", msgtype)
 
-	return nil, fmt.Errorf("Not implemented")
+	}
+	syncPkt := sync.Packet.(*ptp.SyncDelayReq)
+	syncHdr := syncPkt.Header
+	fupHdr := ptp.Header{
+		SdoIDAndMsgType:    ptp.NewSdoIDAndMsgType(ptp.MessageFollowUp, port.opts.TransportSpecific),
+		Version:            port.GetVersion(),
+		MessageLength:      uint16(binary.Size(ptp.Header{}) + binary.Size(ptp.FollowUp{})), //#nosec G115
+		DomainNumber:       syncHdr.DomainNumber,
+		FlagField:          0,
+		SequenceID:         syncHdr.SequenceID,
+		SourcePortIdentity: port.portIdentity,
+		LogMessageInterval: 0,
+		ControlField:       0,
+	}
+	fupPkt := ptp.FollowUp{
+		Header: fupHdr,
+		FollowUpBody: ptp.FollowUpBody{
+			PreciseOriginTimestamp: ptp.NewTimestamp(sync.HwTstamp),
+		},
+	}
+
+	fup := PacketData{
+		Packet: &fupPkt,
+		IsTx:   true,
+	}
+
+	return &fup, nil
 }
 
 // Make a PDelayRespFollowUp for a PDelayResp

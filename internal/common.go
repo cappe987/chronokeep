@@ -13,7 +13,7 @@ type CommonOpts struct {
 	TransportSpecific uint8
 	IngressLatency    uint64
 	EgressLatency     uint64
-	Minor_version     uint8
+	MinorVersion      uint8
 	Domain            uint8
 	Vlan              *int
 	Prio              int
