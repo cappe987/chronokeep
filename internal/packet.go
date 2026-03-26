@@ -186,6 +186,23 @@ func (port *Port) BuildFollowUp(seq uint16) (*PacketData, error) {
 	return nil, fmt.Errorf("Not implemented")
 }
 
+func (port *Port) BuildPDelayReq(seq uint16) *PacketData {
+
+	reqHdr := port.buildHeader(ptp.MessagePDelayReq, seq, false)
+	reqHdr.LogMessageInterval = 127
+
+	reqPkt := ptp.PDelayReq{
+		Header:        reqHdr,
+		PDelayReqBody: ptp.PDelayReqBody{},
+	}
+
+	req := PacketData{
+		Packet: &reqPkt,
+		IsTx:   true,
+	}
+	return &req
+}
+
 // Build GM Announce
 func (port *Port) BuildAnnounce(seq uint16) *PacketData {
 	annoHdr := port.buildHeader(ptp.MessageAnnounce, seq, false)
@@ -222,6 +239,7 @@ func (port *Port) BuildAnnounce(seq uint16) *PacketData {
 func (port *Port) MakeResponseDelay(delayReq *PacketData) *PacketData {
 	reqHdr := delayReq.GetHeader()
 	respHdr := port.buildHeader(ptp.MessageDelayResp, reqHdr.SequenceID, false)
+	respHdr.LogMessageInterval = 127
 
 	respPkt := ptp.DelayResp{
 		Header: respHdr,
@@ -242,6 +260,7 @@ func (port *Port) MakeResponseDelay(delayReq *PacketData) *PacketData {
 func (port *Port) MakeResponsePDelay(pdelayReq *PacketData) *PacketData {
 	reqHdr := pdelayReq.GetHeader()
 	respHdr := port.buildHeader(ptp.MessagePDelayResp, reqHdr.SequenceID, true)
+	respHdr.LogMessageInterval = 127
 
 	respPkt := ptp.PDelayResp{
 		Header: respHdr,
@@ -285,20 +304,22 @@ func (port *Port) MakeFollowUp(sync *PacketData) (*PacketData, error) {
 
 // Make a PDelayRespFollowUp for a PDelayResp
 func (port *Port) MakeFollowUpPDelay(pdelayResp *PacketData) *PacketData {
-	reqHdr := pdelayResp.GetHeader()
-	respHdr := port.buildHeader(ptp.MessagePDelayRespFollowUp, reqHdr.SequenceID, false)
+	respHdr := pdelayResp.GetHeader()
+	respPkt := pdelayResp.Packet.(*ptp.PDelayResp)
+	fupHdr := port.buildHeader(ptp.MessagePDelayRespFollowUp, respHdr.SequenceID, false)
+	fupHdr.LogMessageInterval = 127
 
-	respPkt := ptp.PDelayRespFollowUp{
-		Header: respHdr,
+	fupPkt := ptp.PDelayRespFollowUp{
+		Header: fupHdr,
 		PDelayRespFollowUpBody: ptp.PDelayRespFollowUpBody{
 			ResponseOriginTimestamp: ptp.NewTimestamp(pdelayResp.HwTstamp),
-			RequestingPortIdentity:  reqHdr.SourcePortIdentity,
+			RequestingPortIdentity:  respPkt.PDelayRespBody.RequestingPortIdentity,
 		},
 	}
 
-	resp := PacketData{
-		Packet: &respPkt,
+	fup := PacketData{
+		Packet: &fupPkt,
 		IsTx:   true,
 	}
-	return &resp
+	return &fup
 }
