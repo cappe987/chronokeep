@@ -21,6 +21,8 @@ func PktMode() {
 	interval := 1000
 	help := false
 	opts.Count = 1
+	opts.DestIp = "224.0.1.129"
+	opts.Mac = "01:19:1b:00:00:00" // TODO: 01:80:c2:00:00:0e for pdelays
 
 	getopt.FlagLong(&domain, "domain", 'd', "PTP domain")
 	getopt.FlagLong(&interval, "interval", 'I', "TX packet interval (ms)")
@@ -31,6 +33,9 @@ func PktMode() {
 	getopt.FlagLong(&opts.RxMode, "rx", 'r', "Receive only")
 	getopt.FlagLong(&opts.Udp, "", '4', "Use UDP instead of L2")
 	getopt.FlagLong(&opts.Count, "count", 'c', "Number of packets to transmit. 0=infinite")
+	getopt.FlagLong(&opts.Ip, "sip", 0, "Source IP for UDP mode")
+	getopt.FlagLong(&opts.DestIp, "dip", 0, "Destination IP for UDP mode")
+	getopt.FlagLong(&opts.Mac, "mac", 'm', "Destination MAC for L2 mode")
 	getopt.FlagLong(&help, "help", 'h', "Show this help menu")
 	getopt.Parse()
 	if help {
@@ -38,9 +43,24 @@ func PktMode() {
 		return
 	}
 
-	if opts.Iface == "" {
-		fmt.Println("Must specify interface with -if")
-		return
+	if opts.Udp {
+		if opts.Ip == "" {
+			fmt.Println("Must specify source IP with --sip")
+			return
+		} else if opts.Iface == "" {
+			iface, err := InterfaceFromIP(opts.Ip)
+			if err != nil {
+				fmt.Printf("Unable to find interface with IP %s\n", opts.Ip)
+				return
+			}
+			opts.Iface = iface
+		}
+	} else {
+		if opts.Iface == "" {
+			fmt.Println("Must specify interface with --iface")
+			return
+
+		}
 	}
 	if domain > 255 {
 		fmt.Println("Domain must be 0-255")

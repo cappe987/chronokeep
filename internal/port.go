@@ -89,7 +89,6 @@ type Options struct {
 	Human_readable    bool
 	IngressLatency    uint64
 	EgressLatency     uint64
-	Nonstop_flag      bool
 	TwoStepFlag       bool
 	Interval          time.Duration
 	Pkttype           *ptp.MessageType
@@ -105,6 +104,9 @@ type Options struct {
 	Delay_mode string
 	Clk_type   string
 	Udp        bool
+	Ip         string
+	DestIp     string
+	Mac        string
 
 	RecordPackets bool
 
@@ -377,18 +379,46 @@ func (port *Port) TxMode(input, output chan PacketData, quit chan int) {
 // 	// fmt.Printf("%v\n", port.txRecord)
 // }
 
+func InterfaceFromIP(ipStr string) (string, error) {
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		return "", fmt.Errorf("invalid IP address: %s", ipStr)
+	}
+
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return "", err
+	}
+
+	for _, iface := range ifaces {
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+
+		for _, addr := range addrs {
+			var currentIP net.IP
+
+			switch v := addr.(type) {
+			case *net.IPNet:
+				currentIP = v.IP
+			case *net.IPAddr:
+				currentIP = v.IP
+			}
+
+			if currentIP.Equal(ip) {
+				return iface.Name, nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("no interface found for IP %s", ipStr)
+}
+
 func (port *Port) Init(opts Options, clockid uint16, portnum uint16) error {
 	if opts.Udp {
-		var ip net.IP
-		var dest net.IP
-		if !opts.RxMode {
-			ip = net.IPv4(10, 11, 0, 1)
-			dest = net.IPv4(224, 0, 1, 129)
-			// dest = net.IPv4(10, 11, 0, 2)
-		} else {
-			ip = net.IPv4(10, 11, 0, 2)
-			dest = net.IPv4(10, 11, 0, 1)
-		}
+		ip := net.ParseIP(opts.Ip)
+		dest := net.ParseIP(opts.DestIp)
 		port.IfaceStr = opts.Iface
 		port.Layer = LayerUDPv4
 		port.IP = ip
