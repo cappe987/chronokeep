@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"encoding/binary"
 	"fmt"
 	"log"
 	"net"
@@ -25,63 +24,6 @@ const (
 	event_port   = 319
 	general_port = 320
 )
-
-type PacketData struct {
-	IsTx     bool
-	Packet   ptp.Packet
-	HwTstamp time.Time
-	SwTstamp time.Time
-}
-
-func (pd *PacketData) GetHeader() *ptp.Header {
-	msgtype := pd.Packet.MessageType()
-	switch msgtype {
-	case ptp.MessageSync, ptp.MessageDelayReq:
-		pkt := pd.Packet.(*ptp.SyncDelayReq)
-		return &pkt.Header
-	case ptp.MessagePDelayReq:
-		pkt := pd.Packet.(*ptp.PDelayReq)
-		return &pkt.Header
-	case ptp.MessagePDelayResp:
-		pkt := pd.Packet.(*ptp.PDelayResp)
-		return &pkt.Header
-	case ptp.MessageFollowUp:
-		pkt := pd.Packet.(*ptp.FollowUp)
-		return &pkt.Header
-	case ptp.MessagePDelayRespFollowUp:
-		pkt := pd.Packet.(*ptp.PDelayRespFollowUp)
-		return &pkt.Header
-	case ptp.MessageAnnounce:
-		pkt := pd.Packet.(*ptp.Announce)
-		return &pkt.Header
-	case ptp.MessageSignaling:
-		pkt := pd.Packet.(*ptp.Signaling)
-		return &pkt.Header
-	case ptp.MessageManagement:
-		pkt := pd.Packet.(*ptp.Management)
-		return &pkt.Header
-	default:
-		fmt.Printf("Invalid message type\n")
-		return nil
-	}
-}
-
-func (pd *PacketData) Print() {
-	msgtype := pd.Packet.MessageType()
-	hdr := pd.GetHeader()
-	rx_ns := pd.HwTstamp.UnixNano() % 1000000000
-	rx_s := pd.HwTstamp.Unix()
-	seq := hdr.SequenceID
-	corr := hdr.CorrectionField.Duration()
-	domain := hdr.DomainNumber
-	var dir string
-	if pd.IsTx {
-		dir = fmt.Sprintf("%s ->", msgtype)
-	} else {
-		dir = fmt.Sprintf("<- %s", msgtype)
-	}
-	fmt.Printf("%s | Seq %d | Dom %d | hwts %d.%09d | Corr %d\n", dir, seq, domain, rx_s, rx_ns, corr)
-}
 
 type Port struct {
 	IfaceStr      string
@@ -144,7 +86,7 @@ func (port *Port) receive(buf []byte, oob []byte) (*PacketData, error) {
 	return nil, nil
 }
 
-func (port *Port) ReceiveOne(opts *CommonOpts) (*PacketData, error) {
+func (port *Port) ReceiveOne() (*PacketData, error) {
 	buf := make([]byte, timestamp.PayloadSizeBytes)
 	oob := make([]byte, timestamp.ControlSizeBytes)
 	pd, err := port.receive(buf, oob)
@@ -335,45 +277,3 @@ func (port *Port) Init(opts CommonOpts, clockid uint16, portnum uint16) error {
 	unix.SetsockoptTimeval(port.EFd, unix.SOL_SOCKET, unix.SO_RCVTIMEO, &tmo)
 	return nil
 }
-
-func (port *Port) BuildPacket(msgtype ptp.MessageType, seq uint16) (ptp.Packet, error) {
-	hdr := ptp.Header{
-		SdoIDAndMsgType:    ptp.NewSdoIDAndMsgType(ptp.MessageSync, 0),
-		Version:            ptp.Version,
-		MessageLength:      uint16(binary.Size(ptp.Header{}) + binary.Size(ptp.SyncDelayReqBody{})), //#nosec G115
-		DomainNumber:       port.opts.Domain,
-		FlagField:          ptp.FlagTwoStep, // TODO: check mode
-		SequenceID:         seq,
-		SourcePortIdentity: port.portIdentity,
-		LogMessageInterval: 0,
-		ControlField:       0,
-	}
-	var p ptp.Packet
-	switch msgtype {
-	case ptp.MessageSync, ptp.MessageDelayReq:
-		p = &ptp.SyncDelayReq{Header: hdr}
-	case ptp.MessagePDelayReq:
-		p = &ptp.PDelayReq{Header: hdr}
-	case ptp.MessagePDelayResp:
-		p = &ptp.PDelayResp{Header: hdr}
-	case ptp.MessageFollowUp:
-		p = &ptp.FollowUp{Header: hdr}
-	case ptp.MessageDelayResp:
-		p = &ptp.DelayResp{Header: hdr}
-	case ptp.MessagePDelayRespFollowUp:
-		p = &ptp.PDelayRespFollowUp{Header: hdr}
-	case ptp.MessageAnnounce:
-		p = &ptp.Announce{Header: hdr}
-	case ptp.MessageSignaling:
-		p = &ptp.Signaling{Header: hdr}
-	// case ptp.MessageManagement:
-	// p = &ptp.Management{Header: hdr}
-	default:
-		return nil, fmt.Errorf("unsupported type %s", msgtype)
-	}
-	return p, nil
-}
-
-// func (pkt *ptp.Packet) ToBytes() ([]bytes, n) {
-
-// }

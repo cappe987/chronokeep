@@ -141,11 +141,10 @@ func stopTx(txCh chan PacketData, ticker *time.Ticker) {
 }
 
 func txPacket(port Port, pktOpts *PktOpts, txCh chan PacketData) {
-	pkt, err := port.BuildPacket(ptp.MessageSync, pktOpts.Seq)
+	pd, err := port.BuildPacket(ptp.MessageSync, pktOpts.Seq)
 	if err != nil {
 		log.Fatalf("Failed building packet: %s", err)
 	}
-	pd := PacketData{Packet: pkt, IsTx: true}
-	txCh <- pd
+	txCh <- *pd
 	pktOpts.Seq += 1
 }
