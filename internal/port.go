@@ -202,15 +202,15 @@ func (port *Port) transmitPkt(pkt *ptp.Packet) error {
 func (port *Port) transmit_get_ts(pkt *ptp.Packet, oob []byte, toob []byte) (*time.Time, *time.Time, error) {
 	// port.txRecord = append(port.txRecord, pkt)
 	err := port.transmitPkt(pkt)
-	swtx := time.Now()
+	swts := time.Now()
 	if err != nil {
 		return nil, nil, err
 	}
-	hwtx, _, err := timestamp.ReadTXtimestampBuf(port.EFd, oob, toob)
+	hwts, _, err := timestamp.ReadTXtimestampBuf(port.EFd, oob, toob)
 	if err != nil {
 		return nil, nil, err
 	}
-	return &hwtx, &swtx, nil
+	return &hwts, &swts, nil
 }
 
 // TODO: Handle event vs general packets. Now everything expects timestamp

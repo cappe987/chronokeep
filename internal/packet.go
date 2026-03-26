@@ -189,7 +189,12 @@ func (port *Port) BuildFollowUp(seq uint16) (*PacketData, error) {
 // Build GM Announce
 func (port *Port) BuildAnnounce(seq uint16) *PacketData {
 	annoHdr := port.buildHeader(ptp.MessageAnnounce, seq, false)
-	annoHdr.FlagField = ptp.FlagPTPTimescale | ptp.FlagCurrentUtcOffsetValid
+
+	// Only set PTP timescale if using Hwtstamp. With SW this results in
+	// being off by current UTC offset.
+	if !port.opts.SwTstamp {
+		annoHdr.FlagField = ptp.FlagPTPTimescale | ptp.FlagCurrentUtcOffsetValid
+	}
 
 	annoPkt := ptp.Announce{
 		Header: annoHdr,
@@ -263,25 +268,13 @@ func (port *Port) MakeFollowUp(sync *PacketData) (*PacketData, error) {
 	}
 	syncPkt := sync.Packet.(*ptp.SyncDelayReq)
 	syncHdr := syncPkt.Header
-	fupHdr := ptp.Header{
-		SdoIDAndMsgType:    ptp.NewSdoIDAndMsgType(ptp.MessageFollowUp, port.opts.TransportSpecific),
-		Version:            port.GetVersion(),
-		MessageLength:      uint16(binary.Size(ptp.Header{}) + binary.Size(ptp.FollowUpBody{})), //#nosec G115
-		DomainNumber:       syncHdr.DomainNumber,
-		FlagField:          0,
-		SequenceID:         syncHdr.SequenceID,
-		SourcePortIdentity: port.portIdentity,
-		LogMessageInterval: 0,
-		ControlField:       0,
-	}
-
+	fupHdr := port.buildHeader(ptp.MessageFollowUp, syncHdr.SequenceID, false)
 	fupPkt := ptp.FollowUp{
 		Header: fupHdr,
 		FollowUpBody: ptp.FollowUpBody{
 			PreciseOriginTimestamp: ptp.NewTimestamp(sync.HwTstamp),
 		},
 	}
-
 	fup := PacketData{
 		Packet: &fupPkt,
 		IsTx:   true,
