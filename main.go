@@ -23,6 +23,7 @@ func Usage() {
 	fmt.Println("")
 	fmt.Println("Modes:")
 	fmt.Println("\tpkt - Send and receive timestamped packets")
+	fmt.Println("\tgm - Run a PTP GM on a port")
 	fmt.Println("\textts - Listen to EXTTS events")
 	fmt.Println("\tdelay - Perform path delay measurements")
 	fmt.Println("\tte - Measure time error and accuracy")

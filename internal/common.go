@@ -58,12 +58,14 @@ func (opts *CommonOpts) Validate() {
 		} else if opts.Iface == "" {
 			iface, err := InterfaceFromIP(opts.Ip)
 			if err != nil {
+				getopt.Usage()
 				log.Fatalf("Unable to find interface with IP %s\n", opts.Ip)
 			}
 			opts.Iface = iface
 		}
 	} else {
 		if opts.Iface == "" {
+			getopt.Usage()
 			log.Fatalf("Must specify interface with --iface")
 
 		}
