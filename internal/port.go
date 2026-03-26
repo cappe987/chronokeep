@@ -83,48 +83,6 @@ func (pd *PacketData) Print() {
 	fmt.Printf("%s | Seq %d | Dom %d | hwts %d.%09d | Corr %d\n", dir, seq, domain, rx_s, rx_ns, corr)
 }
 
-type Options struct {
-	TransportSpecific uint8
-	TwoStepFlag_set   bool
-	Human_readable    bool
-	IngressLatency    uint64
-	EgressLatency     uint64
-	TwoStepFlag       bool
-	Interval          time.Duration
-	Pkttype           *ptp.MessageType
-	Minor_version     uint8
-	Domain            uint8
-	Count             int
-	Vlan              *int
-	Prio              int
-	Seq               uint16
-
-	RxMode     bool
-	Iface      string
-	Delay_mode string
-	Clk_type   string
-	Udp        bool
-	Ip         string
-	DestIp     string
-	Mac        string
-
-	RecordPackets bool
-
-	// tstamp_all        int
-	// auto_fup          int
-	// listen   int
-	// unsigned char mac[ETH_ALEN];
-	// char *interface;
-	// int sequence_types[SEQUENCE_MAX];
-	// int sequence_length;
-
-	// TODO: time/timestamp needs to be patched to support this.
-	// enum delay_mechanism dm;
-	// enum hwtstamp_clk_types clk_type;
-	// header_offset     uint
-
-}
-
 type Port struct {
 	IfaceStr      string
 	IP            net.IP
@@ -135,7 +93,7 @@ type Port struct {
 	txRecord      []PacketData
 	rxRecord      []PacketData
 	RecordPackets bool
-	opts          Options
+	opts          CommonOpts
 	portIdentity  ptp.PortIdentity
 }
 
@@ -186,7 +144,7 @@ func (port *Port) receive(buf []byte, oob []byte) (*PacketData, error) {
 	return nil, nil
 }
 
-func (port *Port) ReceiveOne(opts *Options) (*PacketData, error) {
+func (port *Port) ReceiveOne(opts *CommonOpts) (*PacketData, error) {
 	buf := make([]byte, timestamp.PayloadSizeBytes)
 	oob := make([]byte, timestamp.ControlSizeBytes)
 	pd, err := port.receive(buf, oob)
@@ -321,114 +279,18 @@ func (port *Port) TxMode(input, output chan PacketData, quit chan int) {
 	close(output)
 }
 
-// func (port *Port) TxMode() {
-// 	// syncP := &ptp.SyncDelayReq{
-// 	// 	Header: ptp.Header{
-// 	// 		SdoIDAndMsgType: ptp.NewSdoIDAndMsgType(ptp.MessageSync, 0),
-// 	// 		Version:         ptp.Version,
-// 	// 		MessageLength:   uint16(binary.Size(ptp.Header{}) + binary.Size(ptp.SyncDelayReqBody{})), //#nosec G115
-// 	// 		DomainNumber:    opts.Domain,
-// 	// 		FlagField:       ptp.FlagTwoStep,
-// 	// 		SequenceID:      opts.Seq,
-// 	// 		SourcePortIdentity: ptp.PortIdentity{
-// 	// 			PortNumber:    1,
-// 	// 			ClockIdentity: 0x000000fffeaa0000,
-// 	// 		},
-// 	// 		LogMessageInterval: 0,
-// 	// 		ControlField:       0,
-// 	// 	},
-// 	// }
-// 	pkt, err := port.buildPacket(ptp.MessageSync, port.opts.Seq)
-// 	if err != nil {
-// 		log.Fatalf("Failed building packet: %s", err)
-// 	}
-
-// 	seq := port.opts.Seq
-// 	oob := make([]byte, timestamp.ControlSizeBytes)
-// 	toob := make([]byte, timestamp.ControlSizeBytes)
-// 	for i := range port.opts.Count {
-// 		// err := port.transmit(syncP)
-// 		// if err != nil {
-// 		// 	continue
-// 		// }
-// 		// txTS, _, err := timestamp.ReadTXtimestampBuf(port.EFd, oob, toob)
-// 		// if err != nil {
-// 		// 	continue
-// 		// }
-// 		hwts, swts, err := port.transmit_get_ts(&pkt, oob, toob)
-// 		data := PacketData{
-// 			Packet:   pkt,
-// 			HwTstamp: *hwts,
-// 			SwTstamp: *swts,
-// 		}
-// 		port.recordTx(data)
-// 		seq += 1
-// 		pkt.SetSequence(seq)
-// 		if err != nil {
-// 			continue
-// 		}
-// 		// fmt.Println(swts.UnixNano())
-// 		tx_ns := data.HwTstamp.UnixNano() % 1000000000
-// 		tx_s := data.HwTstamp.Unix()
-// 		fmt.Printf("hwts %d.%09d\n", tx_s, tx_ns)
-// 		// fmt.Println(hwts.UnixNano())
-// 		if i+1 != port.opts.Count {
-// 			time.Sleep(port.opts.Interval)
-// 		}
-// 	}
-// 	// fmt.Printf("%v\n", port.txRecord)
-// }
-
-func InterfaceFromIP(ipStr string) (string, error) {
-	ip := net.ParseIP(ipStr)
-	if ip == nil {
-		return "", fmt.Errorf("invalid IP address: %s", ipStr)
-	}
-
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return "", err
-	}
-
-	for _, iface := range ifaces {
-		addrs, err := iface.Addrs()
-		if err != nil {
-			continue
-		}
-
-		for _, addr := range addrs {
-			var currentIP net.IP
-
-			switch v := addr.(type) {
-			case *net.IPNet:
-				currentIP = v.IP
-			case *net.IPAddr:
-				currentIP = v.IP
-			}
-
-			if currentIP.Equal(ip) {
-				return iface.Name, nil
-			}
-		}
-	}
-
-	return "", fmt.Errorf("no interface found for IP %s", ipStr)
-}
-
-func (port *Port) Init(opts Options, clockid uint16, portnum uint16) error {
+func (port *Port) Init(opts CommonOpts, clockid uint16, portnum uint16) error {
 	if opts.Udp {
 		ip := net.ParseIP(opts.Ip)
 		dest := net.ParseIP(opts.DestIp)
-		port.IfaceStr = opts.Iface
 		port.Layer = LayerUDPv4
 		port.IP = ip
 		port.DestIP = dest
-		port.RecordPackets = true
 	} else {
-		port.IfaceStr = opts.Iface
 		port.Layer = LayerMac
-		port.RecordPackets = true
 	}
+	port.IfaceStr = opts.Iface
+	port.RecordPackets = true
 	// Use portnum in clockid to make it unique for each port since we will
 	// never run as a BC/TC.
 	// TODO: Should other instances use other portnums?

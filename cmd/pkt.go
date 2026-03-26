@@ -14,64 +14,53 @@ import (
 	"github.com/pborman/getopt/v2"
 )
 
+type PktOpts struct {
+	TwoStepFlag_set bool
+	Human_readable  bool
+	TwoStepFlag     bool
+	Interval        time.Duration
+	Pkttype         *ptp.MessageType
+	Count           uint32
+	Seq             uint16
+
+	RxMode     bool
+	Delay_mode string
+	Clk_type   string
+
+	// tstamp_all        int
+	// auto_fup          int
+	// listen   int
+	// int sequence_types[SEQUENCE_MAX];
+	// int sequence_length;
+
+	// TODO: time/timestamp needs to be patched to support this.
+	// enum delay_mechanism dm;
+	// enum hwtstamp_clk_types clk_type;
+	// header_offset     uint
+}
+
 func PktMode() {
 	var port Port
-	var opts = Options{}
-	domain := 0
-	interval := 1000
-	help := false
-	opts.Count = 1
-	opts.DestIp = "224.0.1.129"
-	opts.Mac = "01:19:1b:00:00:00" // TODO: 01:80:c2:00:00:0e for pdelays
+	var opts = CommonOpts{}
+	var pktOpts = PktOpts{}
+	interval := uint32(1000)
+	pktOpts.Count = 1
+	opts.DestIp = "224.0.1.129"    // TODO: 224.0.0.107 for pdelays
+	opts.Mac = "01:1b:19:00:00:00" // TODO: 01:80:c2:00:00:0e for pdelays
 
-	getopt.FlagLong(&domain, "domain", 'd', "PTP domain")
+	opts.DefineCommonFlags()
 	getopt.FlagLong(&interval, "interval", 'I', "TX packet interval (ms)")
-	getopt.FlagLong(&opts.Iface, "iface", 'i', "Interface to operate on")
-	getopt.FlagLong(&opts.Seq, "seq", 's', "Starting SequenceID")
-	getopt.FlagLong(&opts.IngressLatency, "ilat", 0, "Ingress latency")
-	getopt.FlagLong(&opts.EgressLatency, "elat", 0, "Egress latency")
-	getopt.FlagLong(&opts.RxMode, "rx", 'r', "Receive only")
-	getopt.FlagLong(&opts.Udp, "", '4', "Use UDP instead of L2")
-	getopt.FlagLong(&opts.Count, "count", 'c', "Number of packets to transmit. 0=infinite")
-	getopt.FlagLong(&opts.Ip, "sip", 0, "Source IP for UDP mode")
-	getopt.FlagLong(&opts.DestIp, "dip", 0, "Destination IP for UDP mode")
-	getopt.FlagLong(&opts.Mac, "mac", 'm', "Destination MAC for L2 mode")
-	getopt.FlagLong(&help, "help", 'h', "Show this help menu")
+	getopt.FlagLong(&pktOpts.Seq, "seq", 's', "Starting SequenceID")
+	getopt.FlagLong(&pktOpts.RxMode, "rx", 'r', "Receive only")
+	getopt.FlagLong(&pktOpts.Count, "count", 'c', "Number of packets to transmit. 0=infinite")
 	getopt.Parse()
-	if help {
-		getopt.Usage()
-		return
-	}
-
-	if opts.Udp {
-		if opts.Ip == "" {
-			fmt.Println("Must specify source IP with --sip")
-			return
-		} else if opts.Iface == "" {
-			iface, err := InterfaceFromIP(opts.Ip)
-			if err != nil {
-				fmt.Printf("Unable to find interface with IP %s\n", opts.Ip)
-				return
-			}
-			opts.Iface = iface
-		}
-	} else {
-		if opts.Iface == "" {
-			fmt.Println("Must specify interface with --iface")
-			return
-
-		}
-	}
-	if domain > 255 {
-		fmt.Println("Domain must be 0-255")
-		return
-	}
+	opts.Validate()
 	if interval < 0 {
 		fmt.Println("Interval must be >= 0")
 		return
 	}
-	opts.Domain = uint8(domain)
-	opts.Interval = time.Duration(interval) * time.Millisecond
+	// TODO: Allow setting interval 0 to skip using ticker
+	pktOpts.Interval = time.Duration(interval) * time.Millisecond
 
 	err := port.Init(opts, 0, 1)
 	if err != nil {
@@ -82,7 +71,7 @@ func PktMode() {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	rxCh := make(chan PacketData, 100)
 	quit := make(chan int)
-	if opts.RxMode {
+	if pktOpts.RxMode {
 		go port.RxMode(rxCh, quit)
 
 		running := true
@@ -98,17 +87,17 @@ func PktMode() {
 	} else {
 		txCh := make(chan PacketData, 100)
 		outCh := make(chan PacketData, 100)
-		ticker := time.NewTicker(opts.Interval)
+		ticker := time.NewTicker(pktOpts.Interval)
 
 		go port.TxMode(txCh, outCh, quit)
 		go port.RxMode(rxCh, quit)
 
-		count := 1
+		count := uint32(1)
 		infinite := false
-		txPacket(port, &opts, txCh)
-		if opts.Count == 0 {
+		txPacket(port, &pktOpts, txCh)
+		if pktOpts.Count == 0 {
 			infinite = true
-		} else if opts.Count == 1 {
+		} else if pktOpts.Count == 1 {
 			stopTx(txCh, ticker)
 		}
 		running := true
@@ -130,12 +119,12 @@ func PktMode() {
 				}
 				pd.Print()
 			case <-ticker.C:
-				txPacket(port, &opts, txCh)
+				txPacket(port, &pktOpts, txCh)
 				if infinite {
 					continue
 				}
 				count += 1
-				if count >= opts.Count {
+				if count >= pktOpts.Count {
 					stopTx(txCh, ticker)
 					continue
 				}
@@ -151,12 +140,12 @@ func stopTx(txCh chan PacketData, ticker *time.Ticker) {
 	ticker.Stop()
 }
 
-func txPacket(port Port, opts *Options, txCh chan PacketData) {
-	pkt, err := port.BuildPacket(ptp.MessageSync, opts.Seq)
+func txPacket(port Port, pktOpts *PktOpts, txCh chan PacketData) {
+	pkt, err := port.BuildPacket(ptp.MessageSync, pktOpts.Seq)
 	if err != nil {
 		log.Fatalf("Failed building packet: %s", err)
 	}
 	pd := PacketData{Packet: pkt, IsTx: true}
 	txCh <- pd
-	opts.Seq += 1
+	pktOpts.Seq += 1
 }
