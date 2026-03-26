@@ -71,6 +71,10 @@ func (port *Port) receive(buf []byte, oob []byte) (*PacketData, error) {
 			SwTstamp: swts,
 			IsTx:     false,
 		}
+		hdr := data.GetHeader()
+		if hdr.DomainNumber != port.opts.Domain {
+			return nil, fmt.Errorf("Wrong domain, got %d", hdr.DomainNumber)
+		}
 		port.recordRx(*data)
 		return data, nil
 	case LayerUDPv4:
@@ -163,6 +167,7 @@ func (port *Port) transmitPkt(pkt *ptp.Packet) error {
 
 	// n, err := ptp.BytesTo(*pkt, buf)
 	bytes, err := ptp.Bytes(*pkt)
+	bytes = bytes[:len(bytes)-2]
 	// n = n - 2 // Trim the unused TLV
 	if err != nil {
 		log.Fatalf("Failed to generate the sync packet: %v", err)
@@ -170,6 +175,11 @@ func (port *Port) transmitPkt(pkt *ptp.Packet) error {
 
 	if port.Layer == LayerMac {
 		hdr := []byte{0x01, 0x1b, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xaa, 0xaa, 0xaa, 0x88, 0xf7}
+		p := *pkt
+		msgtype := p.MessageType()
+		if msgtype == ptp.MessagePDelayReq || msgtype == ptp.MessagePDelayResp || msgtype == ptp.MessagePDelayRespFollowUp {
+			hdr = []byte{0x01, 0x80, 0xC2, 0x00, 0x00, 0x0E, 0x00, 0x00, 0x00, 0xaa, 0xaa, 0xaa, 0x88, 0xf7}
+		}
 		// packet := append(hdr, buf[:n]...)
 		packet := append(hdr, bytes...)
 		// fmt.Println(len(packet), n)

@@ -29,6 +29,10 @@ type CommonOpts struct {
 }
 
 func (opts *CommonOpts) DefineCommonFlags() {
+	opts.DestIp = "224.0.1.129"    // TODO: 224.0.0.107 for pdelays
+	opts.Mac = "01:1b:19:00:00:00" // TODO: 01:80:c2:00:00:0e for pdelays
+	opts.RecordPackets = true      // Always true for now
+
 	getopt.FlagLong(&opts.Domain, "domain", 'd', "PTP domain")
 	getopt.FlagLong(&opts.Iface, "iface", 'i', "Interface to operate on")
 	getopt.FlagLong(&opts.IngressLatency, "ilat", 0, "Ingress latency")
@@ -64,7 +68,6 @@ func (opts *CommonOpts) Validate() {
 
 		}
 	}
-	opts.RecordPackets = true // Always true for now
 }
 
 func InterfaceFromIP(ipStr string) (string, error) {

@@ -25,9 +25,9 @@ func (pd *PacketData) Print() {
 	domain := hdr.DomainNumber
 	var dir string
 	if pd.IsTx {
-		dir = fmt.Sprintf("%s ->", msgtype)
+		dir = fmt.Sprintf("%-10s ->", msgtype)
 	} else {
-		dir = fmt.Sprintf("<- %s", msgtype)
+		dir = fmt.Sprintf("<- %10s", msgtype)
 	}
 	fmt.Printf("%s | Seq %d | Dom %d | hwts %d.%09d | Corr %d\n", dir, seq, domain, rx_s, rx_ns, corr)
 }
@@ -36,11 +36,27 @@ func (pd *PacketData) IsSync() bool {
 	return pd.Packet.MessageType() == ptp.MessageSync
 }
 
+func (pd *PacketData) IsDelayReq() bool {
+	return pd.Packet.MessageType() == ptp.MessageDelayReq
+}
+
+func (pd *PacketData) IsPDelayReq() bool {
+	return pd.Packet.MessageType() == ptp.MessagePDelayReq
+}
+
+func (pd *PacketData) IsPDelay() bool {
+	msgtype := pd.Packet.MessageType()
+	return msgtype == ptp.MessagePDelayReq || msgtype == ptp.MessagePDelayResp || msgtype == ptp.MessagePDelayRespFollowUp
+}
+
 func (pd *PacketData) GetHeader() *ptp.Header {
 	msgtype := pd.Packet.MessageType()
 	switch msgtype {
 	case ptp.MessageSync, ptp.MessageDelayReq:
 		pkt := pd.Packet.(*ptp.SyncDelayReq)
+		return &pkt.Header
+	case ptp.MessageDelayResp:
+		pkt := pd.Packet.(*ptp.DelayResp)
 		return &pkt.Header
 	case ptp.MessagePDelayReq:
 		pkt := pd.Packet.(*ptp.PDelayReq)
@@ -69,18 +85,66 @@ func (pd *PacketData) GetHeader() *ptp.Header {
 	}
 }
 
-func (port *Port) BuildPacket(msgtype ptp.MessageType, seq uint16) (*PacketData, error) {
-	hdr := ptp.Header{
-		SdoIDAndMsgType:    ptp.NewSdoIDAndMsgType(ptp.MessageSync, port.opts.TransportSpecific),
+func getSize(msgtype ptp.MessageType) uint16 {
+	var size int
+	switch msgtype {
+	case ptp.MessageSync, ptp.MessageDelayReq:
+		size = binary.Size(ptp.SyncDelayReqBody{})
+	case ptp.MessageDelayResp:
+		size = binary.Size(ptp.DelayRespBody{})
+	case ptp.MessagePDelayReq:
+		size = binary.Size(ptp.PDelayReqBody{})
+	case ptp.MessagePDelayResp:
+		size = binary.Size(ptp.PDelayRespBody{})
+	case ptp.MessageFollowUp:
+		size = binary.Size(ptp.FollowUpBody{})
+	case ptp.MessagePDelayRespFollowUp:
+		size = binary.Size(ptp.PDelayRespFollowUpBody{})
+	case ptp.MessageAnnounce:
+		size = binary.Size(ptp.AnnounceBody{})
+	// case ptp.MessageSignaling:
+	// size = binary.Size(ptp.SignalingBody{})
+	// case ptp.MessageManagement:
+	// size = binary.Size(ptp.ManagementBody{})
+	default:
+		fmt.Printf("Invalid message type: %s\n", msgtype)
+		size = 0
+	}
+	return uint16(size)
+}
+
+func (port *Port) buildHeader(msgtype ptp.MessageType, seq uint16, setTwoStepFlag bool) ptp.Header {
+	twostep := ptp.FlagTwoStep
+	if !setTwoStepFlag {
+		twostep = 0
+	}
+	return ptp.Header{
+		SdoIDAndMsgType:    ptp.NewSdoIDAndMsgType(msgtype, port.opts.TransportSpecific),
 		Version:            port.GetVersion(),
-		MessageLength:      uint16(binary.Size(ptp.Header{}) + binary.Size(ptp.SyncDelayReqBody{})), //#nosec G115
+		MessageLength:      uint16(binary.Size(ptp.Header{})) + getSize(msgtype), //#nosec G115
 		DomainNumber:       port.opts.Domain,
-		FlagField:          ptp.FlagTwoStep, // TODO: check mode and pkt type
+		FlagField:          twostep,
 		SequenceID:         seq,
 		SourcePortIdentity: port.portIdentity,
 		LogMessageInterval: 0,
 		ControlField:       0,
 	}
+
+}
+
+func (port *Port) BuildPacket(msgtype ptp.MessageType, seq uint16) (*PacketData, error) {
+	// hdr := ptp.Header{
+	// 	SdoIDAndMsgType:    ptp.NewSdoIDAndMsgType(ptp.MessageSync, port.opts.TransportSpecific),
+	// 	Version:            port.GetVersion(),
+	// 	MessageLength:      uint16(binary.Size(ptp.Header{}) + binary.Size(ptp.SyncDelayReqBody{})), //#nosec G115
+	// 	DomainNumber:       port.opts.Domain,
+	// 	FlagField:          ptp.FlagTwoStep, // TODO: check mode and pkt type
+	// 	SequenceID:         seq,
+	// 	SourcePortIdentity: port.portIdentity,
+	// 	LogMessageInterval: 0,
+	// 	ControlField:       0,
+	// }
+	hdr := port.buildHeader(msgtype, seq, true)
 	var p ptp.Packet
 	switch msgtype {
 	case ptp.MessageSync, ptp.MessageDelayReq:
@@ -122,18 +186,71 @@ func (port *Port) BuildFollowUp(seq uint16) (*PacketData, error) {
 	return nil, fmt.Errorf("Not implemented")
 }
 
+// Build GM Announce
+func (port *Port) BuildAnnounce(seq uint16) *PacketData {
+	annoHdr := port.buildHeader(ptp.MessageAnnounce, seq, false)
+	annoHdr.FlagField = ptp.FlagPTPTimescale | ptp.FlagCurrentUtcOffsetValid
+
+	annoPkt := ptp.Announce{
+		Header: annoHdr,
+		AnnounceBody: ptp.AnnounceBody{
+			CurrentUTCOffset:     37,
+			GrandmasterPriority1: 1,
+			TimeSource:           ptp.TimeSourceInternalOscillator,
+			GrandmasterClockQuality: ptp.ClockQuality{
+				ClockClass:    6,
+				ClockAccuracy: 21,
+			},
+		},
+	}
+
+	anno := PacketData{
+		Packet: &annoPkt,
+		IsTx:   true,
+	}
+	return &anno
+}
+
 // TODO: More Build functions
 
 // Make a DelayResp response for a DelayReq
-func (port *Port) MakeResponseDelay(delayReq *PacketData) (*PacketData, error) {
+func (port *Port) MakeResponseDelay(delayReq *PacketData) *PacketData {
+	reqHdr := delayReq.GetHeader()
+	respHdr := port.buildHeader(ptp.MessageDelayResp, reqHdr.SequenceID, false)
 
-	return nil, fmt.Errorf("Not implemented")
+	respPkt := ptp.DelayResp{
+		Header: respHdr,
+		DelayRespBody: ptp.DelayRespBody{
+			ReceiveTimestamp:       ptp.NewTimestamp(delayReq.HwTstamp),
+			RequestingPortIdentity: reqHdr.SourcePortIdentity,
+		},
+	}
+
+	resp := PacketData{
+		Packet: &respPkt,
+		IsTx:   true,
+	}
+	return &resp
 }
 
 // Make a PDelayResp response for a PDelayRequest
-func (port *Port) MakeResponsePDelay(pdelayReq *PacketData) (*PacketData, error) {
+func (port *Port) MakeResponsePDelay(pdelayReq *PacketData) *PacketData {
+	reqHdr := pdelayReq.GetHeader()
+	respHdr := port.buildHeader(ptp.MessagePDelayResp, reqHdr.SequenceID, true)
 
-	return nil, fmt.Errorf("Not implemented")
+	respPkt := ptp.PDelayResp{
+		Header: respHdr,
+		PDelayRespBody: ptp.PDelayRespBody{
+			RequestReceiptTimestamp: ptp.NewTimestamp(pdelayReq.HwTstamp),
+			RequestingPortIdentity:  reqHdr.SourcePortIdentity,
+		},
+	}
+
+	resp := PacketData{
+		Packet: &respPkt,
+		IsTx:   true,
+	}
+	return &resp
 }
 
 // Make a FollowUp for a Sync
@@ -149,7 +266,7 @@ func (port *Port) MakeFollowUp(sync *PacketData) (*PacketData, error) {
 	fupHdr := ptp.Header{
 		SdoIDAndMsgType:    ptp.NewSdoIDAndMsgType(ptp.MessageFollowUp, port.opts.TransportSpecific),
 		Version:            port.GetVersion(),
-		MessageLength:      uint16(binary.Size(ptp.Header{}) + binary.Size(ptp.FollowUp{})), //#nosec G115
+		MessageLength:      uint16(binary.Size(ptp.Header{}) + binary.Size(ptp.FollowUpBody{})), //#nosec G115
 		DomainNumber:       syncHdr.DomainNumber,
 		FlagField:          0,
 		SequenceID:         syncHdr.SequenceID,
@@ -157,6 +274,7 @@ func (port *Port) MakeFollowUp(sync *PacketData) (*PacketData, error) {
 		LogMessageInterval: 0,
 		ControlField:       0,
 	}
+
 	fupPkt := ptp.FollowUp{
 		Header: fupHdr,
 		FollowUpBody: ptp.FollowUpBody{
@@ -173,7 +291,21 @@ func (port *Port) MakeFollowUp(sync *PacketData) (*PacketData, error) {
 }
 
 // Make a PDelayRespFollowUp for a PDelayResp
-func (port *Port) MakeFollowUpPdelay(pdelayResp *PacketData) (*PacketData, error) {
+func (port *Port) MakeFollowUpPDelay(pdelayResp *PacketData) *PacketData {
+	reqHdr := pdelayResp.GetHeader()
+	respHdr := port.buildHeader(ptp.MessagePDelayRespFollowUp, reqHdr.SequenceID, false)
 
-	return nil, fmt.Errorf("Not implemented")
+	respPkt := ptp.PDelayRespFollowUp{
+		Header: respHdr,
+		PDelayRespFollowUpBody: ptp.PDelayRespFollowUpBody{
+			ResponseOriginTimestamp: ptp.NewTimestamp(pdelayResp.HwTstamp),
+			RequestingPortIdentity:  reqHdr.SourcePortIdentity,
+		},
+	}
+
+	resp := PacketData{
+		Packet: &respPkt,
+		IsTx:   true,
+	}
+	return &resp
 }

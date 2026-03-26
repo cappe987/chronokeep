@@ -49,7 +49,8 @@ func main() {
 	// fmt.Printf("Args: %v\n", os.Args)
 	if arg == "pkt" {
 		cmd.PktMode()
-		return
+	} else if arg == "gm" {
+		cmd.GmMode()
 	} else if arg == "-v" || arg == "--version" || arg == "version" {
 		fmt.Println("intime - v0.1")
 	} else {

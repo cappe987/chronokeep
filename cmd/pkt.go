@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	. "intime/internal"
 	"log"
 	"os"
@@ -45,8 +44,6 @@ func PktMode() {
 	var pktOpts = PktOpts{}
 	interval := uint32(1000)
 	pktOpts.Count = 1
-	opts.DestIp = "224.0.1.129"    // TODO: 224.0.0.107 for pdelays
-	opts.Mac = "01:1b:19:00:00:00" // TODO: 01:80:c2:00:00:0e for pdelays
 
 	opts.DefineCommonFlags()
 	getopt.FlagLong(&interval, "interval", 'I', "TX packet interval (ms)")
@@ -55,10 +52,6 @@ func PktMode() {
 	getopt.FlagLong(&pktOpts.Count, "count", 'c', "Number of packets to transmit. 0=infinite")
 	getopt.Parse()
 	opts.Validate()
-	if interval < 0 {
-		fmt.Println("Interval must be >= 0")
-		return
-	}
 	// TODO: Allow setting interval 0 to skip using ticker
 	pktOpts.Interval = time.Duration(interval) * time.Millisecond
 
