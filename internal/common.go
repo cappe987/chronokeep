@@ -24,6 +24,8 @@ type CommonOpts struct {
 	Mac               string
 	RecordPackets     bool
 	Help              bool
+	SwTstamp          bool
+	Onestep           bool
 }
 
 func (opts *CommonOpts) DefineCommonFlags() {
@@ -36,6 +38,8 @@ func (opts *CommonOpts) DefineCommonFlags() {
 	getopt.FlagLong(&opts.DestIp, "dip", 0, "Destination IP for UDP mode")
 	getopt.FlagLong(&opts.Mac, "mac", 'm', "Destination MAC for L2 mode")
 	getopt.FlagLong(&opts.Help, "help", 'h', "Show this help menu")
+	getopt.FlagLong(&opts.SwTstamp, "swtstamp", 'S', "Software timestamping")
+	getopt.FlagLong(&opts.Onestep, "onestep", 'o', "Onestep timestamping")
 }
 
 func (opts *CommonOpts) Validate() {

@@ -311,7 +311,13 @@ func (port *Port) Init(opts CommonOpts, clockid uint16, portnum uint16) error {
 		fmt.Printf("Failed fetching interface\n")
 		return err
 	}
-	if err := timestamp.EnableTimestamps(timestamp.SW, port.EFd, netif); err != nil {
+	tstamp := timestamp.HW
+	if opts.SwTstamp {
+		tstamp = timestamp.SW
+	} else if opts.Onestep {
+		tstamp = timestamp.HWONESTEP
+	}
+	if err := timestamp.EnableTimestamps(tstamp, port.EFd, netif); err != nil {
 		fmt.Printf("Failed enabling timestamps\n")
 		return err
 	}
