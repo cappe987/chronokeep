@@ -10,21 +10,24 @@ import (
 
 	ptp "github.com/facebook/time/ptp/protocol"
 	timestamp "github.com/facebook/time/timestamp"
-	"github.com/pborman/getopt/v2"
 )
 
 func GmMode() {
 	var port Port
-	var opts = CommonOpts{}
+	var opts = CommonOpts{Mode: "gm"}
 	interval_ms := uint32(1000)
 	pdelayMode := false
 
 	opts.DefineCommonFlags()
 	opts.RecordPackets = false
-	getopt.FlagLong(&interval_ms, "interval", 'I', "TX packet interval (ms)")
-	getopt.FlagLong(&pdelayMode, "peertopeer", 'P', "P2P Mode")
-	getopt.Parse()
-	opts.Validate()
+	opts.AddModeOpt("gm", &interval_ms, 'I', "interval", "<ms>", "TX packet interval (ms)")
+	opts.AddModeOpt("gm", &pdelayMode, 'P', "peertopeer", "", "P2P Mode")
+	if !opts.Parse() {
+		return
+	}
+
+	////////////////////////////////////////////////////
+
 	Interval := time.Duration(interval_ms) * time.Millisecond
 
 	err := port.Init(opts, 0, 1)

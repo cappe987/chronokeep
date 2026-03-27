@@ -41,18 +41,21 @@ type PktOpts struct {
 
 func PktMode() {
 	var port Port
-	var opts = CommonOpts{}
+	var opts = CommonOpts{Mode: "pkt"}
 	var pktOpts = PktOpts{}
 	interval := uint32(1000)
 	pktOpts.Count = 1
 
 	opts.DefineCommonFlags()
-	getopt.FlagLong(&interval, "interval", 'I', "TX packet interval (ms)")
-	getopt.FlagLong(&pktOpts.Seq, "seq", 's', "Starting SequenceID")
-	getopt.FlagLong(&pktOpts.RxMode, "rx", 'r', "Receive only")
-	getopt.FlagLong(&pktOpts.Count, "count", 'c', "Number of packets to transmit. 0=infinite")
-	getopt.Parse()
-	opts.Validate()
+	opts.AddModeOpt("pkt", &interval, 'I', "interval", "<ms>", "TX packet interval (ms)")
+	opts.AddModeOpt("pkt", &pktOpts.Seq, 's', "seq", "<seqid>", "Starting SequenceID")
+	opts.AddModeOpt("pkt", &pktOpts.RxMode, 'r', "rx", "", "Receive only")
+	opts.AddModeOpt("pkt", &pktOpts.Count, 'c', "count", "<num>", "Number of packets to transmit. 0=infinite")
+	if !opts.Parse() {
+		return
+	}
+	////////////////////////////////////////////////////
+
 	// TODO: Allow setting interval 0 to skip using ticker
 	pktOpts.Interval = time.Duration(interval) * time.Millisecond
 	for _, str := range getopt.Args() {
