@@ -12,16 +12,25 @@ import (
 	timestamp "github.com/facebook/time/timestamp"
 )
 
+type gmOpts struct {
+	Interval   uint32
+	Peertopeer bool
+}
+
 func GmMode() {
 	var port Port
 	var opts = CommonOpts{Mode: "gm"}
+	var gmOpts = gmOpts{}
 	interval_ms := uint32(1000)
-	pdelayMode := false
 
 	opts.DefineCommonFlags()
 	opts.RecordPackets = false
-	opts.AddModeOpt("gm", &interval_ms, 'I', "interval", "<ms>", "TX packet interval (ms)")
-	opts.AddModeOpt("gm", &pdelayMode, 'P', "peertopeer", "", "P2P Mode")
+	opts.AddModeOpt("gm", &gmOpts.Interval, 'I', "interval", "<ms>", "TX packet interval (ms)")
+	opts.AddModeOpt("gm", &gmOpts.Peertopeer, 'P', "peertopeer", "", "P2P Mode")
+
+	if !opts.ParseFile(&gmOpts) {
+		return
+	}
 	if !opts.Parse() {
 		return
 	}
@@ -44,7 +53,7 @@ func GmMode() {
 	seq := uint16(0)
 
 	ticker = time.NewTicker(Interval)
-	gmTxPackets(&port, &seq, pdelayMode)
+	gmTxPackets(&port, &seq, gmOpts.Peertopeer)
 
 	go port.RxMode(rxCh, quit)
 	for running {
@@ -54,9 +63,9 @@ func GmMode() {
 			running = false
 		case pd := <-rxCh:
 			pd.Print()
-			replyToDelay(&port, &pd, pdelayMode)
+			replyToDelay(&port, &pd, gmOpts.Peertopeer)
 		case <-ticker.C:
-			gmTxPackets(&port, &seq, pdelayMode)
+			gmTxPackets(&port, &seq, gmOpts.Peertopeer)
 		}
 	}
 	// TODO: Requires HW to test
