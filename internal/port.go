@@ -78,12 +78,26 @@ func (port *Port) receive(buf []byte, oob []byte) (*PacketData, error) {
 		port.recordRx(*data)
 		return data, nil
 	case LayerUDPv4:
-		_, _, rxTS, err := timestamp.ReadPacketWithRXTimestampBuf(port.EFd, buf, oob)
-		// TODO: Parse packet
+		bytes, _, hwts, err := timestamp.ReadPacketWithRXTimestampBuf(port.EFd, buf, oob)
+		swts := time.Now()
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println("RX TS:", rxTS.UnixNano())
+		p, err := ptp.DecodePacket(buf[:bytes])
+		if err != nil {
+			return nil, err
+		}
+		data := &PacketData{
+			Packet:   p,
+			HwTstamp: hwts,
+			SwTstamp: swts,
+			IsTx:     false,
+		}
+		hdr := data.GetHeader()
+		if hdr.DomainNumber != port.opts.Domain {
+			return nil, fmt.Errorf("Wrong domain, got %d", hdr.DomainNumber)
+		}
+		return data, nil
 	default:
 		log.Fatal("receive: not implemented")
 	}
