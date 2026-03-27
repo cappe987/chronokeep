@@ -5,7 +5,9 @@ import (
 	"log"
 	"net"
 	"os"
+	"strings"
 
+	ptp "github.com/facebook/time/ptp/protocol"
 	"github.com/pborman/getopt/v2"
 )
 
@@ -29,6 +31,7 @@ type CommonOpts struct {
 }
 
 func (opts *CommonOpts) DefineCommonFlags() {
+	// TODO: IP multicast not working yet
 	opts.DestIp = "224.0.1.129" // TODO: 224.0.0.107 for pdelays
 	opts.Mac = "01:1b:19:00:00:00"
 	opts.RecordPackets = true
@@ -106,4 +109,31 @@ func InterfaceFromIP(ipStr string) (string, error) {
 	}
 
 	return "", fmt.Errorf("no interface found for IP %s", ipStr)
+}
+
+func StringToMessageType(str string) ptp.MessageType {
+	switch strings.ToLower(str) {
+	case "sync":
+		return ptp.MessageSync
+	case "delay_req":
+		return ptp.MessageDelayReq
+	case "pdelay_req":
+		return ptp.MessagePDelayReq
+	case "pdelay_resp":
+		return ptp.MessagePDelayResp
+	case "follow_up":
+		return ptp.MessageFollowUp
+	case "delay_resp":
+		return ptp.MessageDelayResp
+	case "pdelay_resp_follow_up":
+		return ptp.MessagePDelayRespFollowUp
+	case "announce":
+		return ptp.MessageAnnounce
+	case "signaling":
+		return ptp.MessageSignaling
+	case "management":
+		return ptp.MessageManagement
+	}
+	log.Fatalf("Invalid message type: %s", str)
+	panic("Invalid message type")
 }

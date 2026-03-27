@@ -21,6 +21,7 @@ type PktOpts struct {
 	Pkttype         *ptp.MessageType
 	Count           uint32
 	Seq             uint16
+	Sequence        []ptp.MessageType
 
 	RxMode     bool
 	Delay_mode string
@@ -54,6 +55,9 @@ func PktMode() {
 	opts.Validate()
 	// TODO: Allow setting interval 0 to skip using ticker
 	pktOpts.Interval = time.Duration(interval) * time.Millisecond
+	for _, str := range getopt.Args() {
+		pktOpts.Sequence = append(pktOpts.Sequence, StringToMessageType(str))
+	}
 
 	err := port.Init(opts, 0, 1)
 	if err != nil {
@@ -84,7 +88,7 @@ func PktMode() {
 				infinite = true
 			}
 		}
-		txPacket(&port, &pktOpts)
+		txPackets(&port, &pktOpts)
 	}
 
 	for running {
@@ -95,7 +99,7 @@ func PktMode() {
 		case pd := <-rxCh:
 			pd.Print()
 		case <-ticker.C:
-			txPacket(&port, &pktOpts)
+			txPackets(&port, &pktOpts)
 			if infinite {
 				continue
 			}
@@ -111,19 +115,22 @@ func PktMode() {
 	timestamp.DisableTimestamps(port.EFd, port.Interface)
 }
 
-func txPacket(port *Port, pktOpts *PktOpts) {
-	pd, err := port.BuildPacket(ptp.MessageSync, pktOpts.Seq)
+func txSinglePacket(port *Port, pktOpts *PktOpts, msgtype ptp.MessageType) {
+	pd, err := port.BuildPacket(msgtype, pktOpts.Seq)
 	if err != nil {
 		log.Fatalf("Failed building packet: %s", err)
 	}
 	port.Transmit(pd)
 	pd.Print()
-	// if pd.IsSync() {
-	// 	fup, err := port.MakeFollowUp(pd)
-	// 	if err == nil {
-	// 		port.Transmit(fup)
-	// 		fup.Print()
-	// 	}
-	// }
+}
+
+func txPackets(port *Port, pktOpts *PktOpts) {
+	if len(pktOpts.Sequence) == 0 {
+		txSinglePacket(port, pktOpts, ptp.MessageSync)
+	} else {
+		for _, msgtype := range pktOpts.Sequence {
+			txSinglePacket(port, pktOpts, msgtype)
+		}
+	}
 	pktOpts.Seq += 1
 }
