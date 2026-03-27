@@ -37,6 +37,9 @@ type Port struct {
 	RecordPackets bool
 	opts          CommonOpts
 	portIdentity  ptp.PortIdentity
+	syncSeq       uint16
+	annoSeq       uint16
+	delaySeq      uint16
 }
 
 func (port *Port) recordRx(data PacketData) {
@@ -97,6 +100,7 @@ func (port *Port) receive(buf []byte, oob []byte) (*PacketData, error) {
 		if hdr.DomainNumber != port.opts.Domain {
 			return nil, fmt.Errorf("Wrong domain, got %d", hdr.DomainNumber)
 		}
+		port.recordRx(*data)
 		return data, nil
 	default:
 		log.Fatal("receive: not implemented")
@@ -317,6 +321,57 @@ func (port *Port) Init(opts CommonOpts, clockid uint16, portnum uint16) error {
 	return nil
 }
 
+func (port *Port) Deinit() {
+	timestamp.DisableTimestamps(port.EFd, port.Interface)
+}
+
 func (port *Port) GetVersion() uint8 {
 	return (port.opts.MinorVersion << 4) | ptp.MajorVersion
+}
+
+func (port *Port) TransmitSyncFup() {
+	sync := port.BuildSync(port.syncSeq)
+	port.Transmit(sync)
+	sync.Print()
+	port.syncSeq += 1
+	if !port.opts.Onestep {
+		fup := port.MakeFollowUp(sync)
+		port.Transmit(fup)
+		fup.Print()
+	}
+}
+
+func (port *Port) TransmitAnnounce() {
+	anno := port.BuildAnnounce(port.annoSeq)
+	port.Transmit(anno)
+	anno.Print()
+	port.annoSeq += 1
+}
+
+func (port *Port) TransmitPDelayReq() {
+	pdelayReq := port.BuildPDelayReq(port.delaySeq)
+	port.Transmit(pdelayReq)
+	pdelayReq.Print()
+	port.delaySeq += 1
+}
+
+func (port *Port) TransmitDelayReq() {
+	delayReq := port.BuildDelayReq(port.delaySeq)
+	port.Transmit(delayReq)
+	delayReq.Print()
+	port.delaySeq += 1
+}
+
+func (port *Port) ReplyToDelayReq(pd *PacketData) {
+	resp := port.MakeResponseDelay(pd)
+	port.Transmit(resp)
+	resp.Print()
+}
+func (port *Port) ReplyToPDelayReq(pd *PacketData) {
+	resp := port.MakeResponsePDelay(pd)
+	port.Transmit(resp)
+	resp.Print()
+	respFup := port.MakeFollowUpPDelay(resp)
+	port.Transmit(respFup)
+	respFup.Print()
 }

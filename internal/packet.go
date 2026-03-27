@@ -49,6 +49,21 @@ func (pd *PacketData) IsPDelay() bool {
 	return msgtype == ptp.MessagePDelayReq || msgtype == ptp.MessagePDelayResp || msgtype == ptp.MessagePDelayRespFollowUp
 }
 
+func (pd *PacketData) GetSequenceID() uint16 {
+	hdr := pd.GetHeader()
+	return hdr.SequenceID
+}
+
+func (pd *PacketData) GetFupOriginTimestamp() ptp.Timestamp {
+	pkt := pd.Packet.(*ptp.FollowUp)
+	return pkt.PreciseOriginTimestamp
+}
+
+func (pd *PacketData) GetDelayRespOriginTimestamp() ptp.Timestamp {
+	pkt := pd.Packet.(*ptp.DelayResp)
+	return pkt.ReceiveTimestamp
+}
+
 func (pd *PacketData) GetHeader() *ptp.Header {
 	msgtype := pd.Packet.MessageType()
 	switch msgtype {
@@ -175,9 +190,21 @@ func (port *Port) BuildPacket(msgtype ptp.MessageType, seq uint16) (*PacketData,
 }
 
 // Build blank Sync
-func (port *Port) BuildSync(seq uint16) (*PacketData, error) {
+func (port *Port) BuildSync(seq uint16) *PacketData {
+	twostep := !port.opts.Onestep
+	syncHdr := port.buildHeader(ptp.MessageSync, seq, twostep)
+	// syncHdr.LogMessageInterval = 0
 
-	return nil, fmt.Errorf("Not implemented")
+	syncPkt := ptp.SyncDelayReq{
+		Header:           syncHdr,
+		SyncDelayReqBody: ptp.SyncDelayReqBody{},
+	}
+
+	sync := PacketData{
+		Packet: &syncPkt,
+		IsTx:   true,
+	}
+	return &sync
 }
 
 // Build blank FollowUp
@@ -194,6 +221,23 @@ func (port *Port) BuildPDelayReq(seq uint16) *PacketData {
 	reqPkt := ptp.PDelayReq{
 		Header:        reqHdr,
 		PDelayReqBody: ptp.PDelayReqBody{},
+	}
+
+	req := PacketData{
+		Packet: &reqPkt,
+		IsTx:   true,
+	}
+	return &req
+}
+
+func (port *Port) BuildDelayReq(seq uint16) *PacketData {
+
+	reqHdr := port.buildHeader(ptp.MessageDelayReq, seq, false)
+	reqHdr.LogMessageInterval = 127
+
+	reqPkt := ptp.SyncDelayReq{
+		Header:           reqHdr,
+		SyncDelayReqBody: ptp.SyncDelayReqBody{},
 	}
 
 	req := PacketData{
@@ -278,13 +322,13 @@ func (port *Port) MakeResponsePDelay(pdelayReq *PacketData) *PacketData {
 }
 
 // Make a FollowUp for a Sync
-func (port *Port) MakeFollowUp(sync *PacketData) (*PacketData, error) {
+func (port *Port) MakeFollowUp(sync *PacketData) *PacketData {
 	// TODO: Verify domain first?
-	msgtype := sync.Packet.MessageType()
-	if msgtype != ptp.MessageSync {
-		return nil, fmt.Errorf("Expected Sync. Got %s\n", msgtype)
+	// msgtype := sync.Packet.MessageType()
+	// if msgtype != ptp.MessageSync {
+	// 	return nil, fmt.Errorf("Expected Sync. Got %s\n", msgtype)
 
-	}
+	// }
 	syncPkt := sync.Packet.(*ptp.SyncDelayReq)
 	syncHdr := syncPkt.Header
 	fupHdr := port.buildHeader(ptp.MessageFollowUp, syncHdr.SequenceID, false)
@@ -299,7 +343,7 @@ func (port *Port) MakeFollowUp(sync *PacketData) (*PacketData, error) {
 		IsTx:   true,
 	}
 
-	return &fup, nil
+	return &fup
 }
 
 // Make a PDelayRespFollowUp for a PDelayResp

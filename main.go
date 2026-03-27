@@ -7,7 +7,7 @@ import (
 )
 
 func Usage() {
-	fmt.Println("--- InTime v0.1 ---")
+	fmt.Println("------- InTime v0.1 -------")
 	fmt.Println("")
 	fmt.Println("Usage:")
 	fmt.Println("\tintime [mode]")
@@ -37,6 +37,8 @@ func main() {
 		cmd.PktMode()
 	} else if arg == "gm" {
 		cmd.GmMode()
+	} else if arg == "te" {
+		cmd.TeMode()
 	} else if arg == "-v" || arg == "--version" || arg == "version" {
 		fmt.Println("intime - v0.1")
 	} else {

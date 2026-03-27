@@ -189,6 +189,7 @@ func (opts *CommonOpts) ParseFile(modeOpts interface{}) bool {
 		_, err = toml.DecodeFile(file, modeOpts)
 	}
 	if err != nil {
+		fmt.Printf("Error parsing file: %s\n", err)
 		return false
 	}
 	return true

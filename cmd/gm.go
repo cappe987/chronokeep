@@ -9,7 +9,6 @@ import (
 	"time"
 
 	ptp "github.com/facebook/time/ptp/protocol"
-	timestamp "github.com/facebook/time/timestamp"
 )
 
 type gmOpts struct {
@@ -69,7 +68,7 @@ func GmMode() {
 		}
 	}
 	// TODO: Requires HW to test
-	timestamp.DisableTimestamps(port.EFd, port.Interface)
+	port.Deinit()
 }
 
 func replyToDelay(port *Port, pd *PacketData, pdelayMode bool) {
@@ -99,11 +98,9 @@ func gmTxPackets(port *Port, seq *uint16, pdelayMode bool) {
 	}
 	port.Transmit(sync)
 	sync.Print()
-	fup, err := port.MakeFollowUp(sync)
-	if err == nil {
-		port.Transmit(fup)
-		fup.Print()
-	}
+	fup := port.MakeFollowUp(sync)
+	port.Transmit(fup)
+	fup.Print()
 
 	if pdelayMode {
 		pdelayReq := port.BuildPDelayReq(*seq)

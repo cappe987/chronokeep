@@ -10,7 +10,6 @@ import (
 	"time"
 
 	ptp "github.com/facebook/time/ptp/protocol"
-	timestamp "github.com/facebook/time/timestamp"
 	"github.com/pborman/getopt/v2"
 )
 
@@ -128,7 +127,7 @@ func PktMode() {
 		}
 	}
 	// TODO: Requires HW to test
-	timestamp.DisableTimestamps(port.EFd, port.Interface)
+	port.Deinit()
 }
 
 func noWaitMode(port *Port, pktOpts *PktOpts, sigs chan os.Signal) {
