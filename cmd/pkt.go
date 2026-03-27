@@ -15,24 +15,17 @@ import (
 )
 
 type PktOpts struct {
-	TwoStepFlag_set bool
-	Human_readable  bool
-	TwoStepFlag     bool
-	Interval        time.Duration
-	Pkttype         *ptp.MessageType
-	Count           uint32
-	Seq             uint16
-	Sequence        []ptp.MessageType
+	// Configuration file
+	Interval uint32
+	Count    uint32
+	Seq      uint16
+	Sequence []string
+	RxMode   bool
+	// ClkType   string
 
-	RxMode     bool
-	Delay_mode string
-	Clk_type   string
-
-	// tstamp_all        int
-	// auto_fup          int
-	// listen   int
-	// int sequence_types[SEQUENCE_MAX];
-	// int sequence_length;
+	// Internal fields
+	SequenceTypes []ptp.MessageType
+	IntervalTime  time.Duration
 
 	// TODO: time/timestamp needs to be patched to support this.
 	// enum delay_mechanism dm;
@@ -44,28 +37,37 @@ func PktMode() {
 	var port Port
 	var opts = CommonOpts{Mode: "pkt"}
 	var pktOpts = PktOpts{}
-	interval := uint32(1000)
 	pktOpts.Count = 1
+	pktOpts.Interval = uint32(1000)
 	noWait := false
 
 	opts.DefineCommonFlags()
-	opts.AddModeOpt("pkt", &interval, 'I', "interval", "<ms>", "TX packet interval (ms)")
+	opts.AddModeOpt("pkt", &pktOpts.Interval, 'I', "interval", "<ms>", "TX packet interval (ms)")
 	opts.AddModeOpt("pkt", &pktOpts.Seq, 's', "seq", "<seqid>", "Starting SequenceID")
 	opts.AddModeOpt("pkt", &pktOpts.RxMode, 'r', "rx", "", "Receive only")
 	opts.AddModeOpt("pkt", &pktOpts.Count, 'c', "count", "<num>", "Number of packets to transmit. 0=infinite")
+
+	if !opts.ParseFile(&pktOpts) {
+		return
+	}
 	if !opts.Parse() {
 		return
 	}
+
 	////////////////////////////////////////////////////
 
 	// TODO: Allow setting interval 0 to skip using ticker
-	if interval == 0 {
+	if pktOpts.Interval == 0 {
 		noWait = true
 	} else {
-		pktOpts.Interval = time.Duration(interval) * time.Millisecond
+		pktOpts.IntervalTime = time.Duration(pktOpts.Interval) * time.Millisecond
 	}
-	for _, str := range getopt.Args() {
-		pktOpts.Sequence = append(pktOpts.Sequence, StringToMessageType(str))
+	pkttypes := getopt.Args()
+	if len(pkttypes) == 0 {
+		pkttypes = pktOpts.Sequence
+	}
+	for _, str := range pkttypes {
+		pktOpts.SequenceTypes = append(pktOpts.SequenceTypes, StringToMessageType(str))
 	}
 
 	err := port.Init(opts, 0, 1)
@@ -97,7 +99,7 @@ func PktMode() {
 		if pktOpts.Count == 1 {
 			running = false
 		} else {
-			ticker = time.NewTicker(pktOpts.Interval)
+			ticker = time.NewTicker(pktOpts.IntervalTime)
 			if pktOpts.Count == 0 {
 				infinite = true
 			}
@@ -163,10 +165,10 @@ func txSinglePacket(port *Port, pktOpts *PktOpts, msgtype ptp.MessageType) {
 }
 
 func txPackets(port *Port, pktOpts *PktOpts) {
-	if len(pktOpts.Sequence) == 0 {
+	if len(pktOpts.SequenceTypes) == 0 {
 		txSinglePacket(port, pktOpts, ptp.MessageSync)
 	} else {
-		for _, msgtype := range pktOpts.Sequence {
+		for _, msgtype := range pktOpts.SequenceTypes {
 			txSinglePacket(port, pktOpts, msgtype)
 		}
 	}

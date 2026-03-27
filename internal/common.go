@@ -4,22 +4,23 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"strings"
 
+	"github.com/BurntSushi/toml"
 	ptp "github.com/facebook/time/ptp/protocol"
 	"github.com/pborman/getopt/v2"
 )
 
 type CommonOpts struct {
-	OptList           []Opt
-	Mode              string
+	// Configuration file
 	TransportSpecific uint8
 	IngressLatency    uint64
 	EgressLatency     uint64
 	MinorVersion      uint8
 	Domain            uint8
-	Vlan              *int
-	Prio              int
+	Vlan              *int // TODO: Implement
+	Prio              int  // TODO: Implement
 	Udp               bool
 	Iface             string
 	Ip                string
@@ -29,6 +30,11 @@ type CommonOpts struct {
 	Help              bool
 	SwTstamp          bool
 	Onestep           bool
+
+	// Internal fields
+	OptList   []Opt
+	Mode      string
+	dummyFile string // File is parsed manually before reading CLI args
 }
 
 type Opt struct {
@@ -71,6 +77,7 @@ func (opts *CommonOpts) DefineCommonFlags() {
 	opts.AddOpt(&opts.Onestep, 'o', "onestep", "", "Onestep timestamping")
 	opts.AddOpt(&opts.IngressLatency, 0, "ilat", "<ns>", "Ingress latency (ns)")
 	opts.AddOpt(&opts.EgressLatency, 0, "elat", "<ns>", "Egress latency (ns)")
+	opts.AddOpt(&opts.dummyFile, 'f', "file", "<path>", "Config file (CLI args override file settings)")
 	opts.AddOpt(&opts.Help, 'h', "help", "", "Show this help menu")
 }
 
@@ -154,6 +161,34 @@ func (opts *CommonOpts) Parse() bool {
 		return false
 	}
 	if !opts.Validate() {
+		return false
+	}
+	return true
+}
+func (opts *CommonOpts) ParseFile(modeOpts interface{}) bool {
+	foundFile := false
+	file := ""
+	for _, arg := range os.Args {
+		if foundFile {
+			file = arg
+			break
+		}
+		if arg == "-f" || arg == "--file" {
+			foundFile = true
+		}
+	}
+	if foundFile && file == "" {
+		opts.Usage()
+		fmt.Printf("Error: No file specified\n")
+		return false
+	} else if !foundFile {
+		return true
+	}
+	_, err := toml.DecodeFile(file, opts)
+	if err == nil && modeOpts != nil {
+		_, err = toml.DecodeFile(file, modeOpts)
+	}
+	if err != nil {
 		return false
 	}
 	return true

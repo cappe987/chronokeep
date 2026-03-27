@@ -4,16 +4,7 @@ import (
 	"fmt"
 	"intime/cmd"
 	"os"
-	"time"
 )
-
-type Config struct {
-	Age        int
-	Cats       []string
-	Pi         float64
-	Perfection []int
-	DOB        time.Time
-}
 
 func Usage() {
 	fmt.Println("--- InTime v0.1 ---")
@@ -31,12 +22,6 @@ func Usage() {
 }
 
 func main() {
-
-	// var conf Config
-	// _, err := toml.DecodeFile("example.toml", &conf)
-	// fmt.Printf("%v\n", err)
-	// fmt.Printf("Age %d\n", conf.Age)
-
 	if len(os.Args) == 1 {
 		Usage()
 		return

@@ -286,7 +286,6 @@ func (port *Port) Init(opts CommonOpts, clockid uint16, portnum uint16) error {
 		return err
 	}
 
-	// Enable RX timestamps. Delay requests need to be timestamped by ptp4u on receipt
 	netif, err := net.InterfaceByName(port.IfaceStr)
 	port.Interface = netif
 	if err != nil {
