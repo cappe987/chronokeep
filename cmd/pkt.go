@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	. "intime/internal"
 	"log"
 	"os"
@@ -45,6 +46,7 @@ func PktMode() {
 	var pktOpts = PktOpts{}
 	interval := uint32(1000)
 	pktOpts.Count = 1
+	noWait := false
 
 	opts.DefineCommonFlags()
 	opts.AddModeOpt("pkt", &interval, 'I', "interval", "<ms>", "TX packet interval (ms)")
@@ -57,7 +59,11 @@ func PktMode() {
 	////////////////////////////////////////////////////
 
 	// TODO: Allow setting interval 0 to skip using ticker
-	pktOpts.Interval = time.Duration(interval) * time.Millisecond
+	if interval == 0 {
+		noWait = true
+	} else {
+		pktOpts.Interval = time.Duration(interval) * time.Millisecond
+	}
 	for _, str := range getopt.Args() {
 		pktOpts.Sequence = append(pktOpts.Sequence, StringToMessageType(str))
 	}
@@ -75,6 +81,11 @@ func PktMode() {
 	txCount := uint32(1)
 	infinite := false
 	running := true
+
+	if noWait {
+		noWaitMode(&port, &pktOpts, sigs)
+		return
+	}
 
 	go port.RxMode(rxCh, quit)
 	if pktOpts.RxMode {
@@ -116,6 +127,30 @@ func PktMode() {
 	}
 	// TODO: Requires HW to test
 	timestamp.DisableTimestamps(port.EFd, port.Interface)
+}
+
+func noWaitMode(port *Port, pktOpts *PktOpts, sigs chan os.Signal) {
+	fmt.Printf("hello\n")
+	txCount := uint32(1)
+	running := true
+	infinite := (pktOpts.Count == 0)
+	txPackets(port, pktOpts)
+	for running {
+		select {
+		case <-sigs:
+			running = false
+		default:
+			txPackets(port, pktOpts)
+			if infinite {
+				continue
+			}
+			txCount += 1
+			if txCount >= pktOpts.Count {
+				running = false
+			}
+		}
+	}
+
 }
 
 func txSinglePacket(port *Port, pktOpts *PktOpts, msgtype ptp.MessageType) {
