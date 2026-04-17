@@ -166,6 +166,7 @@ func (p *Port) openSocket() error {
 
 		// fmt.Printf("Opened L2 socket on %s\n", p.IfaceStr)
 	} else if p.Layer == LayerUDPv4 {
+		// TODO: Multicast is not working. net.ListenMulticastUDP probably
 		eventConn, err := net.ListenUDP("udp", &net.UDPAddr{IP: p.IP, Port: event_port})
 		if err != nil {
 			log.Fatalf("Listening error: %s", err)

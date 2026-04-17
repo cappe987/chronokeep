@@ -2,6 +2,7 @@
 
 **TODO:**
 - Log levels
+- Handle correctionField in TE mode
 
 
 Uses a [fork](https://github.com/cappe987/facebook-time) of [facebook/time](https://github.com/facebook/time) for onestep support.
