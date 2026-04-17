@@ -36,17 +36,43 @@ func (pd *PacketData) IsSync() bool {
 	return pd.Packet.MessageType() == ptp.MessageSync
 }
 
+func (pd *PacketData) IsFollowUp() bool {
+	return pd.Packet.MessageType() == ptp.MessageFollowUp
+}
+
 func (pd *PacketData) IsDelayReq() bool {
 	return pd.Packet.MessageType() == ptp.MessageDelayReq
+}
+
+func (pd *PacketData) IsDelayResp() bool {
+	return pd.Packet.MessageType() == ptp.MessageDelayResp
 }
 
 func (pd *PacketData) IsPDelayReq() bool {
 	return pd.Packet.MessageType() == ptp.MessagePDelayReq
 }
 
+func (pd *PacketData) IsPDelayResp() bool {
+	return pd.Packet.MessageType() == ptp.MessagePDelayResp
+}
+
+func (pd *PacketData) IsPDelayRespFollowUp() bool {
+	return pd.Packet.MessageType() == ptp.MessagePDelayRespFollowUp
+}
+
 func (pd *PacketData) IsPDelay() bool {
 	msgtype := pd.Packet.MessageType()
 	return msgtype == ptp.MessagePDelayReq || msgtype == ptp.MessagePDelayResp || msgtype == ptp.MessagePDelayRespFollowUp
+}
+
+func (pd *PacketData) IsNonTimestampPacket() bool {
+	msgtype := pd.Packet.MessageType()
+	switch msgtype {
+	case ptp.MessageAnnounce, ptp.MessageSignaling, ptp.MessageManagement:
+		return true
+	default:
+		return false
+	}
 }
 
 func (pd *PacketData) GetSequenceID() uint16 {
@@ -233,7 +259,7 @@ func (port *Port) BuildPDelayReq(seq uint16) *PacketData {
 func (port *Port) BuildDelayReq(seq uint16) *PacketData {
 
 	reqHdr := port.buildHeader(ptp.MessageDelayReq, seq, false)
-	reqHdr.LogMessageInterval = 127
+	reqHdr.LogMessageInterval = 0
 
 	reqPkt := ptp.SyncDelayReq{
 		Header:           reqHdr,
@@ -283,7 +309,7 @@ func (port *Port) BuildAnnounce(seq uint16) *PacketData {
 func (port *Port) MakeResponseDelay(delayReq *PacketData) *PacketData {
 	reqHdr := delayReq.GetHeader()
 	respHdr := port.buildHeader(ptp.MessageDelayResp, reqHdr.SequenceID, false)
-	respHdr.LogMessageInterval = 127
+	respHdr.LogMessageInterval = 0
 
 	respPkt := ptp.DelayResp{
 		Header: respHdr,
