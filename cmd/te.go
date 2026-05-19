@@ -150,14 +150,11 @@ func TeMode() {
 	}
 
 	fmt.Printf("\n")
-	// fmt.Printf("Mean T1: %d\n", client.GetMeanT1())
-	// fmt.Printf("Mean T4: %d\n", client.GetMeanT4())
 	t1, t4, twoway := client.GetMeanTE()
 	fmt.Printf("Mean T1: %d\n", t1)
 	fmt.Printf("Mean T4: %d\n", t4)
 	fmt.Printf("Mean 2Way: %d\n", twoway)
 
-	// TODO: Requires HW to test
 	server.Deinit()
 	client.Deinit()
 }

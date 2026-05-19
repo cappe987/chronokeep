@@ -235,7 +235,7 @@ func findGrouping(groups []*group, pd *PacketData) bool {
 }
 
 func calcSyfup(sync *PacketData, fup *PacketData) int64 {
-	// Calculate t2-t1
+	// Calculate t1-t2
 	t1 := fup.GetFupOriginTimestamp().Time().UnixNano()
 	t2 := sync.HwTstamp.UnixNano()
 	c1 := sync.GetCorrectionField()
@@ -283,8 +283,7 @@ func (port *Port) GetMeanTE() (int64, int64, int64) {
 	count_t1 := int64(0)
 	count_t4 := int64(0)
 
-	// TODO: Handle correctionField and clean up this shit
-	// TODO: Use rolling average?
+	// TODO: Use iterative mean calculation to avoid potential overflow
 	for _, pd := range pkts {
 		// pd.Print()
 		if pd.IsInformationPacket() {
@@ -332,8 +331,6 @@ func (port *Port) GetMeanTE() (int64, int64, int64) {
 		}
 
 	}
-
-	// fmt.Printf("Total %d | Count %d\n", total, count)
 
 	return (total_t1 / count_t1), (total_t4 / count_t4), (total / count)
 }
