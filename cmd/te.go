@@ -150,8 +150,8 @@ func TeMode() {
 	}
 
 	fmt.Printf("\n")
-	fmt.Printf("Mean T1: %d\n", client.GetMeanT1())
-	fmt.Printf("Mean T4: %d\n", client.GetMeanT4())
+	// fmt.Printf("Mean T1: %d\n", client.GetMeanT1())
+	// fmt.Printf("Mean T4: %d\n", client.GetMeanT4())
 	fmt.Printf("Mean 2Way: %d\n", client.GetMeanTE())
 
 	// TODO: This needs to be handle via Port class. Efd should be private.

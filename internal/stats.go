@@ -238,7 +238,7 @@ func (port *Port) GetMeanTE() int64 {
 	// groups := make([]*group, 0)
 	// fmt.Printf("RX\n")
 	// for _, pd := range port.rxRecord {
-	// 	if pd.IsNonTimestampPacket() {
+	// 	if pd.IsInformationPacket() {
 	// 		continue
 	// 	}
 	// 	if !findGrouping(groups, &pd) {
@@ -249,7 +249,7 @@ func (port *Port) GetMeanTE() int64 {
 
 	// fmt.Printf("TX\n")
 	// for _, pd := range port.txRecord {
-	// 	if pd.IsNonTimestampPacket() {
+	// 	if pd.IsInformationPacket() {
 	// 		continue
 	// 	}
 	// 	if !findGrouping(groups, &pd) {
@@ -267,6 +267,16 @@ func (port *Port) GetMeanTE() int64 {
 
 	var pkts []PacketData
 	pkts = append(port.rxRecord, port.txRecord...)
+
+	// fmt.Printf("RXRECORD\n")
+	// for _, pd := range port.rxRecord {
+	// 	pd.Print()
+	// }
+	// fmt.Printf("TXRECORD\n")
+	// for _, pd := range port.txRecord {
+	// 	pd.Print()
+	// }
+
 	// Sort on SwTstamp since that's the order we processed them in
 	slices.SortFunc(pkts, func(a, b PacketData) int {
 		if a.SwTstamp.Before(b.SwTstamp) {
@@ -287,8 +297,10 @@ func (port *Port) GetMeanTE() int64 {
 	count := int64(0)
 
 	// TODO: Handle correctionField and clean up this shit
+	// TODO: Use rolling average?
 	for _, pd := range pkts {
-		if pd.IsNonTimestampPacket() {
+		pd.Print()
+		if pd.IsInformationPacket() {
 			continue
 		}
 		// pd.Print()
@@ -338,6 +350,8 @@ func (port *Port) GetMeanTE() int64 {
 		}
 
 	}
+
+	fmt.Printf("Total %d | Count %d\n", total, count)
 
 	return total / count
 }

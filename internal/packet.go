@@ -13,6 +13,7 @@ type PacketData struct {
 	Packet   ptp.Packet
 	HwTstamp time.Time
 	SwTstamp time.Time
+	Iface    string
 }
 
 func (pd *PacketData) Print() {
@@ -23,13 +24,15 @@ func (pd *PacketData) Print() {
 	seq := hdr.SequenceID
 	corr := hdr.CorrectionField.Duration()
 	domain := hdr.DomainNumber
+	iface := fmt.Sprintf("%6s", pd.Iface)
+
 	var dir string
 	if pd.IsTx {
 		dir = fmt.Sprintf("%-10s ->", msgtype)
 	} else {
 		dir = fmt.Sprintf("<- %10s", msgtype)
 	}
-	fmt.Printf("%s | Seq %d | Dom %d | hwts %d.%09d | Corr %d\n", dir, seq, domain, rx_s, rx_ns, corr)
+	fmt.Printf("%s | %s | Seq %d | Dom %d | hwts %d.%09d | Corr %d\n", iface, dir, seq, domain, rx_s, rx_ns, corr)
 }
 
 func (pd *PacketData) IsSync() bool {
@@ -65,13 +68,23 @@ func (pd *PacketData) IsPDelay() bool {
 	return msgtype == ptp.MessagePDelayReq || msgtype == ptp.MessagePDelayResp || msgtype == ptp.MessagePDelayRespFollowUp
 }
 
-func (pd *PacketData) IsNonTimestampPacket() bool {
+func (pd *PacketData) IsInformationPacket() bool {
 	msgtype := pd.Packet.MessageType()
 	switch msgtype {
 	case ptp.MessageAnnounce, ptp.MessageSignaling, ptp.MessageManagement:
 		return true
 	default:
 		return false
+	}
+}
+
+func (pd *PacketData) IsNonTimestampPacket() bool {
+	msgtype := pd.Packet.MessageType()
+	switch msgtype {
+	case ptp.MessageSync, ptp.MessageDelayReq, ptp.MessagePDelayReq, ptp.MessagePDelayResp:
+		return false
+	default:
+		return true
 	}
 }
 
@@ -88,6 +101,11 @@ func (pd *PacketData) GetFupOriginTimestamp() ptp.Timestamp {
 func (pd *PacketData) GetDelayRespOriginTimestamp() ptp.Timestamp {
 	pkt := pd.Packet.(*ptp.DelayResp)
 	return pkt.ReceiveTimestamp
+}
+
+func (pd *PacketData) PidEquals(pid ptp.PortIdentity) bool {
+	hdr := pd.GetHeader()
+	return hdr.SourcePortIdentity == pid
 }
 
 func (pd *PacketData) GetHeader() *ptp.Header {
