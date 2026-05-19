@@ -33,8 +33,8 @@ type Port struct {
 	DestIP        net.IP
 	Interface     *net.Interface
 	Layer         Layer
-	EFd           int
-	GFd           int
+	efd           int
+	gfd           int
 	txRecord      []PacketData
 	rxRecord      []PacketData
 	RecordPackets bool
@@ -61,10 +61,10 @@ func (port *Port) recordTx(data PacketData) {
 
 func (port *Port) doReceive(buf []byte, oob []byte, getTs bool) (int, time.Time, error) {
 	if getTs {
-		bytes, _, hwts, err := timestamp.ReadPacketWithRXTimestampBuf(port.EFd, buf, oob)
+		bytes, _, hwts, err := timestamp.ReadPacketWithRXTimestampBuf(port.efd, buf, oob)
 		return bytes, hwts, err
 	} else {
-		bytes, _, err := unix.Recvfrom(port.GFd, buf, 0)
+		bytes, _, err := unix.Recvfrom(port.gfd, buf, 0)
 		hwts := time.Unix(0, 0)
 		return bytes, hwts, err
 	}
@@ -99,7 +99,7 @@ func (port *Port) receive(buf []byte, oob []byte, getTs bool) (*PacketData, erro
 		// port.recordRx(*data)
 		return data, nil
 	case LayerUDPv4:
-		// bytes, _, hwts, err := timestamp.ReadPacketWithRXTimestampBuf(port.EFd, buf, oob)
+		// bytes, _, hwts, err := timestamp.ReadPacketWithRXTimestampBuf(port.efd, buf, oob)
 		bytes, hwts, err := port.doReceive(buf, oob, getTs)
 		if err != nil {
 			return nil, err
@@ -250,9 +250,9 @@ func (p *Port) addSocketFilter(isEventSocket bool) error {
 	}
 
 	if isEventSocket {
-		return eventFilter.ApplyTo(p.EFd)
+		return eventFilter.ApplyTo(p.efd)
 	} else {
-		return generalFilter.ApplyTo(p.GFd)
+		return generalFilter.ApplyTo(p.gfd)
 	}
 }
 
@@ -273,9 +273,9 @@ func (p *Port) openSocket(isEventSocket bool) error {
 		}
 		p.Interface = interf
 		if isEventSocket {
-			p.EFd = fd
+			p.efd = fd
 		} else {
-			p.GFd = fd
+			p.gfd = fd
 		}
 		p.addSocketFilter(isEventSocket)
 
@@ -304,9 +304,9 @@ func (p *Port) openSocket(isEventSocket bool) error {
 		// get connection file descriptor
 		fd, err := timestamp.ConnFd(conn)
 		if isEventSocket {
-			p.EFd = fd
+			p.efd = fd
 		} else {
-			p.GFd = fd
+			p.gfd = fd
 		}
 	} else {
 		log.Fatal("openSocket: not implemented")
@@ -340,11 +340,11 @@ func (port *Port) transmitPkt(pkt *ptp.Packet) error {
 		addr.Ifindex = port.Interface.Index
 		addr.Hatype = syscall.ARPHRD_ETHER
 
-		err = syscall.Sendto(port.EFd, packet, 0, &addr)
+		err = syscall.Sendto(port.efd, packet, 0, &addr)
 	} else if port.Layer == LayerUDPv4 {
 		eclisa := timestamp.IPToSockaddr(port.DestIP, event_port)
-		// err = unix.Sendto(port.EFd, buf[:n], 0, eclisa)
-		err = unix.Sendto(port.EFd, bytes, 0, eclisa)
+		// err = unix.Sendto(port.efd, buf[:n], 0, eclisa)
+		err = unix.Sendto(port.efd, bytes, 0, eclisa)
 	} else {
 		log.Fatal("transmit: not implemented")
 	}
@@ -357,7 +357,7 @@ func (port *Port) transmit_get_ts(pkt *ptp.Packet, oob []byte, toob []byte) (*ti
 	if err != nil {
 		return nil, nil, err
 	}
-	hwts, _, err := timestamp.ReadTXtimestampBuf(port.EFd, oob, toob)
+	hwts, _, err := timestamp.ReadTXtimestampBuf(port.efd, oob, toob)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -457,17 +457,17 @@ func (port *Port) Init(opts CommonOpts, clockid uint16, portnum uint16) error {
 	} else if opts.Onestep {
 		tstamp = timestamp.HWONESTEP
 	}
-	if err := timestamp.EnableTimestamps(tstamp, port.EFd, netif); err != nil {
+	if err := timestamp.EnableTimestamps(tstamp, port.efd, netif); err != nil {
 		fmt.Printf("Failed enabling timestamps\n")
 		return err
 	}
 
-	err = unix.SetNonblock(port.EFd, false)
+	err = unix.SetNonblock(port.efd, false)
 	if err != nil {
 		fmt.Printf("Failed to set socket to blocking\n")
 		return err
 	}
-	err = unix.SetNonblock(port.GFd, false)
+	err = unix.SetNonblock(port.gfd, false)
 	if err != nil {
 		fmt.Printf("Failed to set socket to blocking\n")
 		return err
@@ -477,13 +477,13 @@ func (port *Port) Init(opts CommonOpts, clockid uint16, portnum uint16) error {
 		Sec:  0,
 		Usec: 100000, // 100 ms
 	}
-	unix.SetsockoptTimeval(port.EFd, unix.SOL_SOCKET, unix.SO_RCVTIMEO, &tmo)
-	unix.SetsockoptTimeval(port.GFd, unix.SOL_SOCKET, unix.SO_RCVTIMEO, &tmo)
+	unix.SetsockoptTimeval(port.efd, unix.SOL_SOCKET, unix.SO_RCVTIMEO, &tmo)
+	unix.SetsockoptTimeval(port.gfd, unix.SOL_SOCKET, unix.SO_RCVTIMEO, &tmo)
 	return nil
 }
 
 func (port *Port) Deinit() {
-	timestamp.DisableTimestamps(port.EFd, port.Interface)
+	timestamp.DisableTimestamps(port.efd, port.Interface)
 }
 
 func (port *Port) GetVersion() uint8 {
