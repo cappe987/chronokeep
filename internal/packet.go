@@ -93,6 +93,11 @@ func (pd *PacketData) GetSequenceID() uint16 {
 	return hdr.SequenceID
 }
 
+func (pd *PacketData) IsTwostepFlagSet() bool {
+	hdr := pd.GetHeader()
+	return (hdr.FlagField & ptp.FlagTwoStep) != 0
+}
+
 func (pd *PacketData) GetCorrectionField() int64 {
 	hdr := pd.GetHeader()
 	return hdr.CorrectionField.Duration().Nanoseconds()
@@ -106,6 +111,16 @@ func (pd *PacketData) GetFupOriginTimestamp() ptp.Timestamp {
 func (pd *PacketData) GetDelayRespOriginTimestamp() ptp.Timestamp {
 	pkt := pd.Packet.(*ptp.DelayResp)
 	return pkt.ReceiveTimestamp
+}
+
+func (pd *PacketData) GetPDelayRespRequestReceiptTimestamp() ptp.Timestamp {
+	pkt := pd.Packet.(*ptp.PDelayResp)
+	return pkt.RequestReceiptTimestamp
+}
+
+func (pd *PacketData) GetPDelayRespFupResponseOriginTimestamp() ptp.Timestamp {
+	pkt := pd.Packet.(*ptp.PDelayRespFollowUp)
+	return pkt.ResponseOriginTimestamp
 }
 
 func (pd *PacketData) PidEquals(pid ptp.PortIdentity) bool {
@@ -355,6 +370,7 @@ func (port *Port) MakeResponsePDelay(pdelayReq *PacketData) *PacketData {
 	reqHdr := pdelayReq.GetHeader()
 	respHdr := port.buildHeader(ptp.MessagePDelayResp, reqHdr.SequenceID, true)
 	respHdr.LogMessageInterval = 127
+	respHdr.CorrectionField = reqHdr.CorrectionField
 
 	respPkt := ptp.PDelayResp{
 		Header: respHdr,

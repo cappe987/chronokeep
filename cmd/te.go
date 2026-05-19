@@ -21,9 +21,10 @@ type portOpts struct {
 }
 
 type teOpts struct {
-	Ports    map[string]portOpts
-	Interval uint32
-	Count    uint32
+	Ports      map[string]portOpts
+	Interval   uint32
+	Count      uint32
+	Peertopeer bool
 
 	// Internal fields
 	intervalTime time.Duration
@@ -41,6 +42,7 @@ func TeMode() {
 
 	opts.DefineCommonFlags()
 	opts.AddModeOpt(mode, &teOpts.Interval, 'I', "interval", "<ms>", "TX packet interval (ms)")
+	opts.AddModeOpt(mode, &teOpts.Peertopeer, 'P', "p2p", "", "Use P2P mode")
 	opts.AddModeOpt(mode, &teOpts.Count, 'c', "count", "<num>", "Number of packets to transmit. 0=infinite")
 
 	if !opts.ParseFile(&teOpts) {
@@ -134,27 +136,48 @@ func TeMode() {
 		case pd := <-serverRx:
 			// fmt.Printf("Server rx\n")
 			pd.Print()
-			if pd.IsDelayReq() {
+			if !teOpts.Peertopeer && pd.IsDelayReq() {
 				server.ReplyToDelayReq(&pd)
+			}
+			if teOpts.Peertopeer && pd.IsPDelayReq() {
+				server.ReplyToPDelayReq(&pd)
 			}
 		case pd := <-clientRx:
 			// fmt.Printf("Client rx\n")
 			pd.Print()
+			if teOpts.Peertopeer && pd.IsPDelayReq() {
+				client.ReplyToPDelayReq(&pd)
+			}
 		case <-serverTicker.C:
 			server.TransmitAnnounce()
 			server.TransmitSyncFup()
-			// TODO: Handle pdelayReq
+			if teOpts.Peertopeer {
+				server.TransmitPDelayReq()
+			}
+			// XXX: Something is going on with RX timestamps. Dagger bug?
+			// Issue seems to be resolved if we run Deinit()
+			// properly to disable timestamping.
 		case <-clientTicker.C:
-			client.TransmitDelayReq()
+			if teOpts.Peertopeer {
+				client.TransmitPDelayReq()
+			} else {
+				client.TransmitDelayReq()
+			}
 		}
 	}
-
-	fmt.Printf("\n")
-	t1, t4, twoway := client.GetMeanTE()
-	fmt.Printf("Mean T1: %d\n", t1)
-	fmt.Printf("Mean T4: %d\n", t4)
-	fmt.Printf("Mean 2Way: %d\n", twoway)
-
 	server.Deinit()
 	client.Deinit()
+
+	fmt.Printf("\n")
+	if teOpts.Peertopeer {
+		t1, pdelay, fwd_acc := client.GetP2pTE()
+		fmt.Printf("Mean T1: %d\n", t1)
+		fmt.Printf("Mean Pdelay: %d\n", pdelay)
+		fmt.Printf("Mean FwdAcc: %d\n", fwd_acc)
+	} else {
+		t1, t4, twoway := client.GetMeanTE()
+		fmt.Printf("Mean T1: %d\n", t1)
+		fmt.Printf("Mean T4: %d\n", t4)
+		fmt.Printf("Mean 2Way: %d\n", twoway)
+	}
 }
