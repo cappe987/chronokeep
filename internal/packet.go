@@ -93,6 +93,11 @@ func (pd *PacketData) GetSequenceID() uint16 {
 	return hdr.SequenceID
 }
 
+func (pd *PacketData) GetCorrectionField() int64 {
+	hdr := pd.GetHeader()
+	return hdr.CorrectionField.Duration().Nanoseconds()
+}
+
 func (pd *PacketData) GetFupOriginTimestamp() ptp.Timestamp {
 	pkt := pd.Packet.(*ptp.FollowUp)
 	return pkt.PreciseOriginTimestamp
@@ -328,6 +333,7 @@ func (port *Port) MakeResponseDelay(delayReq *PacketData) *PacketData {
 	reqHdr := delayReq.GetHeader()
 	respHdr := port.buildHeader(ptp.MessageDelayResp, reqHdr.SequenceID, false)
 	respHdr.LogMessageInterval = 0
+	respHdr.CorrectionField = reqHdr.CorrectionField
 
 	respPkt := ptp.DelayResp{
 		Header: respHdr,

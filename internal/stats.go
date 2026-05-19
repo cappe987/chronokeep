@@ -234,48 +234,31 @@ func findGrouping(groups []*group, pd *PacketData) bool {
 	return false
 }
 
-func (port *Port) GetMeanTE() int64 {
-	// groups := make([]*group, 0)
-	// fmt.Printf("RX\n")
-	// for _, pd := range port.rxRecord {
-	// 	if pd.IsInformationPacket() {
-	// 		continue
-	// 	}
-	// 	if !findGrouping(groups, &pd) {
-	// 		grp := makeGroup(&pd)
-	// 		groups = append(groups, &grp)
-	// 	}
-	// }
+func calcSyfup(sync *PacketData, fup *PacketData) int64 {
+	// Calculate t2-t1
+	t1 := fup.GetFupOriginTimestamp().Time().UnixNano()
+	t2 := sync.HwTstamp.UnixNano()
+	c1 := sync.GetCorrectionField()
+	c2 := fup.GetCorrectionField()
+	curr_t1 := (t1 - t2) + c2 + c1
+	// fmt.Printf("T1: %d\n", curr_t1)
+	return curr_t1
+}
 
-	// fmt.Printf("TX\n")
-	// for _, pd := range port.txRecord {
-	// 	if pd.IsInformationPacket() {
-	// 		continue
-	// 	}
-	// 	if !findGrouping(groups, &pd) {
-	// 		grp := makeGroup(&pd)
-	// 		groups = append(groups, &grp)
-	// 	}
-	// }
+func calcDelay(req *PacketData, resp *PacketData) int64 {
+	// Calculate t4-t3
+	t4 := resp.GetDelayRespOriginTimestamp().Time().UnixNano()
+	t3 := req.HwTstamp.UnixNano()
+	c4 := resp.GetCorrectionField()
+	c3 := req.GetCorrectionField()
+	curr_t4 := t4 - t3 - c4 - c3
+	// fmt.Printf("T4: %d\n", curr_t4)
+	return curr_t4
+}
 
-	// for _, grp := range groups {
-	// 	if grp != nil {
-	// 		printGroup(grp)
-	// 	}
-
-	// }
-
+func (port *Port) GetMeanTE() (int64, int64, int64) {
 	var pkts []PacketData
 	pkts = append(port.rxRecord, port.txRecord...)
-
-	// fmt.Printf("RXRECORD\n")
-	// for _, pd := range port.rxRecord {
-	// 	pd.Print()
-	// }
-	// fmt.Printf("TXRECORD\n")
-	// for _, pd := range port.txRecord {
-	// 	pd.Print()
-	// }
 
 	// Sort on SwTstamp since that's the order we processed them in
 	slices.SortFunc(pkts, func(a, b PacketData) int {
@@ -294,12 +277,16 @@ func (port *Port) GetMeanTE() int64 {
 	var last_delay_req *PacketData = nil
 	var last_delay_resp *PacketData = nil
 	total := int64(0)
+	total_t1 := int64(0)
+	total_t4 := int64(0)
 	count := int64(0)
+	count_t1 := int64(0)
+	count_t4 := int64(0)
 
 	// TODO: Handle correctionField and clean up this shit
 	// TODO: Use rolling average?
 	for _, pd := range pkts {
-		pd.Print()
+		// pd.Print()
 		if pd.IsInformationPacket() {
 			continue
 		}
@@ -308,42 +295,37 @@ func (port *Port) GetMeanTE() int64 {
 		case ptp.MessageSync:
 			last_sync = &pd
 			if last_fup != nil && pd.GetSequenceID() == last_fup.GetSequenceID() {
-				// Calculate t2-t1
-				t2 := last_fup.GetFupOriginTimestamp().Time().UnixNano()
-				t1 := last_sync.HwTstamp.UnixNano()
-				curr_t1 = t2 - t1
-				fmt.Printf("T1: %d\n", curr_t1)
+				curr_t1 = calcSyfup(last_sync, last_fup)
+				total_t1 += curr_t1
+				count_t1 += 1
 			}
 		case ptp.MessageFollowUp:
 			last_fup = &pd
 			if last_sync != nil && pd.GetSequenceID() == last_sync.GetSequenceID() {
-				// Calculate t2-t1
-				t2 := last_fup.GetFupOriginTimestamp().Time().UnixNano()
-				t1 := last_sync.HwTstamp.UnixNano()
-				curr_t1 = t2 - t1
-				fmt.Printf("T1: %d\n", curr_t1)
+				curr_t1 = calcSyfup(last_sync, last_fup)
+				total_t1 += curr_t1
+				count_t1 += 1
 			}
 		case ptp.MessageDelayReq:
 			last_delay_req = &pd
 			if last_delay_resp != nil && pd.GetSequenceID() == last_delay_resp.GetSequenceID() {
-				// Calculate t2-t1
-				t4 := last_delay_resp.GetDelayRespOriginTimestamp().Time().UnixNano()
-				t3 := last_delay_req.HwTstamp.UnixNano()
-				curr_t4 = t4 - t3
+				curr_t4 = calcDelay(last_delay_req, last_delay_resp)
 				curr_delay = (curr_t1 + curr_t4) / 2
-				fmt.Printf("T4: %d | 2Way %d\n", curr_t4, curr_delay)
+				// fmt.Printf("T4: %d | 2Way %d\n", curr_t4, curr_delay)
+				total_t4 += curr_t4
+				count_t4 += 1
 				total += curr_delay
 				count += 1
 			}
 		case ptp.MessageDelayResp:
 			last_delay_resp = &pd
 			if last_delay_req != nil && pd.GetSequenceID() == last_delay_req.GetSequenceID() {
-				// Calculate t2-t1
-				t4 := last_delay_resp.GetDelayRespOriginTimestamp().Time().UnixNano()
-				t3 := last_delay_req.HwTstamp.UnixNano()
-				curr_t4 = t4 - t3
+
+				curr_t4 = calcDelay(last_delay_req, last_delay_resp)
 				curr_delay = (curr_t1 + curr_t4) / 2
-				fmt.Printf("T4: %d | 2Way %d\n", curr_t4, curr_delay)
+				// fmt.Printf("T4: %d | 2Way %d\n", curr_t4, curr_delay)
+				total_t4 += curr_t4
+				count_t4 += 1
 				total += curr_delay
 				count += 1
 			}
@@ -351,7 +333,7 @@ func (port *Port) GetMeanTE() int64 {
 
 	}
 
-	fmt.Printf("Total %d | Count %d\n", total, count)
+	// fmt.Printf("Total %d | Count %d\n", total, count)
 
-	return total / count
+	return (total_t1 / count_t1), (total_t4 / count_t4), (total / count)
 }
