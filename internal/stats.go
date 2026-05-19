@@ -234,26 +234,38 @@ func findGrouping(groups []*group, pd *PacketData) bool {
 	return false
 }
 
-func calcSyfup(sync *PacketData, fup *PacketData) int64 {
+func calcSyfup(sync *PacketData, fup *PacketData) *int64 {
 	// Calculate t1-t2
+	if sync == nil || fup == nil {
+		return nil
+	}
+	if sync.GetSequenceID() != fup.GetSequenceID() {
+		return nil
+	}
 	t1 := fup.GetFupOriginTimestamp().Nano()
 	t2 := sync.HwTstamp.UnixNano()
 	c1 := sync.GetCorrectionField()
 	c2 := fup.GetCorrectionField()
 	curr_t1 := (t1 - t2) + c2 + c1
 	// fmt.Printf("T1: %d\n", curr_t1)
-	return curr_t1
+	return &curr_t1
 }
 
-func calcDelay(req *PacketData, resp *PacketData) int64 {
+func calcDelay(req *PacketData, resp *PacketData) *int64 {
 	// Calculate t4-t3
+	if req == nil || resp == nil {
+		return nil
+	}
+	if req.GetSequenceID() != resp.GetSequenceID() {
+		return nil
+	}
 	t4 := resp.GetDelayRespOriginTimestamp().Nano()
 	t3 := req.HwTstamp.UnixNano()
 	c4 := resp.GetCorrectionField()
 	c3 := req.GetCorrectionField()
 	curr_t4 := t4 - t3 - c4 - c3
 	// fmt.Printf("T4: %d\n", curr_t4)
-	return curr_t4
+	return &curr_t4
 }
 
 func (port *Port) GetMeanTE() (int64, int64, int64) {
@@ -293,41 +305,48 @@ func (port *Port) GetMeanTE() (int64, int64, int64) {
 		switch pd.Packet.MessageType() {
 		case ptp.MessageSync:
 			last_sync = &pd
-			if last_fup != nil && pd.GetSequenceID() == last_fup.GetSequenceID() {
-				curr_t1 = calcSyfup(last_sync, last_fup)
-				total_t1 += curr_t1
-				count_t1 += 1
+			ct1 := calcSyfup(last_sync, last_fup)
+			if ct1 == nil {
+				continue
 			}
+			curr_t1 = *ct1
+			total_t1 += curr_t1
+			count_t1 += 1
 		case ptp.MessageFollowUp:
 			last_fup = &pd
-			if last_sync != nil && pd.GetSequenceID() == last_sync.GetSequenceID() {
-				curr_t1 = calcSyfup(last_sync, last_fup)
-				total_t1 += curr_t1
-				count_t1 += 1
+			ct1 := calcSyfup(last_sync, last_fup)
+			if ct1 == nil {
+				continue
 			}
+			curr_t1 = *ct1
+			total_t1 += curr_t1
+			count_t1 += 1
 		case ptp.MessageDelayReq:
 			last_delay_req = &pd
-			if last_delay_resp != nil && pd.GetSequenceID() == last_delay_resp.GetSequenceID() {
-				curr_t4 = calcDelay(last_delay_req, last_delay_resp)
-				curr_delay = (curr_t1 + curr_t4) / 2
-				// fmt.Printf("T4: %d | 2Way %d\n", curr_t4, curr_delay)
-				total_t4 += curr_t4
-				count_t4 += 1
-				total += curr_delay
-				count += 1
+			ct4 := calcDelay(last_delay_req, last_delay_resp)
+			if ct4 == nil {
+				continue
 			}
+			curr_t4 = *ct4
+			curr_delay = (curr_t1 + curr_t4) / 2
+			// fmt.Printf("T4: %d | 2Way %d\n", curr_t4, curr_delay)
+			total_t4 += curr_t4
+			count_t4 += 1
+			total += curr_delay
+			count += 1
 		case ptp.MessageDelayResp:
 			last_delay_resp = &pd
-			if last_delay_req != nil && pd.GetSequenceID() == last_delay_req.GetSequenceID() {
-
-				curr_t4 = calcDelay(last_delay_req, last_delay_resp)
-				curr_delay = (curr_t1 + curr_t4) / 2
-				// fmt.Printf("T4: %d | 2Way %d\n", curr_t4, curr_delay)
-				total_t4 += curr_t4
-				count_t4 += 1
-				total += curr_delay
-				count += 1
+			ct4 := calcDelay(last_delay_req, last_delay_resp)
+			if ct4 == nil {
+				continue
 			}
+			curr_t4 = *ct4
+			curr_delay = (curr_t1 + curr_t4) / 2
+			// fmt.Printf("T4: %d | 2Way %d\n", curr_t4, curr_delay)
+			total_t4 += curr_t4
+			count_t4 += 1
+			total += curr_delay
+			count += 1
 		}
 
 	}
@@ -418,53 +437,60 @@ func (port *Port) GetP2pTE() (int64, int64, int64) {
 		switch pd.Packet.MessageType() {
 		case ptp.MessageSync:
 			last_sync = &pd
-			if last_fup != nil && pd.GetSequenceID() == last_fup.GetSequenceID() {
-				curr_t1 = calcSyfup(last_sync, last_fup)
-				total_t1 += curr_t1
-				count_t1 += 1
-				// Need at least one pdelay before we start measuring
-				if count_pdelay > 0 {
-					count_fwd_acc += 1
-					total_fwd_acc += curr_t1 + curr_pdelay
-					fmt.Printf("T1 %d | Pdelay %d\n", curr_t1, curr_pdelay)
-				}
+			ct1 := calcSyfup(last_sync, last_fup)
+			if ct1 == nil {
+				continue
+			}
+			curr_t1 = *ct1
+			total_t1 += curr_t1
+			count_t1 += 1
+			// Need at least one pdelay before we start measuring
+			if count_pdelay > 0 {
+				count_fwd_acc += 1
+				total_fwd_acc += curr_t1 + curr_pdelay
+				fmt.Printf("T1 %d | Pdelay %d\n", curr_t1, curr_pdelay)
 			}
 		case ptp.MessageFollowUp:
 			last_fup = &pd
-			if last_sync != nil && pd.GetSequenceID() == last_sync.GetSequenceID() {
-				curr_t1 = calcSyfup(last_sync, last_fup)
-				total_t1 += curr_t1
-				count_t1 += 1
-				if count_pdelay > 0 {
-					count_fwd_acc += 1
-					total_fwd_acc += curr_t1 + curr_pdelay
-					fmt.Printf("T1 %d | Pdelay %d\n", curr_t1, curr_pdelay)
-				}
+			ct1 := calcSyfup(last_sync, last_fup)
+			if ct1 == nil {
+				continue
+			}
+			curr_t1 = *ct1
+			total_t1 += curr_t1
+			count_t1 += 1
+			if count_pdelay > 0 {
+				count_fwd_acc += 1
+				total_fwd_acc += curr_t1 + curr_pdelay
+				fmt.Printf("T1 %d | Pdelay %d\n", curr_t1, curr_pdelay)
 			}
 		case ptp.MessagePDelayReq:
 			last_pdelay_req = &pd
 			pdelay := calcPDelay(last_pdelay_req, last_pdelay_resp, last_pdelay_resp_fup)
-			if pdelay != nil {
-				curr_pdelay = *pdelay
-				total_pdelay += *pdelay
-				count_pdelay += 1
+			if pdelay == nil {
+				continue
 			}
+			curr_pdelay = *pdelay
+			total_pdelay += *pdelay
+			count_pdelay += 1
 		case ptp.MessagePDelayResp:
 			last_pdelay_resp = &pd
 			pdelay := calcPDelay(last_pdelay_req, last_pdelay_resp, last_pdelay_resp_fup)
-			if pdelay != nil {
-				curr_pdelay = *pdelay
-				total_pdelay += *pdelay
-				count_pdelay += 1
+			if pdelay == nil {
+				continue
 			}
+			curr_pdelay = *pdelay
+			total_pdelay += *pdelay
+			count_pdelay += 1
 		case ptp.MessagePDelayRespFollowUp:
 			last_pdelay_resp_fup = &pd
 			pdelay := calcPDelay(last_pdelay_req, last_pdelay_resp, last_pdelay_resp_fup)
-			if pdelay != nil {
-				curr_pdelay = *pdelay
-				total_pdelay += *pdelay
-				count_pdelay += 1
+			if pdelay == nil {
+				continue
 			}
+			curr_pdelay = *pdelay
+			total_pdelay += *pdelay
+			count_pdelay += 1
 		}
 	}
 
