@@ -175,10 +175,10 @@ func TeMode() {
 		fmt.Printf("Mean Pdelay: %d\n", pdelay)
 		fmt.Printf("Mean FwdAcc: %d\n", fwd_acc)
 	} else {
-		t1, t4, twoway, stats := client.GetMeanTE()
-		fmt.Printf("Mean T1: %d\n", t1)
-		fmt.Printf("Mean T4: %d\n", t4)
-		fmt.Printf("Mean 2Way: %d\n", twoway)
+		_, _, _, stats := client.GetMeanTE()
+		fmt.Printf("Mean T1: %d\n", stats.CalcMeanT1())
+		fmt.Printf("Mean T4: %d\n", stats.CalcMeanT4())
+		fmt.Printf("Mean 2Way: %d\n", stats.CalcMeanTwoway())
 
 		stats.GenerateFile("measurement.dat")
 	}

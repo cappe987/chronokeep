@@ -270,15 +270,21 @@ func calcDelay(req *PacketData, resp *PacketData) *int64 {
 }
 
 type PacketStat struct {
-	value int64
-	time  time.Duration
-	// msgtype ptp.MessageType
+	msgtype ptp.MessageType
+	time    time.Duration
+	value   int64
+	latency int64
+	Twoway  *int64
 	// // serverTs        int64
 	// // clientTs        int64
 	// // correctionField int64
-	// p1 *PacketData
-	// p2 *PacketData
-	// p3 *PacketData
+	p1 *PacketData
+	p2 *PacketData
+	p3 *PacketData
+}
+
+func (ps *PacketStat) Value() int64 {
+	return ps.value
 }
 
 func (ps *PacketStat) ToString() string {
@@ -287,12 +293,32 @@ func (ps *PacketStat) ToString() string {
 	return fmt.Sprintf("%d.%03d %d", s, ms, ps.value)
 }
 
+func (ps *PacketStat) TimeToString() string {
+	s := int(ps.time.Seconds())
+	ms := ps.time.Milliseconds() % 1000
+	return fmt.Sprintf("%d.%03d", s, ms)
+}
+
 type Stats struct {
-	T1teList         []PacketStat
-	T4teList         []PacketStat
-	TwowayList       []PacketStat
-	SyncLatencyList  []PacketStat
-	DelayLatencyList []PacketStat
+	Syncs   []PacketStat
+	Delays  []PacketStat
+	Twoways []PacketStat
+}
+
+func (stats *Stats) AddSync(sync, fup *PacketData, t1 int64, normTs time.Duration) {
+	latency := GetSyncLatency(sync, fup)
+	ps := PacketStat{msgtype: ptp.MessageSync, p1: sync, p2: fup, time: normTs, value: t1, latency: latency}
+	stats.Syncs = append(stats.Syncs, ps)
+}
+func (stats *Stats) AddDelay(req, resp *PacketData, t4 int64, normTs time.Duration) {
+	latency := GetDelayLatency(req, resp)
+	ps := PacketStat{msgtype: ptp.MessageDelayReq, p1: req, p2: resp, time: normTs, value: t4, latency: latency}
+	stats.Delays = append(stats.Delays, ps)
+}
+
+func (stats *Stats) AddTwoway(twoway int64, normTs time.Duration) {
+	ps := PacketStat{time: normTs, value: twoway}
+	stats.Twoways = append(stats.Twoways, ps)
 }
 
 func GetSyncLatency(sync *PacketData, fup *PacketData) int64 {
@@ -303,35 +329,52 @@ func GetDelayLatency(req *PacketData, resp *PacketData) int64 {
 	return resp.GetDelayRespOriginTimestamp().Nano() - req.HwTstamp.UnixNano()
 }
 
-func (stats *Stats) AddT1TE(te int64, latency int64, normTs time.Duration) {
-	stats.T1teList = append(stats.T1teList, PacketStat{value: te, time: normTs})
-	stats.SyncLatencyList = append(stats.SyncLatencyList, PacketStat{value: latency, time: normTs})
+func (stats *Stats) CalcMeanT1() int64 {
+	avg := int64(0)
+	for i, ps := range stats.Syncs {
+		avg += (ps.value - avg) / (int64(i) + 1)
+	}
+	return avg
 }
 
-func (stats *Stats) AddT4TE(te int64, latency int64, normTs time.Duration) {
-	stats.T4teList = append(stats.T4teList, PacketStat{value: te, time: normTs})
-	stats.DelayLatencyList = append(stats.DelayLatencyList, PacketStat{value: latency, time: normTs})
+func (stats *Stats) CalcMeanT4() int64 {
+	avg := int64(0)
+	for i, ps := range stats.Delays {
+		avg += (ps.value - avg) / (int64(i) + 1)
+	}
+	return avg
 }
 
-func (stats *Stats) AddTwowayTE(val int64, normTs time.Duration) {
-	stats.TwowayList = append(stats.TwowayList, PacketStat{value: val, time: normTs})
+func (stats *Stats) CalcMeanTwoway() int64 {
+	avg := int64(0)
+	for i, ps := range stats.Twoways {
+		avg += (ps.value - avg) / (int64(i) + 1)
+	}
+	return avg
 }
 
-func outputData(f *os.File, header string, list []PacketStat) {
+func outputValues(f *os.File, header string, list []PacketStat) {
 	_, _ = f.WriteString(header)
 	for _, ps := range list {
 		_, _ = f.WriteString(fmt.Sprintf("%s\n", ps.ToString()))
 	}
 }
 
+func outputLatency(f *os.File, header string, list []PacketStat) {
+	_, _ = f.WriteString(header)
+	for _, ps := range list {
+		_, _ = f.WriteString(fmt.Sprintf("%s %d\n", ps.TimeToString(), ps.latency))
+	}
+}
+
 func (stats *Stats) GenerateFile(filename string) {
 	f, _ := os.Create(filename)
 	defer f.Close()
-	outputData(f, "SYNC_TIME_ERROR\n", stats.T1teList)
-	outputData(f, "\nDELAY_TIME_ERROR\n", stats.T4teList)
-	outputData(f, "\nTWOWAY_TIME_ERROR\n", stats.TwowayList)
-	outputData(f, "\nSYNC_LATENCY\n", stats.SyncLatencyList)
-	outputData(f, "\nDELAY_LATENCY\n", stats.DelayLatencyList)
+	outputValues(f, "SYNC_TIME_ERROR\n", stats.Syncs)
+	outputValues(f, "\nDELAY_TIME_ERROR\n", stats.Delays)
+	outputValues(f, "\nTWOWAY_TIME_ERROR\n", stats.Twoways)
+	outputLatency(f, "\nSYNC_LATENCY\n", stats.Syncs)
+	outputLatency(f, "\nDELAY_LATENCY\n", stats.Delays)
 }
 
 func (port *Port) GetMeanTE() (int64, int64, int64, Stats) {
@@ -382,7 +425,9 @@ func (port *Port) GetMeanTE() (int64, int64, int64, Stats) {
 			curr_t1 = *ct1
 			total_t1 += curr_t1
 			count_t1 += 1
-			stats.AddT1TE(curr_t1, GetSyncLatency(last_sync, last_fup), normTs)
+			// stats.AddT1TE(curr_t1, GetSyncLatency(last_sync, last_fup), normTs)
+			stats.AddSync(last_sync, last_fup, curr_t1, normTs)
+
 		case ptp.MessageFollowUp:
 			last_fup = &pd
 			ct1 := calcSyfup(last_sync, last_fup)
@@ -392,7 +437,8 @@ func (port *Port) GetMeanTE() (int64, int64, int64, Stats) {
 			curr_t1 = *ct1
 			total_t1 += curr_t1
 			count_t1 += 1
-			stats.AddT1TE(curr_t1, GetSyncLatency(last_sync, last_fup), normTs)
+			stats.AddSync(last_sync, last_fup, curr_t1, normTs)
+			// stats.AddT1TE(curr_t1, GetSyncLatency(last_sync, last_fup), normTs)
 		case ptp.MessageDelayReq:
 			last_delay_req = &pd
 			ct4 := calcDelay(last_delay_req, last_delay_resp)
@@ -406,8 +452,10 @@ func (port *Port) GetMeanTE() (int64, int64, int64, Stats) {
 			count_t4 += 1
 			total += curr_delay
 			count += 1
-			stats.AddT4TE(curr_t4, GetDelayLatency(last_delay_req, last_delay_resp), normTs)
-			stats.AddTwowayTE(curr_delay, normTs)
+			stats.AddDelay(last_delay_req, last_delay_resp, curr_t4, normTs)
+			stats.AddTwoway(curr_delay, normTs)
+			// stats.AddT4TE(curr_t4, GetDelayLatency(last_delay_req, last_delay_resp), normTs)
+			// stats.AddTwowayTE(curr_delay, normTs)
 		case ptp.MessageDelayResp:
 			last_delay_resp = &pd
 			ct4 := calcDelay(last_delay_req, last_delay_resp)
@@ -421,8 +469,10 @@ func (port *Port) GetMeanTE() (int64, int64, int64, Stats) {
 			count_t4 += 1
 			total += curr_delay
 			count += 1
-			stats.AddT4TE(curr_t4, GetDelayLatency(last_delay_req, last_delay_resp), normTs)
-			stats.AddTwowayTE(curr_delay, normTs)
+			stats.AddDelay(last_delay_req, last_delay_resp, curr_t4, normTs)
+			stats.AddTwoway(curr_delay, normTs)
+			// stats.AddT4TE(curr_t4, GetDelayLatency(last_delay_req, last_delay_resp), normTs)
+			// stats.AddTwowayTE(curr_delay, normTs)
 		}
 
 	}
