@@ -35,6 +35,10 @@ func (pd *PacketData) Print() {
 	fmt.Printf("%s | %s | Seq %d | Dom %d | hwts %d.%09d | Corr %d\n", iface, dir, seq, domain, rx_s, rx_ns, corr)
 }
 
+func (pd *PacketData) NormalizeSwtstamp(base time.Time) time.Duration {
+	return pd.SwTstamp.Sub(base)
+}
+
 func (pd *PacketData) IsSync() bool {
 	return pd.Packet.MessageType() == ptp.MessageSync
 }

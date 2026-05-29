@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"os"
 	"slices"
 	"time"
 
@@ -268,9 +269,75 @@ func calcDelay(req *PacketData, resp *PacketData) *int64 {
 	return &curr_t4
 }
 
-func (port *Port) GetMeanTE() (int64, int64, int64) {
+type PacketStat struct {
+	value int64
+	time  time.Duration
+	// msgtype ptp.MessageType
+	// // serverTs        int64
+	// // clientTs        int64
+	// // correctionField int64
+	// p1 *PacketData
+	// p2 *PacketData
+	// p3 *PacketData
+}
+
+func (ps *PacketStat) ToString() string {
+	s := int(ps.time.Seconds())
+	ms := ps.time.Milliseconds() % 1000
+	return fmt.Sprintf("%d.%03d %d", s, ms, ps.value)
+}
+
+type Stats struct {
+	T1teList         []PacketStat
+	T4teList         []PacketStat
+	TwowayList       []PacketStat
+	SyncLatencyList  []PacketStat
+	DelayLatencyList []PacketStat
+}
+
+func GetSyncLatency(sync *PacketData, fup *PacketData) int64 {
+	return sync.HwTstamp.UnixNano() - fup.GetFupOriginTimestamp().Nano()
+}
+
+func GetDelayLatency(req *PacketData, resp *PacketData) int64 {
+	return resp.GetDelayRespOriginTimestamp().Nano() - req.HwTstamp.UnixNano()
+}
+
+func (stats *Stats) AddT1TE(te int64, latency int64, normTs time.Duration) {
+	stats.T1teList = append(stats.T1teList, PacketStat{value: te, time: normTs})
+	stats.SyncLatencyList = append(stats.SyncLatencyList, PacketStat{value: latency, time: normTs})
+}
+
+func (stats *Stats) AddT4TE(te int64, latency int64, normTs time.Duration) {
+	stats.T4teList = append(stats.T4teList, PacketStat{value: te, time: normTs})
+	stats.DelayLatencyList = append(stats.DelayLatencyList, PacketStat{value: latency, time: normTs})
+}
+
+func (stats *Stats) AddTwowayTE(val int64, normTs time.Duration) {
+	stats.TwowayList = append(stats.TwowayList, PacketStat{value: val, time: normTs})
+}
+
+func outputData(f *os.File, header string, list []PacketStat) {
+	_, _ = f.WriteString(header)
+	for _, ps := range list {
+		_, _ = f.WriteString(fmt.Sprintf("%s\n", ps.ToString()))
+	}
+}
+
+func (stats *Stats) GenerateFile(filename string) {
+	f, _ := os.Create(filename)
+	defer f.Close()
+	outputData(f, "SYNC_TIME_ERROR\n", stats.T1teList)
+	outputData(f, "\nDELAY_TIME_ERROR\n", stats.T4teList)
+	outputData(f, "\nTWOWAY_TIME_ERROR\n", stats.TwowayList)
+	outputData(f, "\nSYNC_LATENCY\n", stats.SyncLatencyList)
+	outputData(f, "\nDELAY_LATENCY\n", stats.DelayLatencyList)
+}
+
+func (port *Port) GetMeanTE() (int64, int64, int64, Stats) {
 	var pkts []PacketData
 	pkts = append(port.rxRecord, port.txRecord...)
+	var stats Stats
 
 	// Sort on SwTstamp since that's the order we processed them in
 	slices.SortFunc(pkts, func(a, b PacketData) int {
@@ -294,14 +361,17 @@ func (port *Port) GetMeanTE() (int64, int64, int64) {
 	count := int64(0)
 	count_t1 := int64(0)
 	count_t4 := int64(0)
+	baseTs := pkts[0].SwTstamp
 
 	// TODO: Use iterative mean calculation to avoid potential overflow
+	// TODO: Break out to groupings first? And then do calculations
 	for _, pd := range pkts {
 		// pd.Print()
 		if pd.IsInformationPacket() {
 			continue
 		}
 		// pd.Print()
+		normTs := pd.NormalizeSwtstamp(baseTs)
 		switch pd.Packet.MessageType() {
 		case ptp.MessageSync:
 			last_sync = &pd
@@ -312,6 +382,7 @@ func (port *Port) GetMeanTE() (int64, int64, int64) {
 			curr_t1 = *ct1
 			total_t1 += curr_t1
 			count_t1 += 1
+			stats.AddT1TE(curr_t1, GetSyncLatency(last_sync, last_fup), normTs)
 		case ptp.MessageFollowUp:
 			last_fup = &pd
 			ct1 := calcSyfup(last_sync, last_fup)
@@ -321,6 +392,7 @@ func (port *Port) GetMeanTE() (int64, int64, int64) {
 			curr_t1 = *ct1
 			total_t1 += curr_t1
 			count_t1 += 1
+			stats.AddT1TE(curr_t1, GetSyncLatency(last_sync, last_fup), normTs)
 		case ptp.MessageDelayReq:
 			last_delay_req = &pd
 			ct4 := calcDelay(last_delay_req, last_delay_resp)
@@ -334,6 +406,8 @@ func (port *Port) GetMeanTE() (int64, int64, int64) {
 			count_t4 += 1
 			total += curr_delay
 			count += 1
+			stats.AddT4TE(curr_t4, GetDelayLatency(last_delay_req, last_delay_resp), normTs)
+			stats.AddTwowayTE(curr_delay, normTs)
 		case ptp.MessageDelayResp:
 			last_delay_resp = &pd
 			ct4 := calcDelay(last_delay_req, last_delay_resp)
@@ -347,11 +421,13 @@ func (port *Port) GetMeanTE() (int64, int64, int64) {
 			count_t4 += 1
 			total += curr_delay
 			count += 1
+			stats.AddT4TE(curr_t4, GetDelayLatency(last_delay_req, last_delay_resp), normTs)
+			stats.AddTwowayTE(curr_delay, normTs)
 		}
 
 	}
 
-	return (total_t1 / count_t1), (total_t4 / count_t4), (total / count)
+	return (total_t1 / count_t1), (total_t4 / count_t4), (total / count), stats
 }
 
 func calcPDelay(req *PacketData, resp *PacketData, respFup *PacketData) *int64 {
