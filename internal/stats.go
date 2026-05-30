@@ -303,6 +303,7 @@ type Stats struct {
 	Syncs   []PacketStat
 	Delays  []PacketStat
 	Twoways []PacketStat
+	FwdAcc  []PacketStat
 }
 
 func (stats *Stats) AddSync(sync, fup *PacketData, t1 int64, normTs time.Duration) {
@@ -316,9 +317,20 @@ func (stats *Stats) AddDelay(req, resp *PacketData, t4 int64, normTs time.Durati
 	stats.Delays = append(stats.Delays, ps)
 }
 
+func (stats *Stats) AddPDelay(req, resp, respFup *PacketData, pdelay int64, normTs time.Duration) {
+	latency := GetPDelayLatency(req, resp)
+	ps := PacketStat{msgtype: ptp.MessageDelayReq, p1: req, p2: resp, p3: respFup, time: normTs, value: pdelay, latency: latency}
+	stats.Delays = append(stats.Delays, ps)
+}
+
 func (stats *Stats) AddTwoway(twoway int64, normTs time.Duration) {
 	ps := PacketStat{time: normTs, value: twoway}
 	stats.Twoways = append(stats.Twoways, ps)
+}
+
+func (stats *Stats) AddFwdAcc(fwdAcc int64, normTs time.Duration) {
+	ps := PacketStat{time: normTs, value: fwdAcc}
+	stats.FwdAcc = append(stats.FwdAcc, ps)
 }
 
 func GetSyncLatency(sync *PacketData, fup *PacketData) int64 {
@@ -327,6 +339,10 @@ func GetSyncLatency(sync *PacketData, fup *PacketData) int64 {
 
 func GetDelayLatency(req *PacketData, resp *PacketData) int64 {
 	return resp.GetDelayRespOriginTimestamp().Nano() - req.HwTstamp.UnixNano()
+}
+
+func GetPDelayLatency(req, resp *PacketData) int64 {
+	return resp.HwTstamp.UnixNano() - req.HwTstamp.UnixNano()
 }
 
 func (stats *Stats) CalcMeanT1() int64 {
@@ -353,6 +369,22 @@ func (stats *Stats) CalcMeanTwoway() int64 {
 	return avg
 }
 
+func (stats *Stats) CalcMeanPDelay() int64 {
+	avg := int64(0)
+	for i, ps := range stats.Delays {
+		avg += (ps.value - avg) / (int64(i) + 1)
+	}
+	return avg
+}
+
+func (stats *Stats) CalcMeanFwdAcc() int64 {
+	avg := int64(0)
+	for i, ps := range stats.FwdAcc {
+		avg += (ps.value - avg) / (int64(i) + 1)
+	}
+	return avg
+}
+
 func outputValues(f *os.File, header string, list []PacketStat) {
 	_, _ = f.WriteString(header)
 	for _, ps := range list {
@@ -367,14 +399,22 @@ func outputLatency(f *os.File, header string, list []PacketStat) {
 	}
 }
 
-func (stats *Stats) GenerateFile(filename string) {
+func (stats *Stats) GenerateFile(peertopeer bool, filename string) {
 	f, _ := os.Create(filename)
 	defer f.Close()
-	outputValues(f, "SYNC_TIME_ERROR\n", stats.Syncs)
-	outputValues(f, "\nDELAY_TIME_ERROR\n", stats.Delays)
-	outputValues(f, "\nTWOWAY_TIME_ERROR\n", stats.Twoways)
-	outputLatency(f, "\nSYNC_LATENCY\n", stats.Syncs)
-	outputLatency(f, "\nDELAY_LATENCY\n", stats.Delays)
+	if peertopeer {
+		outputValues(f, "SYNC_TIME_ERROR\n", stats.Syncs)
+		outputValues(f, "\nMEASURED_PDELAY\n", stats.Delays)
+		outputValues(f, "\nFWD_ACCURACY\n", stats.FwdAcc)
+		outputLatency(f, "\nSYNC_LATENCY\n", stats.Syncs)
+		outputLatency(f, "\nPDELAY_LATENCY\n", stats.Delays)
+	} else {
+		outputValues(f, "SYNC_TIME_ERROR\n", stats.Syncs)
+		outputValues(f, "\nDELAY_TIME_ERROR\n", stats.Delays)
+		outputValues(f, "\nTWOWAY_TIME_ERROR\n", stats.Twoways)
+		outputLatency(f, "\nSYNC_LATENCY\n", stats.Syncs)
+		outputLatency(f, "\nDELAY_LATENCY\n", stats.Delays)
+	}
 }
 
 func (port *Port) GetMeanTE() (int64, int64, int64, Stats) {
@@ -516,9 +556,10 @@ func calcPDelay(req *PacketData, resp *PacketData, respFup *PacketData) *int64 {
 }
 
 // TODO: Clean this up and return data more structured
-func (port *Port) GetP2pTE() (int64, int64, int64) {
+func (port *Port) GetP2pTE() (int64, int64, int64, Stats) {
 	var pkts []PacketData
 	pkts = append(port.rxRecord, port.txRecord...)
+	var stats Stats
 
 	// Sort on SwTstamp since that's the order we processed them in
 	slices.SortFunc(pkts, func(a, b PacketData) int {
@@ -553,6 +594,7 @@ func (port *Port) GetP2pTE() (int64, int64, int64) {
 	count_t1 := int64(0)
 	count_fwd_acc := int64(0)
 	count_pdelay := int64(0)
+	baseTs := pkts[0].SwTstamp
 
 	// TODO: Use iterative mean calculation to avoid potential overflow
 	for _, pd := range filtered {
@@ -560,6 +602,7 @@ func (port *Port) GetP2pTE() (int64, int64, int64) {
 		if pd.IsInformationPacket() {
 			continue
 		}
+		normTs := pd.NormalizeSwtstamp(baseTs)
 		switch pd.Packet.MessageType() {
 		case ptp.MessageSync:
 			last_sync = &pd
@@ -571,10 +614,11 @@ func (port *Port) GetP2pTE() (int64, int64, int64) {
 			total_t1 += curr_t1
 			count_t1 += 1
 			// Need at least one pdelay before we start measuring
+			stats.AddSync(last_sync, last_fup, curr_t1, normTs)
 			if count_pdelay > 0 {
+				stats.AddFwdAcc(curr_t1+curr_pdelay, normTs)
 				count_fwd_acc += 1
 				total_fwd_acc += curr_t1 + curr_pdelay
-				fmt.Printf("T1 %d | Pdelay %d\n", curr_t1, curr_pdelay)
 			}
 		case ptp.MessageFollowUp:
 			last_fup = &pd
@@ -585,10 +629,11 @@ func (port *Port) GetP2pTE() (int64, int64, int64) {
 			curr_t1 = *ct1
 			total_t1 += curr_t1
 			count_t1 += 1
+			stats.AddSync(last_sync, last_fup, curr_t1, normTs)
 			if count_pdelay > 0 {
+				stats.AddFwdAcc(curr_t1+curr_pdelay, normTs)
 				count_fwd_acc += 1
 				total_fwd_acc += curr_t1 + curr_pdelay
-				fmt.Printf("T1 %d | Pdelay %d\n", curr_t1, curr_pdelay)
 			}
 		case ptp.MessagePDelayReq:
 			last_pdelay_req = &pd
@@ -599,6 +644,7 @@ func (port *Port) GetP2pTE() (int64, int64, int64) {
 			curr_pdelay = *pdelay
 			total_pdelay += *pdelay
 			count_pdelay += 1
+			stats.AddPDelay(last_pdelay_req, last_pdelay_resp, last_pdelay_resp_fup, curr_pdelay, normTs)
 		case ptp.MessagePDelayResp:
 			last_pdelay_resp = &pd
 			pdelay := calcPDelay(last_pdelay_req, last_pdelay_resp, last_pdelay_resp_fup)
@@ -608,6 +654,7 @@ func (port *Port) GetP2pTE() (int64, int64, int64) {
 			curr_pdelay = *pdelay
 			total_pdelay += *pdelay
 			count_pdelay += 1
+			stats.AddPDelay(last_pdelay_req, last_pdelay_resp, last_pdelay_resp_fup, curr_pdelay, normTs)
 		case ptp.MessagePDelayRespFollowUp:
 			last_pdelay_resp_fup = &pd
 			pdelay := calcPDelay(last_pdelay_req, last_pdelay_resp, last_pdelay_resp_fup)
@@ -617,8 +664,9 @@ func (port *Port) GetP2pTE() (int64, int64, int64) {
 			curr_pdelay = *pdelay
 			total_pdelay += *pdelay
 			count_pdelay += 1
+			stats.AddPDelay(last_pdelay_req, last_pdelay_resp, last_pdelay_resp_fup, curr_pdelay, normTs)
 		}
 	}
 
-	return (total_t1 / count_t1), (total_pdelay / count_pdelay), (total_fwd_acc / count_fwd_acc)
+	return (total_t1 / count_t1), (total_pdelay / count_pdelay), (total_fwd_acc / count_fwd_acc), stats
 }

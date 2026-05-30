@@ -170,16 +170,17 @@ func TeMode() {
 
 	fmt.Printf("\n")
 	if teOpts.Peertopeer {
-		t1, pdelay, fwd_acc := client.GetP2pTE()
-		fmt.Printf("Mean T1: %d\n", t1)
-		fmt.Printf("Mean Pdelay: %d\n", pdelay)
-		fmt.Printf("Mean FwdAcc: %d\n", fwd_acc)
+		_, _, _, stats := client.GetP2pTE()
+		fmt.Printf("Mean T1: %d\n", stats.CalcMeanT1())
+		fmt.Printf("Mean Pdelay: %d\n", stats.CalcMeanPDelay())
+		fmt.Printf("Mean FwdAcc: %d\n", stats.CalcMeanFwdAcc())
+		stats.GenerateFile(true, "measurement.dat")
 	} else {
 		_, _, _, stats := client.GetMeanTE()
 		fmt.Printf("Mean T1: %d\n", stats.CalcMeanT1())
 		fmt.Printf("Mean T4: %d\n", stats.CalcMeanT4())
 		fmt.Printf("Mean 2Way: %d\n", stats.CalcMeanTwoway())
 
-		stats.GenerateFile("measurement.dat")
+		stats.GenerateFile(false, "measurement.dat")
 	}
 }
