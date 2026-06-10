@@ -19,8 +19,8 @@ type CommonOpts struct {
 	EgressLatency     uint64
 	MinorVersion      uint8
 	Domain            uint8
-	Vlan              *int // TODO: Implement
-	Prio              int  // TODO: Implement
+	Vlan              *uint16
+	Prio              uint8
 	Udp               bool
 	Iface             string
 	Ip                string
@@ -43,6 +43,18 @@ type Opt struct {
 	Help  string
 	Usage string
 	Mode  string
+}
+
+type PortOpts struct {
+	IngressLatency uint64
+	EgressLatency  uint64
+	IP             string
+	GM             bool
+	Vlan           *uint16
+	Prio           uint8
+
+	// Internal fields
+	destIp string
 }
 
 func (opts *CommonOpts) AddOpt(v interface{}, short rune, long string, usage string, help string) Opt {

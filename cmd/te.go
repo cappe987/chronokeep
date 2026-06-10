@@ -10,18 +10,8 @@ import (
 	"time"
 )
 
-type portOpts struct {
-	IngressLatency uint64
-	EgressLatency  uint64
-	IP             string
-	GM             bool
-
-	// Internal fields
-	destIp string
-}
-
 type teOpts struct {
-	Ports      map[string]portOpts
+	Ports      map[string]PortOpts
 	Interval   uint32
 	Count      uint32
 	Peertopeer bool

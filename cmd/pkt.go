@@ -15,11 +15,14 @@ import (
 
 type PktOpts struct {
 	// Configuration file
+	Ports    map[string]PortOpts
 	Interval uint32
 	Count    uint32
 	Seq      uint16
 	Sequence []string
 	RxMode   bool
+	Vlan     int
+	Prio     int
 	// ClkType   string
 
 	// Internal fields
@@ -33,18 +36,24 @@ type PktOpts struct {
 }
 
 func PktMode() {
-	var port Port
-	var opts = CommonOpts{Mode: "pkt"}
+	mode := "pkt"
+	var opts = CommonOpts{Mode: mode}
 	var pktOpts = PktOpts{}
 	pktOpts.Count = 1
 	pktOpts.Interval = uint32(1000)
+	pktOpts.Vlan = -1
+	pktOpts.Prio = -1
 	noWait := false
+	opts.Iface = "dummy"
+	opts.Ip = "dummy"
 
 	opts.DefineCommonFlags()
-	opts.AddModeOpt("pkt", &pktOpts.Interval, 'I', "interval", "<ms>", "TX packet interval (ms)")
-	opts.AddModeOpt("pkt", &pktOpts.Seq, 's', "seq", "<seqid>", "Starting SequenceID")
-	opts.AddModeOpt("pkt", &pktOpts.RxMode, 'r', "rx", "", "Receive only")
-	opts.AddModeOpt("pkt", &pktOpts.Count, 'c', "count", "<num>", "Number of packets to transmit. 0=infinite")
+	opts.AddModeOpt(mode, &pktOpts.Interval, 'I', "interval", "<ms>", "TX packet interval (ms)")
+	opts.AddModeOpt(mode, &pktOpts.Seq, 's', "seq", "<seqid>", "Starting SequenceID")
+	opts.AddModeOpt(mode, &pktOpts.RxMode, 'r', "rx", "", "Receive only")
+	opts.AddModeOpt(mode, &pktOpts.Count, 'c', "count", "<num>", "Number of packets to transmit. 0=infinite")
+	opts.AddModeOpt(mode, &pktOpts.Vlan, 'V', "vlan", "<VID>", "VLAN ID")
+	opts.AddModeOpt(mode, &pktOpts.Prio, 'p', "prio", "<PRIO>", "VLAN Prio")
 
 	if !opts.ParseFile(&pktOpts) {
 		return
@@ -67,6 +76,39 @@ func PktMode() {
 	}
 	for _, str := range pkttypes {
 		pktOpts.SequenceTypes = append(pktOpts.SequenceTypes, StringToMessageType(str))
+	}
+
+	pname := ""
+	var popts PortOpts
+	for name, port := range pktOpts.Ports {
+		pname = name
+		popts = port
+		break
+	}
+
+	if opts.Iface != "dummy" {
+		pname = opts.Iface
+	}
+
+	port := Port{
+		IfaceStr: pname,
+		// TODO: Fix IP parsing from file
+		// IP:       ip2,
+		// DestIP:   ip1,
+	}
+	opts.Iface = pname
+	opts.Vlan = popts.Vlan
+	opts.Prio = popts.Prio
+	if pktOpts.Vlan >= 0 {
+		vid := uint16(pktOpts.Vlan)
+		opts.Vlan = &vid
+	}
+	if pktOpts.Prio >= 0 {
+		opts.Prio = uint8(pktOpts.Prio)
+		if opts.Vlan == nil {
+			vid := uint16(0)
+			opts.Vlan = &vid
+		}
 	}
 
 	err := port.Init(opts, 0, 1)
