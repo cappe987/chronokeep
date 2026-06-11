@@ -5,22 +5,26 @@
 - Fix htons in port.go
 - Add option to enable port recording later for TE mode
 - Convert to using time.Duration in most places?
+- Interactive CLI?
 
 Uses a [fork](https://github.com/cappe987/facebook-time) of
 [facebook/time](https://github.com/facebook/time) for onestep support and
 .Nano() function for timestamps.
 
+Build InTime
 
-Cross-compile for ARM
-```
+```bash
+# Host architecture
+go build
+# ARM64
+GOARCH=arm64 go build -ldflags "-s -w"
+# ARMv7
 GOARCH=arm go build -ldflags "-s -w"
-```
-
--s strips binary
-
--w removes DWARF debugging info
-
-For ARMv5
-```
+# ARMv5
 GOARCH=arm GOARM=5 go build -ldflags "-s -w"
 ```
+
+The extra flags are useful on systems with limited resources and minimizes the binary size.
+- `-s` strips binary
+- `-w` removes DWARF debugging info
+
