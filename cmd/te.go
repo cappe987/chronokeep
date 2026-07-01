@@ -59,7 +59,7 @@ func TeMode() {
 	RunTeMode(opts, teOpts, nil)
 }
 
-func RunTeMode(opts CommonOpts, teOpts TeOpts, wsOut chan []byte) {
+func RunTeMode(opts CommonOpts, teOpts TeOpts, app *App) {
 
 	teOpts.intervalTime = time.Duration(teOpts.Interval) * time.Millisecond
 	// Validate settings
@@ -117,7 +117,7 @@ func RunTeMode(opts CommonOpts, teOpts TeOpts, wsOut chan []byte) {
 	opts.Iface = p2name
 	client.Init(opts, 0, 1)
 
-	sigs := make(chan os.Signal, 1)
+	sigs := make(chan os.Signal)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	quit := make(chan int)
 	serverRx := make(chan PacketData, 100)
@@ -143,6 +143,9 @@ func RunTeMode(opts CommonOpts, teOpts TeOpts, wsOut chan []byte) {
 		case <-sigs:
 			quit <- 0
 			running = false
+			signal.Stop(sigs)
+			// TODO: Temporary while developing
+			// app.Out <- []byte("exit")
 		case pd := <-serverRx:
 			// fmt.Printf("Server rx\n")
 			pd.Print()
@@ -156,7 +159,7 @@ func RunTeMode(opts CommonOpts, teOpts TeOpts, wsOut chan []byte) {
 			// fmt.Printf("Client rx\n")
 			pd.Print()
 			// TODO: Make channel non-blocking
-			wsOut <- []byte(buildHtmxPacket(pd))
+			app.Out <- []byte(buildHtmxPacket(pd))
 			if teOpts.Peertopeer && pd.IsPDelayReq() {
 				client.ReplyToPDelayReq(&pd)
 			}
@@ -184,6 +187,12 @@ func RunTeMode(opts CommonOpts, teOpts TeOpts, wsOut chan []byte) {
 			fmt.Printf(str1 + str2 + str3)
 			server.RecordPackets = true
 			client.RecordPackets = true
+		case msg := <-app.In:
+			if string(msg) == "exit" {
+				quit <- 0
+				running = false
+				signal.Stop(sigs)
+			}
 		}
 	}
 	server.Deinit()
@@ -246,6 +255,7 @@ func buildHtmxPacket(pd PacketData) string {
 <tbody hx-swap-oob="beforeend:#msgs">
 <tr>
     <td>%s</td>
+    <td>RX</td>
     <td>%s</td>
     <td>%d</td>
     <td>%d</td>

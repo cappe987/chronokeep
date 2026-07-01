@@ -1,15 +1,40 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>HTML Title</title>
+<title>InTime</title>
 <script src="/static/htmx.min.js"></script>
 <script src="/static/ws.min.js"></script>
+<!-- <script src="/static/materialize.min.js"></script> -->
+<!-- <script src="/static/bootstrap.min.js"></script> -->
+<!-- <link rel="stylesheet" href="static/pico.jade.min.css"> -->
 <link rel="stylesheet" href="style.css">
+<!-- <link rel="stylesheet" href="static/materialize.min.css"> -->
+<!-- <link rel="stylesheet" href="static/bootstrap.min.css"> -->
 </head>
 <body>
   
-<h1>My First Heading</h1>
-<p>My first paragraph.</p>
+<h2>InTime - Time Error Mode</h2>
+
+<!-- <button>Primary</button> -->
+
+<!-- <form action="/start" method="post"> -->
+<form hx-post="/start" hx-swap="innerHTML" hx-target="#msgs">
+    <!-- <input id="title" name="title" type="text" -->
+        <!-- hx-post="/validate" -->
+        <!-- hx-trigger="change"> -->
+    <input name="port1" type="text" value="veth1">
+    <input name="port2" type="text" value="veth2">
+    <button type="submit">Start</button>
+</form>
+
+<!-- <form action="/stop" method="post"> -->
+<form hx-post="/stop" hx-swap="none">
+    <!-- <input id="title" name="title" type="text" -->
+    <!--     hx-post="/validate" -->
+    <!--     hx-trigger="change"> -->
+    <button type="submit">Stop</button>
+</form>
+
 
 <div hx-ext="ws" ws-connect="/ws">
     <!-- <div id="msgs"> -->
@@ -20,12 +45,13 @@
         <thead>
           <tr>
             <th style="width: 5%">Port</th>
-            <th style="width: 7%">Type</th>
+            <th style="width: 2%">Dir</th>
+            <th style="width: 10%">Type</th>
             <th style="width: 5%">Domain</th>
             <th style="width: 5%">Seq</th>
-            <th style="width: 10%">Correction</th>
-            <th style="width: 10%">Origin TS</th>
-            <th style="width: 10%">RX TS</th>
+            <th style="width: 13%">Correction</th>
+            <th style="width: 13%">OriginTS</th>
+            <th style="width: 13%">Timestamp</th>
             <th></th>
           </tr>
         </thead>

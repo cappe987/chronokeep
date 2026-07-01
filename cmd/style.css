@@ -1,13 +1,24 @@
+
+html, th {
+    background: rgb(29, 30, 32)
+}
+
+h1, h2, h3, p {
+    color: rgb(218, 218, 218);
+    background: rgb(29, 30, 32);
+    font-family: Arial;
+}
+
 #table-container {
-    height: 400px;
+    height: 60vh;
     overflow-y: auto;
     border: 1px solid #ccc;
-    table-layout: fixed;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
+    /* border-collapse: separate; */
 }
 
 thead {
@@ -17,11 +28,43 @@ thead {
 }
 
 tr:hover{
-   background-color: rgba(255, 255, 0, 0.5);
+   /* background-color: rgba(255, 255, 0, 0.5) !important; */
+   background-color: #558589 !important;
 }
 
 th, td {
-    padding: 2px;
-    border: 1px solid #ddd;
+    padding: 6px;
+    /* border-top: 1px solid #ddd; */
+    /* border-bottom: 1px solid #ddd; */
     text-align: center;
+    font-family: Arial;
+    font-size: 18px;
+    color: white;
+}
+
+tbody tr:nth-child(odd) {
+  background-color: #444;
+  color: #fff;
+}
+
+tbody tr:nth-child(even) {
+  background-color: #555;
+  color: #fff;
+}
+
+button {
+    padding: 6px;
+    padding-left: 16px;
+    padding-right: 16px;
+    font-family: Arial;
+    font-size: 18px;
+    /* background-color: #44bb55; */
+    background-color: rgb(218, 218, 218);
+    text-color: white;
+    border-radius: 6px;
+}
+
+button:hover {
+    background-color: rgb(180, 180, 180);
+
 }
