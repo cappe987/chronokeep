@@ -8,14 +8,18 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	ptp "github.com/facebook/time/ptp/protocol"
 )
 
-type teOpts struct {
+type TeOpts struct {
 	Ports       map[string]PortOpts
 	Interval    uint32
 	Count       uint32
 	Peertopeer  bool
 	DelayRecord uint32
+
+	WsOut chan []byte
 
 	// Internal fields
 	intervalTime time.Duration
@@ -25,8 +29,8 @@ func TeMode() {
 	// var port Port
 	mode := "te"
 	var opts = CommonOpts{Mode: mode}
-	var teOpts = teOpts{}
-	teOpts.Count = 1
+	var teOpts = TeOpts{}
+	// teOpts.Count = 1
 	teOpts.Interval = uint32(1000)
 	teOpts.DelayRecord = uint32(0)
 	opts.Iface = "dummy"
@@ -35,7 +39,7 @@ func TeMode() {
 	opts.DefineCommonFlags()
 	opts.AddModeOpt(mode, &teOpts.Interval, 'I', "interval", "<ms>", "TX packet interval (ms)")
 	opts.AddModeOpt(mode, &teOpts.Peertopeer, 'P', "p2p", "", "Use P2P mode")
-	opts.AddModeOpt(mode, &teOpts.Count, 'c', "count", "<num>", "Number of packets to transmit. 0=infinite")
+	// opts.AddModeOpt(mode, &teOpts.Count, 'c', "count", "<num>", "Number of packets to transmit. 0=infinite")
 	opts.AddModeOpt(mode, &teOpts.DelayRecord, 'D', "delay_record", "<seconds>", "Time to wait until recording starts. Default: 0 seconds")
 
 	if !opts.ParseFile(&teOpts) {
@@ -45,7 +49,6 @@ func TeMode() {
 		return
 	}
 
-	teOpts.intervalTime = time.Duration(teOpts.Interval) * time.Millisecond
 	fmt.Printf("%v\n", teOpts)
 
 	if len(teOpts.Ports) != 2 {
@@ -53,6 +56,12 @@ func TeMode() {
 		return
 	}
 
+	RunTeMode(opts, teOpts, nil)
+}
+
+func RunTeMode(opts CommonOpts, teOpts TeOpts, wsOut chan []byte) {
+
+	teOpts.intervalTime = time.Duration(teOpts.Interval) * time.Millisecond
 	// Validate settings
 	missingIp := false
 	gmCount := 0
@@ -146,10 +155,13 @@ func TeMode() {
 		case pd := <-clientRx:
 			// fmt.Printf("Client rx\n")
 			pd.Print()
+			// TODO: Make channel non-blocking
+			wsOut <- []byte(buildHtmxPacket(pd))
 			if teOpts.Peertopeer && pd.IsPDelayReq() {
 				client.ReplyToPDelayReq(&pd)
 			}
 		case <-serverTicker.C:
+			// TODO: Add websocket to transmit
 			server.TransmitAnnounce()
 			server.TransmitSyncFup()
 			if teOpts.Peertopeer {
@@ -159,6 +171,7 @@ func TeMode() {
 			// Issue seems to be resolved if we run Deinit()
 			// properly to disable timestamping.
 		case <-clientTicker.C:
+			// TODO: Add websocket to transmit
 			if teOpts.Peertopeer {
 				client.TransmitPDelayReq()
 			} else {
@@ -191,4 +204,56 @@ func TeMode() {
 
 		stats.GenerateFile(false, "measurement.dat")
 	}
+}
+
+func buildHtmxPacket(pd PacketData) string {
+	msgtype := pd.Packet.MessageType()
+	hdr := pd.GetHeader()
+	rx_ns := pd.HwTstamp.UnixNano() % 1000000000
+	rx_s := pd.HwTstamp.Unix()
+	seq := hdr.SequenceID
+	corr := hdr.CorrectionField.Duration()
+	domain := hdr.DomainNumber
+	iface := fmt.Sprintf("%6s", pd.Iface)
+
+	var originTs ptp.Timestamp
+	ots_s := int64(0)
+	ots_ns := int64(0)
+	switch msgtype {
+	case ptp.MessageSync:
+		originTs = pd.GetSyncOriginTimestamp()
+		ots_s = originTs.Nano() / 1000000000
+		ots_ns = originTs.Nano() % 1000000000
+	case ptp.MessageFollowUp:
+		originTs = pd.GetFupOriginTimestamp()
+		ots_s = originTs.Nano() / 1000000000
+		ots_ns = originTs.Nano() % 1000000000
+	case ptp.MessageDelayResp:
+		originTs = pd.GetDelayRespOriginTimestamp()
+		ots_s = originTs.Nano() / 1000000000
+		ots_ns = originTs.Nano() % 1000000000
+	case ptp.MessagePDelayResp:
+		originTs = pd.GetPDelayRespRequestReceiptTimestamp()
+		ots_s = originTs.Nano() / 1000000000
+		ots_ns = originTs.Nano() % 1000000000
+	case ptp.MessagePDelayRespFollowUp:
+		originTs = pd.GetPDelayRespFupResponseOriginTimestamp()
+		ots_s = originTs.Nano() / 1000000000
+		ots_ns = originTs.Nano() % 1000000000
+	}
+
+	return fmt.Sprintf(`
+<tbody hx-swap-oob="beforeend:#msgs">
+<tr>
+    <td>%s</td>
+    <td>%s</td>
+    <td>%d</td>
+    <td>%d</td>
+    <td>%d</td>
+    <td>%d.%09d</td>
+    <td>%d.%09d</td>
+    <td></td>
+</tr>
+</tbody>
+`, iface, msgtype, domain, seq, corr, ots_s, ots_ns, rx_s, rx_ns)
 }

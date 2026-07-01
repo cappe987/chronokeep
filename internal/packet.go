@@ -107,6 +107,11 @@ func (pd *PacketData) GetCorrectionField() int64 {
 	return hdr.CorrectionField.Duration().Nanoseconds()
 }
 
+func (pd *PacketData) GetSyncOriginTimestamp() ptp.Timestamp {
+	pkt := pd.Packet.(*ptp.SyncDelayReq)
+	return pkt.OriginTimestamp
+}
+
 func (pd *PacketData) GetFupOriginTimestamp() ptp.Timestamp {
 	pkt := pd.Packet.(*ptp.FollowUp)
 	return pkt.PreciseOriginTimestamp

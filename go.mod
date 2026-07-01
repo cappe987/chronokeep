@@ -11,3 +11,5 @@ require (
 	golang.org/x/net v0.38.0
 	golang.org/x/sys v0.31.0
 )
+
+require github.com/coder/websocket v1.8.15 // indirect

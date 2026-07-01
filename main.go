@@ -39,6 +39,8 @@ func main() {
 		cmd.GmMode()
 	} else if arg == "te" {
 		cmd.TeMode()
+	} else if arg == "web" {
+		cmd.WebServer()
 	} else if arg == "-v" || arg == "--version" || arg == "version" {
 		fmt.Println("intime - v0.1")
 	} else {

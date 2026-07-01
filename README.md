@@ -6,6 +6,7 @@
 - Add option to enable port recording later for TE mode
 - Convert to using time.Duration in most places?
 - Interactive CLI?
+- Build an interactive web server, websockets and files embedded
 
 Uses a [fork](https://github.com/cappe987/facebook-time) of
 [facebook/time](https://github.com/facebook/time) for onestep support and

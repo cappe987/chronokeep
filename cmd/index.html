@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>HTML Title</title>
+<script src="/static/htmx.min.js"></script>
+<script src="/static/ws.min.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  
+<h1>My First Heading</h1>
+<p>My first paragraph.</p>
+
+<div hx-ext="ws" ws-connect="/ws">
+    <!-- <div id="msgs"> -->
+    <!-- </div> -->
+    
+    <div id="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 5%">Port</th>
+            <th style="width: 7%">Type</th>
+            <th style="width: 5%">Domain</th>
+            <th style="width: 5%">Seq</th>
+            <th style="width: 10%">Correction</th>
+            <th style="width: 10%">Origin TS</th>
+            <th style="width: 10%">RX TS</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="msgs">
+        </tbody>
+      </table>
+</div>
+
+</div>
+
+</body>
+</html>
