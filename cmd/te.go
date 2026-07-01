@@ -11,10 +11,11 @@ import (
 )
 
 type teOpts struct {
-	Ports      map[string]PortOpts
-	Interval   uint32
-	Count      uint32
-	Peertopeer bool
+	Ports       map[string]PortOpts
+	Interval    uint32
+	Count       uint32
+	Peertopeer  bool
+	DelayRecord uint32
 
 	// Internal fields
 	intervalTime time.Duration
@@ -27,6 +28,7 @@ func TeMode() {
 	var teOpts = teOpts{}
 	teOpts.Count = 1
 	teOpts.Interval = uint32(1000)
+	teOpts.DelayRecord = uint32(0)
 	opts.Iface = "dummy"
 	opts.Ip = "dummy"
 
@@ -34,6 +36,7 @@ func TeMode() {
 	opts.AddModeOpt(mode, &teOpts.Interval, 'I', "interval", "<ms>", "TX packet interval (ms)")
 	opts.AddModeOpt(mode, &teOpts.Peertopeer, 'P', "p2p", "", "Use P2P mode")
 	opts.AddModeOpt(mode, &teOpts.Count, 'c', "count", "<num>", "Number of packets to transmit. 0=infinite")
+	opts.AddModeOpt(mode, &teOpts.DelayRecord, 'D', "delay_record", "<seconds>", "Time to wait until recording starts. Default: 0 seconds")
 
 	if !opts.ParseFile(&teOpts) {
 		return
@@ -114,6 +117,14 @@ func TeMode() {
 	clientTicker := time.NewTicker(teOpts.intervalTime)
 	running := true
 
+	delayRecordTimer := time.NewTimer(time.Duration(teOpts.DelayRecord) * time.Second)
+	if teOpts.DelayRecord != 0 {
+		server.RecordPackets = false
+		client.RecordPackets = false
+	} else {
+		delayRecordTimer.Stop()
+	}
+
 	// TODO: Bad file descriptor after seqid ~280. Seems to be an UDP problem
 
 	go server.RxMode(serverRx, quit)
@@ -153,6 +164,13 @@ func TeMode() {
 			} else {
 				client.TransmitDelayReq()
 			}
+		case <-delayRecordTimer.C:
+			str1 := "========================"
+			str2 := " Starting recording "
+			str3 := "========================\n"
+			fmt.Printf(str1 + str2 + str3)
+			server.RecordPackets = true
+			client.RecordPackets = true
 		}
 	}
 	server.Deinit()
