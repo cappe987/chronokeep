@@ -159,7 +159,7 @@ func RunTeMode(opts CommonOpts, teOpts TeOpts, app *App) {
 			// fmt.Printf("Client rx\n")
 			pd.Print()
 			// TODO: Make channel non-blocking
-			app.Out <- []byte(buildHtmxPacket(pd))
+			app.WsOut <- []byte(buildHtmxPacket(pd))
 			if teOpts.Peertopeer && pd.IsPDelayReq() {
 				client.ReplyToPDelayReq(&pd)
 			}
@@ -205,6 +205,7 @@ func RunTeMode(opts CommonOpts, teOpts TeOpts, app *App) {
 		fmt.Printf("Mean Pdelay: %d\n", stats.CalcMeanPDelay())
 		fmt.Printf("Mean FwdAcc: %d\n", stats.CalcMeanFwdAcc())
 		stats.GenerateFile(true, "measurement.dat")
+		app.Out <- []byte(buildHtmxStats(teOpts, stats))
 	} else {
 		_, _, _, stats := client.GetMeanTE()
 		fmt.Printf("Mean T1: %d\n", stats.CalcMeanT1())
@@ -212,6 +213,24 @@ func RunTeMode(opts CommonOpts, teOpts TeOpts, app *App) {
 		fmt.Printf("Mean 2Way: %d\n", stats.CalcMeanTwoway())
 
 		stats.GenerateFile(false, "measurement.dat")
+		app.Out <- []byte(buildHtmxStats(teOpts, stats))
+	}
+}
+
+func buildHtmxStats(teOpts TeOpts, stats Stats) string {
+	if teOpts.Peertopeer {
+		return fmt.Sprintf(`
+<p>Mean T1: %d</p>
+<p>Mean Pdelay: %d</p>
+<p>Mean FwdAcc: %d</p>
+`, stats.CalcMeanT1(), stats.CalcMeanPDelay(), stats.CalcMeanFwdAcc())
+	} else {
+		return fmt.Sprintf(`
+<p>Mean T1: %d</p>
+<p>Mean T4: %d</p>
+<p>Mean 2Way: %d</p>
+`, stats.CalcMeanT1(), stats.CalcMeanT4(), stats.CalcMeanTwoway())
+
 	}
 }
 
@@ -262,7 +281,6 @@ func buildHtmxPacket(pd PacketData) string {
     <td>%d</td>
     <td>%d.%09d</td>
     <td>%d.%09d</td>
-    <td></td>
 </tr>
 </tbody>
 `, iface, msgtype, domain, seq, corr, ots_s, ots_ns, rx_s, rx_ns)

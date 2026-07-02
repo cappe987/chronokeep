@@ -444,6 +444,11 @@ func (port *Port) GetMeanTE() (int64, int64, int64, Stats) {
 	count := int64(0)
 	count_t1 := int64(0)
 	count_t4 := int64(0)
+
+	if len(pkts) == 0 {
+		return 0, 0, 0, stats
+	}
+
 	baseTs := pkts[0].SwTstamp
 
 	// TODO: Use iterative mean calculation to avoid potential overflow

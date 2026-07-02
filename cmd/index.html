@@ -4,6 +4,7 @@
 <title>InTime</title>
 <script src="/static/htmx.min.js"></script>
 <script src="/static/ws.min.js"></script>
+<script src="/static/tailwind.js"></script>
 <!-- <script src="/static/materialize.min.js"></script> -->
 <!-- <script src="/static/bootstrap.min.js"></script> -->
 <!-- <link rel="stylesheet" href="static/pico.jade.min.css"> -->
@@ -12,54 +13,109 @@
 <!-- <link rel="stylesheet" href="static/bootstrap.min.css"> -->
 </head>
 <body>
-  
-<h2>InTime - Time Error Mode</h2>
 
-<!-- <button>Primary</button> -->
+<div id="page">  
+  <div id="sidebar" class="bg-gray-700">
+    <p class="hover:bg-gray-500 border-gray-500 border text-white">TE Mode</p>
+    <p class="hover:bg-gray-500 border-gray-500 border text-white">Packet Mode</p>
+  </div>
+  <div id="main">
+    <h1>InTime - Time Error Mode</h1>
 
-<!-- <form action="/start" method="post"> -->
-<form hx-post="/start" hx-swap="innerHTML" hx-target="#msgs">
-    <!-- <input id="title" name="title" type="text" -->
-        <!-- hx-post="/validate" -->
-        <!-- hx-trigger="change"> -->
-    <input name="port1" type="text" value="veth1">
-    <input name="port2" type="text" value="veth2">
-    <button type="submit">Start</button>
-</form>
+    <form id="config">
+      <div>
+      <label for="port1" class="font-medium text-heading text-white">Port 1:</label>
+      <select
+	name="port1"
+	class="text-white bg-gray-700 py-2 px-4 rounded"
+	hx-post="/get-ports"
+	hx-trigger="load"
+	hx-swap="innerHTML">
+      </select>
+      </div>
 
-<!-- <form action="/stop" method="post"> -->
-<form hx-post="/stop" hx-swap="none">
-    <!-- <input id="title" name="title" type="text" -->
-    <!--     hx-post="/validate" -->
-    <!--     hx-trigger="change"> -->
-    <button type="submit">Stop</button>
-</form>
+      <div>
+      <label for="port2" class="font-medium text-heading text-white">Port 2:</label>
+      <select
+	name="port2"
+	class="text-white bg-gray-700 py-2 px-4 rounded"
+	hx-post="/get-ports"
+	hx-trigger="load"
+	hx-swap="innerHTML">
+      </select>
+      </div>
+
+      <div>
+      <label for="domain" class="font-medium text-heading text-white">Domain:</label>
+      <input
+	name="domain"
+	type="number"
+	class="text-white bg-gray-700 py-2 px-4 rounded" max="255" min="0">
+      </input>
+      </div>
+
+      <div>
+      <label for="peertopeer" class="font-medium text-heading text-white">P2P:</label>
+      <input
+	name="peertopeer"
+	type="checkbox"
+	style="width: 20px; height: 20px"
+	class="text-white bg-gray-700 py-2 px-4 rounded">
+      </input>
+      </div>
+      
+      <button type="submit"
+	      name="action"
+	      value="start"
+	      class="bg-gray-700 hover:bg-gray-500 text-white rounded py-2 px-4" 
+	      hx-post="/te-toggle"
+	      hx-swap="innerHTML"
+	      hx-target="#msgs">
+	Start
+      </button>
+
+      <button type="submit"
+	      name="action"
+	      value="stop"
+	      class="bg-gray-700 hover:bg-gray-500 text-white rounded py-2 px-4" 
+	      hx-post="/te-toggle"
+	      hx-swap="innerHTML"
+	      hx-target="#results">
+	Stop
+      </button>
+    </form>
+
+    <!-- <form hx-post="/te-toggle" hx-swap="none"> -->
+      <!-- <button type="submit" name="action" value="stop" class="bg-gray-700 hover:bg-gray-500 text-white rounded py-2 px-4">Stop</button> -->
+    <!-- </form> -->
 
 
-<div hx-ext="ws" ws-connect="/ws">
-    <!-- <div id="msgs"> -->
-    <!-- </div> -->
+    <div hx-ext="ws" ws-connect="/ws">
+      <div id="table-container">
+	<table class="table-fixed">
+          <thead>
+            <tr>
+	      <th style="width: 5%">Port</th>
+	      <th style="width: 2%">Dir</th>
+	      <th style="width: 10%">Type</th>
+	      <th style="width: 5%">Domain</th>
+	      <th style="width: 5%">Seq</th>
+	      <th style="width: 13%">Correction</th>
+	      <th style="width: 13%">OriginTS</th>
+	      <th style="width: 13%">Timestamp</th>
+	      <!-- <th></th> -->
+            </tr>
+          </thead>
+          <tbody id="msgs">
+          </tbody>
+	</table>
+      </div>
+    </div>
     
-    <div id="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th style="width: 5%">Port</th>
-            <th style="width: 2%">Dir</th>
-            <th style="width: 10%">Type</th>
-            <th style="width: 5%">Domain</th>
-            <th style="width: 5%">Seq</th>
-            <th style="width: 13%">Correction</th>
-            <th style="width: 13%">OriginTS</th>
-            <th style="width: 13%">Timestamp</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="msgs">
-        </tbody>
-      </table>
-</div>
+    <div id="results" class="text-white">
+    </div>
 
+  </div>
 </div>
 
 </body>

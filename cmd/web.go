@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"sort"
 	"time"
 
 	. "intime/internal"
@@ -23,17 +25,20 @@ import (
 //go:embed static/htmx.min.js
 //go:embed static/ws.min.js
 //go:embed static/pico.jade.min.css
+//go:embed static/tailwind.js
 var content embed.FS
 
 type App struct {
-	In  chan []byte // messages from websocket
-	Out chan []byte // messages to websocket
+	In    chan []byte // To App
+	Out   chan []byte // From App
+	WsOut chan []byte // Websocket data from App to client
 }
 
 func NewApp() *App {
 	return &App{
-		In:  make(chan []byte, 100),
-		Out: make(chan []byte, 100),
+		In:    make(chan []byte, 100),
+		Out:   make(chan []byte, 100),
+		WsOut: make(chan []byte, 100),
 	}
 }
 
@@ -70,7 +75,7 @@ func wsHandler(app *App) http.HandlerFunc {
 				conn.Close(websocket.StatusNormalClosure, "")
 				return
 
-			case msg := <-app.Out:
+			case msg := <-app.WsOut:
 				if string(msg) == "exit" {
 					conn.Close(websocket.StatusNormalClosure, "")
 					return
@@ -87,19 +92,20 @@ func wsHandler(app *App) http.HandlerFunc {
 		}
 	}
 }
-func toggle(app *App, enable bool) func(w http.ResponseWriter, r *http.Request) {
+func toggle(app *App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// if r.URL.Path != "/" {
 		// 	http.NotFound(w, r)
 		// 	return
 		// }
-		log.Printf("Toggle request %v. Method %s", enable, r.Method)
 		if r.Method == "POST" {
 			// fmt.Fprintf(w, "GET, %q", html.EscapeString(r.URL.Path))
-			log.Printf("POST request %v", enable)
+			log.Printf("POST request")
 
+			action := r.PostFormValue("action")
 			p1 := r.PostFormValue("port1")
 			p2 := r.PostFormValue("port2")
+			log.Printf("Action: %s\n", action)
 
 			// p1 := ""
 			// p2 := ""
@@ -112,12 +118,41 @@ func toggle(app *App, enable bool) func(w http.ResponseWriter, r *http.Request) 
 			// 	// p2 = value
 			// 	// }
 			// }
-			if enable {
+			if action == "start" {
 				start_app(app, p1, p2)
 			} else {
 				app.In <- []byte("exit")
+				html := <-app.Out
+				fmt.Fprintf(w, string(html))
 			}
 
+		} else {
+			http.Error(w, "Invalid request method.", 405)
+		}
+	}
+}
+
+func get_ports(app *App) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" {
+			log.Printf("GET request get_ports")
+
+			files, err := os.ReadDir("/sys/class/net")
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			str := ""
+			names := make([]string, 0)
+			for _, file := range files {
+				names = append(names, file.Name())
+			}
+			// TODO: Set default p1 and p2 from config file. Same for other settings.
+			sort.Strings(names)
+			for _, name := range names {
+				str += fmt.Sprintf("<option>%s</option>", name)
+			}
+			fmt.Fprintf(w, str)
 		} else {
 			http.Error(w, "Invalid request method.", 405)
 		}
@@ -136,7 +171,7 @@ func start_app(app *App, p1, p2 string) {
 	teOpts.Ports = make(map[string]PortOpts)
 	teOpts.Ports[p1] = PortOpts{GM: true}
 	teOpts.Ports[p2] = PortOpts{}
-	opts.SwTstamp = true
+	// opts.SwTstamp = true
 	// teOpts.Ports["eth21"] = PortOpts{GM: true}
 	// teOpts.Ports["eth22"] = PortOpts{}
 
@@ -155,8 +190,9 @@ func WebServer() {
 
 	http.Handle("/", http.FileServer(http.FS(content)))
 	http.HandleFunc("/ws", wsHandler(app))
-	http.HandleFunc("/start", toggle(app, true))
-	http.HandleFunc("/stop", toggle(app, false))
+	http.HandleFunc("/te-toggle", toggle(app))
+	http.HandleFunc("/get-ports", get_ports(app))
+	// http.HandleFunc("/stop", toggle(app, false))
 
 	fmt.Printf("Serving on http://localhost:8080\n")
 	log.Fatal(http.ListenAndServe(":8080", nil))

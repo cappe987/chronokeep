@@ -1,23 +1,27 @@
 
 html, th {
-    background: rgb(29, 30, 32)
-}
-
-h1, h2, h3, p {
-    color: rgb(218, 218, 218);
     background: rgb(29, 30, 32);
     font-family: Arial;
+}
+
+h1, h2, h3 {
+    color: rgb(218, 218, 218);
+    background: rgb(29, 30, 32);
 }
 
 #table-container {
     height: 60vh;
     overflow-y: auto;
     border: 1px solid #ccc;
+    margin-top: 10px;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
+    white-space: nowrap;
+    overflow-x: auto;
+    min-width: 1200px;
     /* border-collapse: separate; */
 }
 
@@ -37,8 +41,7 @@ th, td {
     /* border-top: 1px solid #ddd; */
     /* border-bottom: 1px solid #ddd; */
     text-align: center;
-    font-family: Arial;
-    font-size: 18px;
+    /* font-size: 18px; */
     color: white;
 }
 
@@ -52,19 +55,87 @@ tbody tr:nth-child(even) {
   color: #fff;
 }
 
-button {
-    padding: 6px;
-    padding-left: 16px;
-    padding-right: 16px;
-    font-family: Arial;
-    font-size: 18px;
-    /* background-color: #44bb55; */
-    background-color: rgb(218, 218, 218);
-    text-color: white;
-    border-radius: 6px;
+/* button { */
+/*     padding: 6px; */
+/*     padding-left: 16px; */
+/*     padding-right: 16px; */
+/*     font-size: 18px; */
+/*     /\* background-color: #44bb55; *\/ */
+/*     background-color: rgb(218, 218, 218); */
+/*     text-color: white; */
+/*     border-radius: 6px; */
+/* } */
+
+/* button:hover { */
+/*     background-color: rgb(180, 180, 180); */
+
+/* } */
+
+body {
+    margin: 0;
 }
 
-button:hover {
-    background-color: rgb(180, 180, 180);
-
+#page {
+    display: flex;
+    flex-basis: 90%;
 }
+
+#sidebar {
+    /* background-color: rgb(218, 218, 218); */
+    width: 100px;
+    height: 100vh;
+    flex-basis: 10%;
+    flex-shrink: 0;
+}
+
+#sidebar > p {
+    text-color: black;
+    padding: 10px;
+    margin: 0;
+    text-align: center;
+    /* border-color: rgb(200, 200, 200); */
+    /* border-color: rgb(200, 200, 200); */
+    /* border-style: solid; */
+    /* border-width: 1px; */
+}
+
+/* #sidebar > p:hover { */
+    /* background: rgb(180, 180, 180); */
+/* } */
+
+#main {
+    margin: 20px;
+}
+
+h1 {
+    font-size: 2em;
+}
+
+#config {
+    max-width: 50%;
+    display: flex;
+    /* justify-content: space-around; */
+    justify-content: flex-start;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+#config > div {
+    white-space: nowrap;
+}
+
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+/* #results > p { */
+/*     text:  */
+/* } */
