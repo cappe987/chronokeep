@@ -112,18 +112,29 @@ h1 {
 }
 
 #config {
+    display: flex;
+    justify-content: space-between;
+    /* justify-content: flex-start; */
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+
+#config-form {
     max-width: 50%;
     display: flex;
     /* justify-content: space-around; */
     justify-content: flex-start;
     gap: 10px;
     flex-wrap: wrap;
+    flex-direction: column;
 }
 
-#config > div {
+.config-item {
     white-space: nowrap;
 }
 
+/* Hide up/down arrows for number field */
 /* Chrome, Safari, Edge, Opera */
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
@@ -136,6 +147,35 @@ input[type=number] {
   -moz-appearance: textfield;
 }
 
-/* #results > p { */
-/*     text:  */
-/* } */
+/* Hide default checkbox */
+.custom-checkbox input[type="checkbox"] {
+  display: none;
+}
+
+/* Create custom box */
+.custom-checkbox .checkmark {
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  background-color: #eee;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  margin-right: 8px;
+  vertical-align: middle;
+  position: relative;
+  cursor: pointer;
+}
+
+/* Show checkmark when checked */
+.custom-checkbox input:checked + .checkmark::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 1px;
+  width: 10px;
+  height: 20px;
+  border: solid #333;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+

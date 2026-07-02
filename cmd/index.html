@@ -22,67 +22,98 @@
   <div id="main">
     <h1>InTime - Time Error Mode</h1>
 
-    <form id="config">
-      <div>
-      <label for="port1" class="font-medium text-heading text-white">Port 1:</label>
-      <select
-	name="port1"
-	class="text-white bg-gray-700 py-2 px-4 rounded"
-	hx-post="/get-ports"
-	hx-trigger="load"
-	hx-swap="innerHTML">
-      </select>
-      </div>
+    <form id="config-form">
+      <div id="config">
+	<div class="config-item">
+	  <label for="port1" class="font-medium text-heading text-white">Port 1:</label>
+	  <select
+	    name="port1"
+	    class="text-white bg-gray-700 py-2 px-4 rounded"
+	    hx-post="/get-ports"
+	    hx-trigger="load"
+	    hx-swap="innerHTML">
+	  </select>
+	</div>
 
-      <div>
-      <label for="port2" class="font-medium text-heading text-white">Port 2:</label>
-      <select
-	name="port2"
-	class="text-white bg-gray-700 py-2 px-4 rounded"
-	hx-post="/get-ports"
-	hx-trigger="load"
-	hx-swap="innerHTML">
-      </select>
-      </div>
+	<div class="config-item">
+	  <label for="port2" class="font-medium text-heading text-white">Port 2:</label>
+	  <select
+	    name="port2"
+	    class="text-white bg-gray-700 py-2 px-4 rounded"
+	    hx-post="/get-ports"
+	    hx-trigger="load"
+	    hx-swap="innerHTML">
+	  </select>
+	</div>
 
-      <div>
-      <label for="domain" class="font-medium text-heading text-white">Domain:</label>
-      <input
-	name="domain"
-	type="number"
-	class="text-white bg-gray-700 py-2 px-4 rounded" max="255" min="0">
-      </input>
-      </div>
+	<div class="config-item">
+	  <label for="domain" class="font-medium text-heading text-white">Domain:</label>
+	  <input
+	    name="domain"
+	    type="number"
+	    class="text-white bg-gray-700 py-1.5 px-4 rounded" max="255" min="0">
+          </input>
+	</div>
 
-      <div>
-      <label for="peertopeer" class="font-medium text-heading text-white">P2P:</label>
-      <input
-	name="peertopeer"
-	type="checkbox"
-	style="width: 20px; height: 20px"
-	class="text-white bg-gray-700 py-2 px-4 rounded">
-      </input>
+	<div class="config-item" style="margin-top: 5px;">
+	  <label for="peertopeer" class="font-medium text-heading text-white">P2P:</label>
+	  <label class="custom-checkbox">
+	    <input
+	      name="peertopeer"
+	      type="checkbox"
+	      class="text-white bg-gray-700 py-2 px-4 rounded">
+            </input>
+	    <span class="checkmark"></span>
+	  </label>
+	</div>
+
+	<div class="config-item" style="margin-top: 5px;">
+	  <label for="software" class="font-medium text-heading text-white">SwTstamp:</label>
+	  <label class="custom-checkbox">
+	    <input
+	      name="software"
+	      type="checkbox"
+	      class="text-white bg-gray-700 py-2 px-4 rounded">
+            </input>
+	    <span class="checkmark"></span>
+	  </label>
+	</div>
+
+	<div class="config-item">
+	  <label for="record-delay" class="font-medium text-heading text-white">
+	    Recording delay:
+	  </label>
+	  <input
+	    name="record-delay"
+	    type="number"
+	    min="0" max="1000"
+	    class="text-white bg-gray-700 py-1.5 px-4 rounded">
+          </input>
+	</div>
+
       </div>
       
-      <button type="submit"
-	      name="action"
-	      value="start"
-	      class="bg-gray-700 hover:bg-gray-500 text-white rounded py-2 px-4" 
-	      hx-post="/te-toggle"
-	      hx-swap="innerHTML"
-	      hx-target="#msgs">
-	Start
-      </button>
+      <div>
+	<button type="submit"
+		name="action"
+		value="start"
+		class="bg-gray-700 hover:bg-gray-500 text-white rounded py-2 px-4" 
+		hx-post="/te-toggle"
+		hx-swap="innerHTML"
+		hx-target="#msgs">
+	  Start
+	</button>
 
-      <button type="submit"
-	      name="action"
-	      value="stop"
-	      class="bg-gray-700 hover:bg-gray-500 text-white rounded py-2 px-4" 
-	      hx-post="/te-toggle"
-	      hx-swap="innerHTML"
-	      hx-target="#results">
-	Stop
-      </button>
+	<button type="submit"
+		name="action"
+		value="stop"
+		class="bg-gray-700 hover:bg-gray-500 text-white rounded py-2 px-4" 
+		hx-post="/te-toggle"
+		hx-swap="innerHTML"
+		hx-target="#results">
+	  Stop
+	</button>
+      </div>
     </form>
 
     <!-- <form hx-post="/te-toggle" hx-swap="none"> -->
