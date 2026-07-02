@@ -4,10 +4,14 @@
 - Log levels
 - Fix htons in port.go
 - Convert to using time.Duration in most places?
-- Interactive CLI?
-- Build an interactive web server, websockets and files embedded
-- Use a templating engine for html
 - Better handle the facebook/time override
+
+Web:
+- Templating system
+- Borrow color scheme from elsewhere?
+- Stateful server
+- Better validation and error handling
+- More modes. Block swapping while one is active
 
 Uses a [fork](https://github.com/cappe987/facebook-time) of
 [facebook/time](https://github.com/facebook/time) for onestep support and
