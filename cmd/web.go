@@ -34,11 +34,15 @@ type App struct {
 	WsOut chan []byte // Websocket data from App to client
 }
 
-func NewApp() *App {
-	return &App{
-		In:    make(chan []byte, 100),
-		Out:   make(chan []byte, 100),
-		WsOut: make(chan []byte, 100),
+func NewApp(init_channels bool) *App {
+	if init_channels {
+		return &App{
+			In:    make(chan []byte, 100),
+			Out:   make(chan []byte, 100),
+			WsOut: make(chan []byte, 100),
+		}
+	} else {
+		return &App{}
 	}
 }
 
@@ -162,11 +166,10 @@ func get_ports(app *App) func(w http.ResponseWriter, r *http.Request) {
 func start_app(app *App, p1, p2 string) {
 	var teOpts = TeOpts{}
 	var opts = CommonOpts{Mode: "te"}
+	opts.InitDefaults()
 	// teOpts.Count = 1
 	teOpts.Interval = uint32(1000)
 	teOpts.DelayRecord = uint32(0)
-	opts.Iface = "dummy"
-	opts.Ip = "dummy"
 
 	teOpts.Ports = make(map[string]PortOpts)
 	teOpts.Ports[p1] = PortOpts{GM: true}
@@ -186,7 +189,7 @@ func start_app(app *App, p1, p2 string) {
 func WebServer() {
 
 	// wsOut := make(chan []byte, 1000)
-	app := NewApp()
+	app := NewApp(true)
 
 	http.Handle("/", http.FileServer(http.FS(content)))
 	http.HandleFunc("/ws", wsHandler(app))

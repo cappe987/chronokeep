@@ -71,15 +71,16 @@ func (opts *CommonOpts) AddModeOpt(mode string, v interface{}, short rune, long 
 	return opt
 }
 
-func (opts *CommonOpts) DefineCommonFlags() {
+func (opts *CommonOpts) InitDefaults() {
 	// TODO: IP multicast not working yet
-	// TODO: Move out from this function
 	opts.DestIp = "224.0.1.129" // TODO: 224.0.0.107 for pdelays
 	opts.Mac = "01:1b:19:00:00:00"
 	opts.RecordPackets = true
+	opts.Iface = "dummy"
+	opts.Ip = "dummy"
+}
 
-	// opts.AddOpt(&opts.Udp, '4', "udp", "Use IPv4 UDP instead of L2")
-
+func (opts *CommonOpts) DefineCommonFlags() {
 	opts.AddOpt(&opts.Udp, '4', "udp", "", "Use IPv4 UDP instead of L2")
 	opts.AddOpt(&opts.Domain, 'd', "domain", "<value>", "PTP domain (0-255)")
 	opts.AddOpt(&opts.Iface, 'i', "iface", "<iface>", "Interface to operate on")

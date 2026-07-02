@@ -112,12 +112,18 @@ h1 {
 }
 
 #config {
-    display: flex;
-    justify-content: space-between;
-    /* justify-content: flex-start; */
-    gap: 10px;
-    flex-wrap: wrap;
-    align-items: flex-start;
+    display: grid;
+    /* grid-template-columns: auto auto auto auto auto auto; */
+    /* grid-template-columns: repeat(6, minmax(0, 1fr)); */
+    grid-template-columns: repeat(6, auto);
+
+    padding: 10px;
+    /* display: flex; */
+    /* justify-content: space-between; */
+    /* /\* justify-content: flex-start; *\/ */
+    /* gap: 10px; */
+    /* flex-wrap: wrap; */
+    /* align-items: flex-start; */
 }
 
 #config-form {
@@ -130,8 +136,14 @@ h1 {
     flex-direction: column;
 }
 
+#config > label {
+    margin-top: 15px;
+}
+
 .config-item {
     white-space: nowrap;
+    padding-top: 10px;
+    /* text-align: center; */
 }
 
 /* Hide up/down arrows for number field */

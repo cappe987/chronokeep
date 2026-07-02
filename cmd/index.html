@@ -24,8 +24,8 @@
 
     <form id="config-form">
       <div id="config">
+	<label for="port1" class="font-medium text-heading text-white">Port 1:</label>
 	<div class="config-item">
-	  <label for="port1" class="font-medium text-heading text-white">Port 1:</label>
 	  <select
 	    name="port1"
 	    class="text-white bg-gray-700 py-2 px-4 rounded"
@@ -35,8 +35,8 @@
 	  </select>
 	</div>
 
+	<label for="port2" class="font-medium text-heading text-white">Port 2:</label>
 	<div class="config-item">
-	  <label for="port2" class="font-medium text-heading text-white">Port 2:</label>
 	  <select
 	    name="port2"
 	    class="text-white bg-gray-700 py-2 px-4 rounded"
@@ -46,17 +46,18 @@
 	  </select>
 	</div>
 
+	<label for="domain" class="font-medium text-heading text-white">Domain:</label>
 	<div class="config-item">
-	  <label for="domain" class="font-medium text-heading text-white">Domain:</label>
 	  <input
 	    name="domain"
 	    type="number"
-	    class="text-white bg-gray-700 py-1.5 px-4 rounded" max="255" min="0">
+	    min="0" max="9"
+	    class="text-white bg-gray-700 py-1.5 px-4 rounded">
           </input>
 	</div>
 
+	<label for="peertopeer" class="font-medium text-heading text-white">P2P:</label>
 	<div class="config-item" style="margin-top: 5px;">
-	  <label for="peertopeer" class="font-medium text-heading text-white">P2P:</label>
 	  <label class="custom-checkbox">
 	    <input
 	      name="peertopeer"
@@ -67,8 +68,8 @@
 	  </label>
 	</div>
 
+	<label for="software" class="font-medium text-heading text-white">SwTstamp:</label>
 	<div class="config-item" style="margin-top: 5px;">
-	  <label for="software" class="font-medium text-heading text-white">SwTstamp:</label>
 	  <label class="custom-checkbox">
 	    <input
 	      name="software"
@@ -79,14 +80,44 @@
 	  </label>
 	</div>
 
+	<label for="record-delay" class="font-medium text-heading text-white">Recording delay:</label>
 	<div class="config-item">
-	  <label for="record-delay" class="font-medium text-heading text-white">
-	    Recording delay:
-	  </label>
 	  <input
 	    name="record-delay"
 	    type="number"
-	    min="0" max="1000"
+	    min="0" max="9"
+	    class="text-white bg-gray-700 py-1.5 px-4 rounded">
+          </input>
+	</div>
+
+	<label for="vlan-tagged" class="font-medium text-heading text-white">VLAN tagged:</label>
+	<div class="config-item" style="margin-top: 5px;">
+	  <label class="custom-checkbox">
+	    <input
+	      name="vlan-tagged"
+	      type="checkbox"
+	      class="text-white bg-gray-700 py-2 px-4 rounded">
+            </input>
+	    <span class="checkmark"></span>
+	  </label>
+	</div>
+
+	<label for="vlan" class="font-medium text-heading text-white">VID:</label>
+	<div class="config-item">
+	  <input
+	    name="vlan"
+	    type="number"
+	    min="0" max="9"
+	    class="text-white bg-gray-700 py-1.5 px-4 rounded">
+          </input>
+	</div>
+
+	<label for="prio" class="font-medium text-heading text-white">PRIO:</label>
+	<div class="config-item">
+	  <input
+	    name="prio"
+	    type="number"
+	    min="0" max="9"
 	    class="text-white bg-gray-700 py-1.5 px-4 rounded">
           </input>
 	</div>

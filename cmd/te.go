@@ -19,8 +19,6 @@ type TeOpts struct {
 	Peertopeer  bool
 	DelayRecord uint32
 
-	WsOut chan []byte
-
 	// Internal fields
 	intervalTime time.Duration
 }
@@ -29,12 +27,11 @@ func TeMode() {
 	// var port Port
 	mode := "te"
 	var opts = CommonOpts{Mode: mode}
+	opts.InitDefaults()
 	var teOpts = TeOpts{}
 	// teOpts.Count = 1
 	teOpts.Interval = uint32(1000)
 	teOpts.DelayRecord = uint32(0)
-	opts.Iface = "dummy"
-	opts.Ip = "dummy"
 
 	opts.DefineCommonFlags()
 	opts.AddModeOpt(mode, &teOpts.Interval, 'I', "interval", "<ms>", "TX packet interval (ms)")
@@ -56,7 +53,8 @@ func TeMode() {
 		return
 	}
 
-	RunTeMode(opts, teOpts, nil)
+	app := NewApp(false)
+	RunTeMode(opts, teOpts, app)
 }
 
 func RunTeMode(opts CommonOpts, teOpts TeOpts, app *App) {
@@ -159,7 +157,9 @@ func RunTeMode(opts CommonOpts, teOpts TeOpts, app *App) {
 			// fmt.Printf("Client rx\n")
 			pd.Print()
 			// TODO: Make channel non-blocking
-			app.WsOut <- []byte(buildHtmxPacket(pd))
+			if app.WsOut != nil {
+				app.WsOut <- []byte(buildHtmxPacket(pd))
+			}
 			if teOpts.Peertopeer && pd.IsPDelayReq() {
 				client.ReplyToPDelayReq(&pd)
 			}
@@ -205,7 +205,9 @@ func RunTeMode(opts CommonOpts, teOpts TeOpts, app *App) {
 		fmt.Printf("Mean Pdelay: %d\n", stats.CalcMeanPDelay())
 		fmt.Printf("Mean FwdAcc: %d\n", stats.CalcMeanFwdAcc())
 		stats.GenerateFile(true, "measurement.dat")
-		app.Out <- []byte(buildHtmxStats(teOpts, stats))
+		if app.Out != nil {
+			app.Out <- []byte(buildHtmxStats(teOpts, stats))
+		}
 	} else {
 		_, _, _, stats := client.GetMeanTE()
 		fmt.Printf("Mean T1: %d\n", stats.CalcMeanT1())
@@ -213,7 +215,9 @@ func RunTeMode(opts CommonOpts, teOpts TeOpts, app *App) {
 		fmt.Printf("Mean 2Way: %d\n", stats.CalcMeanTwoway())
 
 		stats.GenerateFile(false, "measurement.dat")
-		app.Out <- []byte(buildHtmxStats(teOpts, stats))
+		if app.Out != nil {
+			app.Out <- []byte(buildHtmxStats(teOpts, stats))
+		}
 	}
 }
 
