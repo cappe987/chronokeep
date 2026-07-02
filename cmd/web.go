@@ -107,10 +107,22 @@ func toggle(app *App) func(w http.ResponseWriter, r *http.Request) {
 			log.Printf("POST request")
 
 			action := r.PostFormValue("action")
+			swtstamp := r.PostFormValue("software")
+			peertopeer := r.PostFormValue("peertopeer")
 			p1 := r.PostFormValue("port1")
 			p2 := r.PostFormValue("port2")
 			log.Printf("Action: %s\n", action)
+			log.Printf("Swt: %s\n", swtstamp)
+			log.Printf("p2p: %s\n", peertopeer)
 
+			sw := false
+			if swtstamp == "on" {
+				sw = true
+			}
+			p2p := false
+			if peertopeer == "on" {
+				p2p = true
+			}
 			// p1 := ""
 			// p2 := ""
 			// log.Printf("Body %v\n", r)
@@ -123,7 +135,7 @@ func toggle(app *App) func(w http.ResponseWriter, r *http.Request) {
 			// 	// }
 			// }
 			if action == "start" {
-				start_app(app, p1, p2)
+				start_app(app, p1, p2, sw, p2p)
 			} else {
 				app.In <- []byte("exit")
 				html := <-app.Out
@@ -139,7 +151,7 @@ func toggle(app *App) func(w http.ResponseWriter, r *http.Request) {
 func get_ports(app *App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
-			log.Printf("GET request get_ports")
+			log.Printf("POST request get_ports")
 
 			files, err := os.ReadDir("/sys/class/net")
 			if err != nil {
@@ -164,6 +176,7 @@ func get_ports(app *App) func(w http.ResponseWriter, r *http.Request) {
 }
 
 func start_app(app *App, p1, p2 string) {
+func start_app(app *App, p1, p2 string, swtstamp, peertopeer bool) {
 	var teOpts = TeOpts{}
 	var opts = CommonOpts{Mode: "te"}
 	opts.InitDefaults()
@@ -174,7 +187,8 @@ func start_app(app *App, p1, p2 string) {
 	teOpts.Ports = make(map[string]PortOpts)
 	teOpts.Ports[p1] = PortOpts{GM: true}
 	teOpts.Ports[p2] = PortOpts{}
-	// opts.SwTstamp = true
+	opts.SwTstamp = swtstamp
+	teOpts.Peertopeer = peertopeer
 	// teOpts.Ports["eth21"] = PortOpts{GM: true}
 	// teOpts.Ports["eth22"] = PortOpts{}
 
