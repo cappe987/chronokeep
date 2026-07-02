@@ -15,110 +15,114 @@
 <body>
 
 <div id="page">  
-  <div id="sidebar" class="bg-gray-700">
-    <p class="hover:bg-gray-500 border-gray-500 border text-white">TE Mode</p>
-    <p class="hover:bg-gray-500 border-gray-500 border text-white">Packet Mode</p>
+  <div id="sidebar" class="bg-secondary">
+    <p class="bg-tertiary-hover border-gray-500 border text-white">TE Mode</p>
+    <p class="bg-tertiary-hover border-gray-500 border text-white">Packet Mode</p>
   </div>
   <div id="main">
     <h1>InTime - Time Error Mode</h1>
 
     <form id="config-form">
       <div id="config">
-	<label for="port1" class="font-medium text-heading text-white">Port 1:</label>
+	<label for="port1" class="font-medium text-heading color-text">Port 1:</label>
 	<div class="config-item">
 	  <select
 	    name="port1"
-	    class="text-white bg-gray-700 py-2 px-4 rounded"
+	    class="color-text bg-secondary py-2 px-4 rounded"
 	    hx-post="/get-ports"
 	    hx-trigger="load"
 	    hx-swap="innerHTML">
 	  </select>
 	</div>
 
-	<label for="port2" class="font-medium text-heading text-white">Port 2:</label>
+	<label for="port2" class="font-medium text-heading color-text">Port 2:</label>
 	<div class="config-item">
 	  <select
 	    name="port2"
-	    class="text-white bg-gray-700 py-2 px-4 rounded"
+	    class="color-text bg-secondary py-2 px-4 rounded"
 	    hx-post="/get-ports"
 	    hx-trigger="load"
 	    hx-swap="innerHTML">
 	  </select>
 	</div>
 
-	<label for="domain" class="font-medium text-heading text-white">Domain:</label>
+	<label for="domain" class="font-medium text-heading color-text">Domain:</label>
 	<div class="config-item">
 	  <input
 	    name="domain"
 	    type="number"
-	    min="0" max="9"
-	    class="text-white bg-gray-700 py-1.5 px-4 rounded">
+	    min="0" max="999"
+	    placeholder="Domain"
+	    class="color-text bg-secondary py-1.5 px-4 rounded">
           </input>
 	</div>
 
-	<label for="peertopeer" class="font-medium text-heading text-white">P2P:</label>
+	<label for="peertopeer" class="font-medium text-heading color-text">P2P:</label>
 	<div class="config-item" style="margin-top: 5px;">
 	  <label class="custom-checkbox">
 	    <input
 	      name="peertopeer"
 	      type="checkbox"
-	      class="text-white bg-gray-700 py-2 px-4 rounded">
+	      class="color-text bg-secondary py-2 px-4 rounded">
             </input>
 	    <span class="checkmark"></span>
 	  </label>
 	</div>
 
-	<label for="software" class="font-medium text-heading text-white">SwTstamp:</label>
+	<label for="software" class="font-medium text-heading color-text">SwTstamp:</label>
 	<div class="config-item" style="margin-top: 5px;">
 	  <label class="custom-checkbox">
 	    <input
 	      name="software"
 	      type="checkbox"
-	      class="text-white bg-gray-700 py-2 px-4 rounded">
+	      class="color-text bg-secondary py-2 px-4 rounded">
             </input>
 	    <span class="checkmark"></span>
 	  </label>
 	</div>
 
-	<label for="record-delay" class="font-medium text-heading text-white">Recording delay:</label>
+	<label for="record-delay" class="font-medium text-heading color-text">Recording delay:</label>
 	<div class="config-item">
 	  <input
 	    name="record-delay"
 	    type="number"
-	    min="0" max="9"
-	    class="text-white bg-gray-700 py-1.5 px-4 rounded">
+	    min="0" max="999"
+	    placeholder="Delay"
+	    class="color-text bg-secondary py-1.5 px-4 rounded">
           </input>
 	</div>
 
-	<label for="vlan-tagged" class="font-medium text-heading text-white">VLAN tagged:</label>
+	<label for="vlan-tagged" class="font-medium text-heading color-text">VLAN tagged:</label>
 	<div class="config-item" style="margin-top: 5px;">
 	  <label class="custom-checkbox">
 	    <input
 	      name="vlan-tagged"
 	      type="checkbox"
-	      class="text-white bg-gray-700 py-2 px-4 rounded">
+	      class="color-text bg-secondary py-2 px-4 rounded">
             </input>
 	    <span class="checkmark"></span>
 	  </label>
 	</div>
 
-	<label for="vlan" class="font-medium text-heading text-white">VID:</label>
+	<label for="vlan" class="font-medium text-heading color-text">VID:</label>
 	<div class="config-item">
 	  <input
 	    name="vlan"
 	    type="number"
-	    min="0" max="9"
-	    class="text-white bg-gray-700 py-1.5 px-4 rounded">
+	    min="0" max="999"
+	    placeholder="VID"
+	    class="color-text bg-secondary py-1.5 px-4 rounded">
           </input>
 	</div>
 
-	<label for="prio" class="font-medium text-heading text-white">PRIO:</label>
+	<label for="prio" class="font-medium text-heading color-text">PRIO:</label>
 	<div class="config-item">
 	  <input
 	    name="prio"
 	    type="number"
-	    min="0" max="9"
-	    class="text-white bg-gray-700 py-1.5 px-4 rounded">
+	    min="0" max="999"
+	    placeholder="Prio"
+	    class="color-text bg-secondary py-1.5 px-4 rounded">
           </input>
 	</div>
 
@@ -126,9 +130,11 @@
       
       <div>
 	<button type="submit"
+		id="start-button"
 		name="action"
 		value="start"
-		class="bg-gray-700 hover:bg-gray-500 text-white rounded py-2 px-4" 
+		class="bg-quat bg-quat-hover color-text rounded py-2 px-4" 
+		onclick="start_stop(true)"
 		hx-post="/te-toggle"
 		hx-swap="innerHTML"
 		hx-target="#msgs">
@@ -136,9 +142,12 @@
 	</button>
 
 	<button type="submit"
+		id="stop-button"
 		name="action"
 		value="stop"
-		class="bg-gray-700 hover:bg-gray-500 text-white rounded py-2 px-4" 
+		onclick="start_stop(false)"
+		class="bg-quat bg-quat-hover color-text rounded py-2 px-4" 
+		disabled
 		hx-post="/te-toggle"
 		hx-swap="innerHTML"
 		hx-target="#results">
@@ -181,4 +190,24 @@
 </div>
 
 </body>
+
+
+<script>
+function start_stop(is_start) {
+	const start = document.getElementById("start-button")
+	const stop = document.getElementById("stop-button")
+	
+	if (is_start) {
+		start.setAttribute("disabled", "")
+		stop.removeAttribute('disabled');
+	} else {
+		stop.setAttribute("disabled", "")
+		start.removeAttribute('disabled');
+	}
+}
+</script>
+
+
+
+
 </html>

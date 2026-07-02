@@ -15,16 +15,18 @@ import (
 	"github.com/coder/websocket"
 )
 
+// TODO: Add TX packets to websocket display
+
 // go:embed static/materialize.min.js
 // go:embed static/materialize.min.css
 // go:embed static/bootstrap.min.js
 // go:embed static/bootstrap.min.css
+// go:embed static/pico.jade.min.css
 
 //go:embed index.html
 //go:embed style.css
 //go:embed static/htmx.min.js
 //go:embed static/ws.min.js
-//go:embed static/pico.jade.min.css
 //go:embed static/tailwind.js
 var content embed.FS
 
@@ -80,6 +82,7 @@ func wsHandler(app *App) http.HandlerFunc {
 				return
 
 			case msg := <-app.WsOut:
+				// TODO: Add command to start recording manually
 				if string(msg) == "exit" {
 					conn.Close(websocket.StatusNormalClosure, "")
 					return

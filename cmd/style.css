@@ -1,6 +1,53 @@
 
+:root {
+    --color-primary: rgb(29,30,32);
+    --color-secondary: #397469;
+    --color-tertiary: #20c9ab;
+    --color-quaternary: #c94e20;
+    --color-text: rgb(218, 218, 218)
+}
+
+.bg-primary {
+    background: var(--color-primary);
+}
+.fg-primary {
+    color: var(--color-primary);
+}
+.bg-secondary {
+    background: var(--color-secondary);
+}
+.fg-secondary {
+    color: var(--color-secondary);
+}
+
+.bg-tertiary {
+    background: var(--color-tertiary);
+}
+.bg-tertiary-hover:hover {
+    background: var(--color-tertiary);
+}
+.fg-tertiary {
+    color: var(--color-tertiary);
+}
+
+.bg-quat {
+    background: var(--color-quaternary);
+}
+.bg-quat-hover:hover, .bg-quat:disabled {
+    /* background: #4d1e0d; */
+    background: #8a4e38;
+}
+
+.fg-quat {
+    color: var(--color-quaternary);
+}
+
+.color-text {
+    color: var(--color-text);
+}
+
 html, th {
-    background: rgb(29, 30, 32);
+    background: var(--color-primary);
     font-family: Arial;
 }
 
@@ -33,7 +80,8 @@ thead {
 
 tr:hover{
    /* background-color: rgba(255, 255, 0, 0.5) !important; */
-   background-color: #558589 !important;
+   /* background-color: #558589 !important; */
+   background-color: var(--color-quaternary) !important;
 }
 
 th, td {
@@ -169,7 +217,7 @@ input[type=number] {
   display: inline-block;
   width: 30px;
   height: 30px;
-  background-color: #eee;
+  background-color: var(--color-secondary);
   border: 2px solid #ccc;
   border-radius: 4px;
   margin-right: 8px;
@@ -186,7 +234,7 @@ input[type=number] {
   top: 1px;
   width: 10px;
   height: 20px;
-  border: solid #333;
+  border: solid black;
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
 }
