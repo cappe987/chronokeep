@@ -139,6 +139,8 @@ func toggle(app *App) func(w http.ResponseWriter, r *http.Request) {
 			// }
 			if action == "start" {
 				start_app(app, p1, p2, sw, p2p)
+			} else if action == "record" {
+				app.In <- []byte(action)
 			} else {
 				app.In <- []byte("exit")
 				html := <-app.Out
@@ -178,11 +180,11 @@ func get_ports(app *App) func(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func start_app(app *App, p1, p2 string) {
 func start_app(app *App, p1, p2 string, swtstamp, peertopeer bool) {
 	var teOpts = TeOpts{}
 	var opts = CommonOpts{Mode: "te"}
 	opts.InitDefaults()
+	opts.RecordPackets = false
 	// teOpts.Count = 1
 	teOpts.Interval = uint32(1000)
 	teOpts.DelayRecord = uint32(0)
@@ -194,11 +196,6 @@ func start_app(app *App, p1, p2 string, swtstamp, peertopeer bool) {
 	teOpts.Peertopeer = peertopeer
 	// teOpts.Ports["eth21"] = PortOpts{GM: true}
 	// teOpts.Ports["eth22"] = PortOpts{}
-
-	// opts.DefineCommonFlags() // TODO: Use some init function instead
-	opts.DestIp = "224.0.1.129" // TODO: 224.0.0.107 for pdelays
-	opts.Mac = "01:1b:19:00:00:00"
-	opts.RecordPackets = true
 	opts.Validate()
 	go RunTeMode(opts, teOpts, app)
 }

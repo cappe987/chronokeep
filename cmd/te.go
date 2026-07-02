@@ -188,10 +188,13 @@ func RunTeMode(opts CommonOpts, teOpts TeOpts, app *App) {
 			server.RecordPackets = true
 			client.RecordPackets = true
 		case msg := <-app.In:
-			if string(msg) == "exit" {
+			str := string(msg)
+			if str == "exit" {
 				quit <- 0
 				running = false
 				signal.Stop(sigs)
+			} else if str == "record" {
+				client.EnableRecording()
 			}
 		}
 	}

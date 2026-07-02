@@ -153,6 +153,16 @@
 		hx-target="#results">
 	  Stop
 	</button>
+	<button type="submit"
+		id="record-button"
+		name="action"
+		value="record"
+		class="bg-quat bg-quat-hover color-text rounded py-2 px-4" 
+		disabled
+		hx-post="/te-toggle"
+		hx-swap="none">
+	  Capture
+	</button>
       </div>
     </form>
 
@@ -196,12 +206,15 @@
 function start_stop(is_start) {
 	const start = document.getElementById("start-button")
 	const stop = document.getElementById("stop-button")
+	const record = document.getElementById("record-button")
 	
 	if (is_start) {
 		start.setAttribute("disabled", "")
 		stop.removeAttribute('disabled');
+		record.removeAttribute('disabled');
 	} else {
 		stop.setAttribute("disabled", "")
+		record.setAttribute("disabled", "")
 		start.removeAttribute('disabled');
 	}
 }

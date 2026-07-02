@@ -45,6 +45,11 @@ type Port struct {
 	delaySeq      uint16
 }
 
+func (port *Port) EnableRecording() {
+	port.opts.RecordPackets = true
+	port.RecordPackets = true
+}
+
 func (port *Port) recordRx(data PacketData) {
 	if !port.RecordPackets {
 		return
@@ -439,7 +444,7 @@ func (port *Port) Init(opts CommonOpts, clockid uint16, portnum uint16) error {
 		port.Layer = LayerMac
 	}
 	port.IfaceStr = opts.Iface
-	port.RecordPackets = true
+	port.RecordPackets = opts.RecordPackets
 	// Use portnum in clockid to make it unique for each port since we will
 	// never run as a BC/TC.
 	// TODO: Should other instances use other portnums?
