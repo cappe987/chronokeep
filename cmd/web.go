@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"sort"
+	"strconv"
 	"time"
 
 	. "intime/internal"
@@ -35,17 +36,25 @@ type App struct {
 	Out     chan []byte // From App
 	WsOut   chan []byte // Websocket data from App to client
 	Running bool
+	TeOpts  TeOpts
+	Opts    CommonOpts
 }
 
 func NewApp(init_channels bool) *App {
+	teOpts, opts := InitWebTeOpts()
 	if init_channels {
 		return &App{
-			In:    make(chan []byte, 100),
-			Out:   make(chan []byte, 100),
-			WsOut: make(chan []byte, 100),
+			In:     make(chan []byte, 100),
+			Out:    make(chan []byte, 100),
+			WsOut:  make(chan []byte, 100),
+			TeOpts: teOpts,
+			Opts:   opts,
 		}
 	} else {
-		return &App{}
+		return &App{
+			TeOpts: teOpts,
+			Opts:   opts,
+		}
 	}
 }
 
@@ -100,6 +109,7 @@ func wsHandler(app *App) http.HandlerFunc {
 		}
 	}
 }
+
 func toggle(app *App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// if r.URL.Path != "/" {
@@ -115,39 +125,74 @@ func toggle(app *App) func(w http.ResponseWriter, r *http.Request) {
 			peertopeer := r.PostFormValue("peertopeer")
 			p1 := r.PostFormValue("port1")
 			p2 := r.PostFormValue("port2")
+			domain := r.PostFormValue("domain")
+			tagged := r.PostFormValue("vlan-tagged")
+			vid := r.PostFormValue("vlan")
+			prio := r.PostFormValue("prio")
 			log.Printf("Action: %s\n", action)
 			log.Printf("Swt: %s\n", swtstamp)
 			log.Printf("p2p: %s\n", peertopeer)
+			log.Printf("domain: %s\n", domain)
+			log.Printf("tagged: %s\n", tagged)
+			log.Printf("vid: %s\n", vid)
+			log.Printf("prio: %s\n", prio)
 
-			sw := false
 			if swtstamp == "on" {
-				sw = true
-			}
-			p2p := false
-			if peertopeer == "on" {
-				p2p = true
-			}
-			// p1 := ""
-			// p2 := ""
-			// log.Printf("Body %v\n", r)
-			// for _, value := range r.Form {
-			// 	log.Printf("Value %v\n", value)
-			// 	// if key == "port1" {
-			// 	// p1 = value
-			// 	// } else if key == "port2" {
-			// 	// p2 = value
-			// 	// }
-			// }
-			if action == "start" {
-				start_app(app, p1, p2, sw, p2p, false)
-			} else if action == "start-and-capture" {
-				start_app(app, p1, p2, sw, p2p, true)
-			} else if action == "record" {
-				app.In <- []byte(action)
+				app.Opts.SwTstamp = true
 			} else {
-				app.In <- []byte("exit")
-				html := <-app.Out
-				fmt.Fprintf(w, string(html))
+				app.Opts.SwTstamp = false
+			}
+			if peertopeer == "on" {
+				app.TeOpts.Peertopeer = true
+			} else {
+				app.TeOpts.Peertopeer = false
+			}
+			if domain == "" {
+				fmt.Printf("Missing domain\n")
+			} else {
+				i, err := strconv.Atoi(domain)
+				if err != nil {
+					// ... handle error
+					fmt.Printf("Invalid domain\n")
+				} else {
+					app.Opts.Domain = uint8(i)
+				}
+			}
+			if tagged == "" {
+				app.Opts.Vlan = nil
+			} else {
+				i1, err1 := strconv.Atoi(vid)
+				i2, err2 := strconv.Atoi(prio)
+				if err1 != nil || err2 != nil {
+					fmt.Printf("Missing or invalid VLAN/Prio\n")
+				} else {
+					v := uint16(i1)
+					app.Opts.Vlan = &v
+					app.Opts.Prio = uint8(i2)
+				}
+			}
+
+			app.TeOpts.Ports[p1] = PortOpts{GM: true}
+			app.TeOpts.Ports[p2] = PortOpts{}
+			if p1 == p2 {
+				return
+			}
+
+			if action == "start" {
+				start_app(app, false)
+			} else if action == "start-and-capture" {
+				start_app(app, true)
+			} else if action == "record" {
+				if app.Running {
+					app.In <- []byte(action)
+				}
+			} else {
+				if app.Running {
+					app.In <- []byte("exit")
+					html := <-app.Out
+					fmt.Fprintf(w, string(html))
+					app.Running = false
+				}
 			}
 
 		} else {
@@ -184,8 +229,7 @@ func get_ports(app *App) func(w http.ResponseWriter, r *http.Request) {
 }
 func get_config(app *App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		teOpts, opts := InitWebTeOpts()
-		InitTemplates(teOpts, opts, w)
+		InitTemplates(app.TeOpts, app.Opts, w)
 	}
 }
 
@@ -193,26 +237,17 @@ func InitWebTeOpts() (TeOpts, CommonOpts) {
 	var teOpts = TeOpts{}
 	var opts = CommonOpts{Mode: "te"}
 	opts.InitDefaults()
-	// opts.RecordPackets = false
-	// teOpts.Count = 1
 	teOpts.Interval = uint32(1000)
 	teOpts.DelayRecord = uint32(0)
 
 	teOpts.Ports = make(map[string]PortOpts)
-	// teOpts.Ports["eth21"] = PortOpts{GM: true}
-	// teOpts.Ports["eth22"] = PortOpts{}
 	opts.Validate()
 	return teOpts, opts
 }
 
-func start_app(app *App, p1, p2 string, swtstamp, peertopeer, capture bool) {
-	teOpts, opts := InitWebTeOpts()
-	teOpts.Ports[p1] = PortOpts{GM: true}
-	teOpts.Ports[p2] = PortOpts{}
-	opts.SwTstamp = swtstamp
-	teOpts.Peertopeer = peertopeer
-	opts.RecordPackets = capture
-	go RunTeMode(opts, teOpts, app)
+func start_app(app *App, capture bool) {
+	app.Opts.RecordPackets = capture
+	go RunTeMode(app.Opts, app.TeOpts, app)
 }
 
 func WebServer() {

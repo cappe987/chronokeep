@@ -43,6 +43,8 @@ func TeMode() {
 	}
 
 	app := NewApp(false)
+	app.TeOpts = teOpts
+	app.Opts = opts
 	RunTeMode(opts, teOpts, app)
 }
 
@@ -72,6 +74,8 @@ func RunTeMode(opts CommonOpts, teOpts TeOpts, app *App) {
 	if gmCount != 1 {
 		return
 	}
+	// TODO: Validate port tstamp modes. facebook/time has some helpers.
+	// Move out the above part to a validation function?
 
 	p1 := teOpts.Ports[p1name]
 	p2 := teOpts.Ports[p2name]
@@ -123,6 +127,7 @@ func RunTeMode(opts CommonOpts, teOpts TeOpts, app *App) {
 
 	// TODO: Bad file descriptor after seqid ~280. Seems to be an UDP problem
 
+	app.Running = true
 	go server.RxMode(serverRx, quit)
 	go client.RxMode(clientRx, quit)
 	for running {
