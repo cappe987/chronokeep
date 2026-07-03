@@ -1,0 +1,12 @@
+#Domain = 0
+#Count = 3
+#Interval = 1000
+#Vlan = 10
+# Udp = true
+
+[Ports.veth1]
+GM = true
+#IP = "10.11.0.1"
+
+[Ports.veth2]
+#IP = "10.11.0.2"
