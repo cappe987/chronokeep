@@ -237,8 +237,19 @@ func findGrouping(groups []*group, pd *PacketData) bool {
 
 func calcSyfup(sync *PacketData, fup *PacketData) *int64 {
 	// Calculate t1-t2
-	if sync == nil || fup == nil {
+	if sync == nil {
 		return nil
+	}
+	if !sync.IsTwostepFlagSet() {
+		t1 := sync.GetSyncOriginTimestamp().Nano()
+		t2 := sync.HwTstamp.UnixNano()
+		c1 := sync.GetCorrectionField()
+		curr_t1 := (t1 - t2) + c1
+		return &curr_t1
+	}
+	if fup == nil {
+		return nil
+
 	}
 	if sync.GetSequenceID() != fup.GetSequenceID() {
 		return nil
@@ -334,7 +345,10 @@ func (stats *Stats) AddFwdAcc(fwdAcc int64, normTs time.Duration) {
 }
 
 func GetSyncLatency(sync *PacketData, fup *PacketData) int64 {
-	return sync.HwTstamp.UnixNano() - fup.GetFupOriginTimestamp().Nano()
+	if sync.IsTwostepFlagSet() {
+		return sync.HwTstamp.UnixNano() - fup.GetFupOriginTimestamp().Nano()
+	}
+	return sync.HwTstamp.UnixNano() - sync.GetSyncOriginTimestamp().Nano()
 }
 
 func GetDelayLatency(req *PacketData, resp *PacketData) int64 {
