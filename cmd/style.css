@@ -191,8 +191,8 @@ h1 {
 #config-form {
     margin: 20px;
     padding: 20px;
-    max-width: 50%;
-    min-width: 800px;
+    /* max-width: 50%; */
+    /* min-width: 800px; */
     display: flex;
     /* justify-content: space-around; */
     justify-content: flex-start;

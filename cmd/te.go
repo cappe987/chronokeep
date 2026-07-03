@@ -12,17 +12,6 @@ import (
 	ptp "github.com/facebook/time/ptp/protocol"
 )
 
-type TeOpts struct {
-	Ports       map[string]PortOpts
-	Interval    uint32
-	Count       uint32
-	Peertopeer  bool
-	DelayRecord uint32
-
-	// Internal fields
-	intervalTime time.Duration
-}
-
 func TeMode() {
 	// var port Port
 	mode := "te"
@@ -59,7 +48,7 @@ func TeMode() {
 
 func RunTeMode(opts CommonOpts, teOpts TeOpts, app *App) {
 
-	teOpts.intervalTime = time.Duration(teOpts.Interval) * time.Millisecond
+	teOpts.IntervalTime = time.Duration(teOpts.Interval) * time.Millisecond
 	// Validate settings
 	missingIp := false
 	gmCount := 0
@@ -106,22 +95,22 @@ func RunTeMode(opts CommonOpts, teOpts TeOpts, app *App) {
 	opts.Ip = p1.IP
 	opts.DestIp = p2.IP
 	opts.Iface = p1name
-	server.Init(opts, 99, 1)
+	server.Init(opts, 0x64, 1)
 
 	opts.IngressLatency = p2.IngressLatency
 	opts.EgressLatency = p2.EgressLatency
 	opts.Ip = p2.IP
 	opts.DestIp = p1.IP
 	opts.Iface = p2name
-	client.Init(opts, 0, 1)
+	client.Init(opts, 0x32, 1)
 
 	sigs := make(chan os.Signal)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	quit := make(chan int)
 	serverRx := make(chan PacketData, 100)
 	clientRx := make(chan PacketData, 100)
-	serverTicker := time.NewTicker(teOpts.intervalTime)
-	clientTicker := time.NewTicker(teOpts.intervalTime)
+	serverTicker := time.NewTicker(teOpts.IntervalTime)
+	clientTicker := time.NewTicker(teOpts.IntervalTime)
 	running := true
 
 	delayRecordTimer := time.NewTimer(time.Duration(teOpts.DelayRecord) * time.Second)

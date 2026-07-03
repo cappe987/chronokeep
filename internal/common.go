@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	ptp "github.com/facebook/time/ptp/protocol"
@@ -55,6 +56,26 @@ type PortOpts struct {
 
 	// Internal fields
 	destIp string
+}
+
+type TeOpts struct {
+	Ports       map[string]PortOpts
+	Interval    uint32
+	Count       uint32
+	Peertopeer  bool
+	DelayRecord uint32
+
+	// Internal fields
+	IntervalTime time.Duration
+}
+
+type TeData struct {
+	TeOpts   TeOpts
+	Opts     CommonOpts
+	AllPorts []string
+	HasPorts bool
+	Port1    string
+	Port2    string
 }
 
 func (opts *CommonOpts) AddOpt(v interface{}, short rune, long string, usage string, help string) Opt {

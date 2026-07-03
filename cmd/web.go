@@ -31,9 +31,10 @@ import (
 var content embed.FS
 
 type App struct {
-	In    chan []byte // To App
-	Out   chan []byte // From App
-	WsOut chan []byte // Websocket data from App to client
+	In      chan []byte // To App
+	Out     chan []byte // From App
+	WsOut   chan []byte // Websocket data from App to client
+	Running bool
 }
 
 func NewApp(init_channels bool) *App {
@@ -138,7 +139,9 @@ func toggle(app *App) func(w http.ResponseWriter, r *http.Request) {
 			// 	// }
 			// }
 			if action == "start" {
-				start_app(app, p1, p2, sw, p2p)
+				start_app(app, p1, p2, sw, p2p, false)
+			} else if action == "start-and-capture" {
+				start_app(app, p1, p2, sw, p2p, true)
 			} else if action == "record" {
 				app.In <- []byte(action)
 			} else {
@@ -179,24 +182,36 @@ func get_ports(app *App) func(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
+func get_config(app *App) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		teOpts, opts := InitWebTeOpts()
+		InitTemplates(teOpts, opts, w)
+	}
+}
 
-func start_app(app *App, p1, p2 string, swtstamp, peertopeer bool) {
+func InitWebTeOpts() (TeOpts, CommonOpts) {
 	var teOpts = TeOpts{}
 	var opts = CommonOpts{Mode: "te"}
 	opts.InitDefaults()
-	opts.RecordPackets = false
+	// opts.RecordPackets = false
 	// teOpts.Count = 1
 	teOpts.Interval = uint32(1000)
 	teOpts.DelayRecord = uint32(0)
 
 	teOpts.Ports = make(map[string]PortOpts)
+	// teOpts.Ports["eth21"] = PortOpts{GM: true}
+	// teOpts.Ports["eth22"] = PortOpts{}
+	opts.Validate()
+	return teOpts, opts
+}
+
+func start_app(app *App, p1, p2 string, swtstamp, peertopeer, capture bool) {
+	teOpts, opts := InitWebTeOpts()
 	teOpts.Ports[p1] = PortOpts{GM: true}
 	teOpts.Ports[p2] = PortOpts{}
 	opts.SwTstamp = swtstamp
 	teOpts.Peertopeer = peertopeer
-	// teOpts.Ports["eth21"] = PortOpts{GM: true}
-	// teOpts.Ports["eth22"] = PortOpts{}
-	opts.Validate()
+	opts.RecordPackets = capture
 	go RunTeMode(opts, teOpts, app)
 }
 
@@ -209,6 +224,7 @@ func WebServer() {
 	http.HandleFunc("/ws", wsHandler(app))
 	http.HandleFunc("/te-toggle", toggle(app))
 	http.HandleFunc("/get-ports", get_ports(app))
+	http.HandleFunc("/te-config", get_config(app))
 	// http.HandleFunc("/stop", toggle(app, false))
 
 	fmt.Printf("Serving on http://localhost:8080\n")
