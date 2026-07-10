@@ -21,6 +21,7 @@ type TeOpts struct {
 	IntervalTime time.Duration
 	server       *Port
 	client       *Port
+	Stats        Stats
 }
 
 func TeMode() {
@@ -235,6 +236,7 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 		fmt.Printf("Mean Pdelay: %d\n", stats.CalcMeanPDelay())
 		fmt.Printf("Mean FwdAcc: %d\n", stats.CalcMeanFwdAcc())
 		stats.GenerateFile(true, "measurement.dat")
+		teOpts.Stats = stats
 		if app.Out != nil {
 			app.Out <- []byte(buildHtmxStats(teOpts, stats))
 		}
@@ -245,6 +247,7 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 		fmt.Printf("Mean 2Way: %d\n", stats.CalcMeanTwoway())
 
 		stats.GenerateFile(false, "measurement.dat")
+		teOpts.Stats = stats
 		if app.Out != nil {
 			app.Out <- []byte(buildHtmxStats(teOpts, stats))
 		}
