@@ -256,11 +256,40 @@ func buildHtmxStats(teOpts *TeOpts, stats Stats) string {
 <p>Mean FwdAcc: %d</p>
 `, stats.CalcMeanT1(), stats.CalcMeanPDelay(), stats.CalcMeanFwdAcc())
 	} else {
+		labels, values := stats.GenerateJson2Way()
 		return fmt.Sprintf(`
 <p>Mean T1: %d</p>
 <p>Mean T4: %d</p>
 <p>Mean 2Way: %d</p>
-`, stats.CalcMeanT1(), stats.CalcMeanT4(), stats.CalcMeanTwoway())
+
+<div>
+  <canvas id="myChart"></canvas>
+</div>
+
+<script>
+const ctx = document.getElementById('myChart');
+
+const config = {
+  type: 'line',
+  data: { labels: %s, datasets: [{ label: '2Way TE', data: %s}]},
+  options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+      title: {
+        display: true,
+        text: 'Chart.js Line Chart'
+      }
+    }
+  },
+};
+
+const chart = new Chart(ctx, config);
+</script>
+
+`, stats.CalcMeanT1(), stats.CalcMeanT4(), stats.CalcMeanTwoway(), labels, values)
 
 	}
 }

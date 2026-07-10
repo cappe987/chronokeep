@@ -32,6 +32,7 @@ import (
 //go:embed static/htmx.min.js
 //go:embed static/ws.min.js
 //go:embed static/tailwind.js
+//go:embed static/chart-4.5.1.js
 var content embed.FS
 
 type WebApp struct {

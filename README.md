@@ -10,10 +10,12 @@
 
 Web:
 - Templating system
-- Borrow color scheme from elsewhere?
 - Stateful server
+- Indicate when capture starts
+- Allow downloading data file for external graph generation
 - Better validation and error handling
 - More modes. Block swapping while one is active
+- In-web graphs. Chart.js?
 
 Uses a [fork](https://github.com/cappe987/facebook-time) of
 [facebook/time](https://github.com/facebook/time) for onestep support and

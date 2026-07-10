@@ -431,6 +431,27 @@ func (stats *Stats) GenerateFile(peertopeer bool, filename string) {
 	}
 }
 
+func (stats *Stats) GenerateJson2Way() (string, string) {
+	labels := "["
+	values := "["
+	// _, _ = f.WriteString(header)
+	for i, ps := range stats.Twoways {
+		s := int(ps.time.Seconds())
+		ms := ps.time.Milliseconds() % 1000
+		// return fmt.Sprintf("%d.%03d %d", s, ms, ps.value)
+		if i == 0 {
+			labels = fmt.Sprintf("%s%d.%03d\n", labels, s, ms)
+			values = fmt.Sprintf("%s%d\n", values, ps.value)
+		} else {
+			labels = fmt.Sprintf("%s, %d.%03d\n", labels, s, ms)
+			values = fmt.Sprintf("%s, %d\n", values, ps.value)
+		}
+	}
+	labels += "]"
+	values += "]"
+	return labels, values
+}
+
 func (port *Port) GetMeanTE() (int64, int64, int64, Stats) {
 	var pkts []PacketData
 	pkts = append(port.rxRecord, port.txRecord...)
