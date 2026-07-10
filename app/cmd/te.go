@@ -144,7 +144,8 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 	if app.Cli {
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	}
-	quit := make(chan int)
+	serverQuit := make(chan int)
+	clientQuit := make(chan int)
 	serverRx := make(chan PacketData, 100)
 	clientRx := make(chan PacketData, 100)
 	serverTicker := time.NewTicker(teOpts.IntervalTime)
@@ -162,12 +163,13 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 	// TODO: Bad file descriptor after seqid ~280. Seems to be an UDP problem
 
 	app.Running = true
-	go server.RxMode(serverRx, quit)
-	go client.RxMode(clientRx, quit)
+	go server.RxMode(serverRx, serverQuit)
+	go client.RxMode(clientRx, clientQuit)
 	for running {
 		select {
 		case <-sigs:
-			quit <- 0
+			serverQuit <- 0
+			clientQuit <- 0
 			running = false
 			signal.Stop(sigs)
 			// TODO: Temporary while developing
@@ -214,7 +216,8 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 		case msg := <-app.In:
 			str := string(msg)
 			if str == "exit" {
-				quit <- 0
+				serverQuit <- 0
+				clientQuit <- 0
 				running = false
 				signal.Stop(sigs)
 			} else if str == "record" {
@@ -262,7 +265,7 @@ func buildHtmxStats(teOpts *TeOpts, stats Stats) string {
 <p>Mean T4: %d</p>
 <p>Mean 2Way: %d</p>
 
-<div>
+<div class="chart">
   <canvas id="myChart"></canvas>
 </div>
 
@@ -280,7 +283,7 @@ const config = {
       },
       title: {
         display: true,
-        text: 'Chart.js Line Chart'
+        text: ''
       }
     }
   },

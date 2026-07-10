@@ -521,7 +521,8 @@ func (port *Port) ShowPacket(pd *PacketData) {
 	}
 	if port.App.Cli {
 		pd.Print()
-	} else if port.App.WsOut != nil {
+	}
+	if port.App.WsOut != nil {
 		port.App.WsOut <- *pd
 	}
 }
