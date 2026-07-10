@@ -113,6 +113,12 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 		DestIP:   ip1,
 	}
 
+	if !app.Cli {
+		// In Web we only want to capture client. Maybe this should be
+		// configurable later.
+		server.Silent = true
+	}
+
 	// Port1 is always GM
 	app.Opts.IngressLatency = p1.IngressLatency
 	app.Opts.EgressLatency = p1.EgressLatency
@@ -172,7 +178,6 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 		case pd := <-clientRx:
 			// fmt.Printf("Client rx\n")
 			// client.ShowPacket(pd)
-			// TODO: Make channel non-blocking
 			if teOpts.Peertopeer && pd.IsPDelayReq() {
 				client.ReplyToPDelayReq(&pd)
 			}

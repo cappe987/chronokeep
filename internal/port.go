@@ -44,6 +44,7 @@ type Port struct {
 	delaySeq      uint16
 	opts          CommonOpts
 	App           *App
+	Silent        bool
 }
 
 func (port *Port) EnableRecording() {
@@ -512,6 +513,9 @@ func (port *Port) GetVersion() uint8 {
 }
 
 func (port *Port) ShowPacket(pd *PacketData) {
+	if port.Silent {
+		return
+	}
 	if port.App.Cli {
 		pd.Print()
 	} else if port.App.WsOut != nil {
