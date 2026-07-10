@@ -43,6 +43,7 @@ type Port struct {
 	annoSeq       uint16
 	delaySeq      uint16
 	opts          CommonOpts
+	PortOpts      PortOpts
 	App           *App
 	Silent        bool
 }
@@ -447,7 +448,9 @@ func (port *Port) Init(app *App, clockid uint16, portnum uint16) error {
 	} else {
 		port.Layer = LayerMac
 	}
-	port.IfaceStr = app.Opts.Iface
+	if app.Opts.Iface != "" && app.Opts.Iface != "dummy" {
+		port.IfaceStr = app.Opts.Iface
+	}
 	port.RecordPackets = app.Opts.RecordPackets
 	// Use portnum in clockid to make it unique for each port since we will
 	// never run as a BC/TC.

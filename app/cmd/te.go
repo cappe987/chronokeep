@@ -19,6 +19,8 @@ type TeOpts struct {
 
 	// Internal fields
 	IntervalTime time.Duration
+	server       *Port
+	client       *Port
 }
 
 func TeMode() {
@@ -37,7 +39,7 @@ func TeMode() {
 		return
 	}
 
-	if !ValidateTeOpts(teOpts, opts) {
+	if !ValidateTeOpts(&teOpts, &opts) {
 		return
 	}
 
@@ -55,7 +57,7 @@ func InitTeOpts() (TeOpts, CommonOpts) {
 	return teOpts, opts
 }
 
-func ValidateTeOpts(teOpts TeOpts, opts CommonOpts) bool {
+func ValidateTeOpts(teOpts *TeOpts, opts *CommonOpts) bool {
 	ok := opts.Validate()
 	if !ok {
 		return false
@@ -65,11 +67,6 @@ func ValidateTeOpts(teOpts TeOpts, opts CommonOpts) bool {
 		fmt.Printf("Error: two ports are required\n")
 		return false
 	}
-	return true
-}
-
-func RunTeMode(teOpts *TeOpts, app *App) {
-
 	teOpts.IntervalTime = time.Duration(teOpts.Interval) * time.Millisecond
 	// Validate settings
 	missingIp := false
@@ -77,7 +74,7 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 	p1name := ""
 	p2name := ""
 	for name, port := range teOpts.Ports {
-		if app.Opts.Udp && port.IP == "" {
+		if opts.Udp && port.IP == "" {
 			fmt.Printf("Missing IP on port %s\n", name)
 			missingIp = true
 		}
@@ -89,10 +86,10 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 		}
 	}
 	if missingIp {
-		return
+		return false
 	}
 	if gmCount != 1 {
-		return
+		return false
 	}
 	// TODO: Validate port tstamp modes. facebook/time has some helpers.
 	// Move out the above part to a validation function?
@@ -102,16 +99,26 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 	ip1 := net.ParseIP(p1.IP)
 	ip2 := net.ParseIP(p2.IP)
 
-	server := Port{
+	server := &Port{
 		IfaceStr: p1name,
 		IP:       ip1,
 		DestIP:   ip2,
+		PortOpts: p1,
 	}
-	client := Port{
+	client := &Port{
 		IfaceStr: p2name,
 		IP:       ip2,
 		DestIP:   ip1,
+		PortOpts: p2,
 	}
+	teOpts.server = server
+	teOpts.client = client
+	return true
+}
+
+func RunTeMode(teOpts *TeOpts, app *App) {
+	server := teOpts.server
+	client := teOpts.client
 
 	if !app.Cli {
 		// In Web we only want to capture client. Maybe this should be
@@ -120,18 +127,17 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 	}
 
 	// Port1 is always GM
-	app.Opts.IngressLatency = p1.IngressLatency
-	app.Opts.EgressLatency = p1.EgressLatency
-	app.Opts.Ip = p1.IP
-	app.Opts.DestIp = p2.IP
-	app.Opts.Iface = p1name
+	// TODO: ingress/egress latency should be set via PortOpts and should not have to use CommonOpts
+	// app.Opts.IngressLatency = p1.IngressLatency
+	// app.Opts.EgressLatency = p1.EgressLatency
+	app.Opts.Ip = server.PortOpts.IP
+	app.Opts.DestIp = client.PortOpts.IP
 	server.Init(app, 0x64, 1)
 
-	app.Opts.IngressLatency = p2.IngressLatency
-	app.Opts.EgressLatency = p2.EgressLatency
-	app.Opts.Ip = p2.IP
-	app.Opts.DestIp = p1.IP
-	app.Opts.Iface = p2name
+	// app.Opts.IngressLatency = p2.IngressLatency
+	// app.Opts.EgressLatency = p2.EgressLatency
+	app.Opts.Ip = teOpts.client.PortOpts.IP
+	app.Opts.DestIp = teOpts.server.PortOpts.IP
 	client.Init(app, 0x32, 1)
 
 	sigs := make(chan os.Signal)

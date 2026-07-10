@@ -217,6 +217,10 @@ func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
+			if !ValidateTeOpts(wa.TeOpts, &wa.App.Opts) {
+				return
+			}
+
 			if action == "start" {
 				start_app(wa, false)
 			} else if action == "start-and-capture" {
