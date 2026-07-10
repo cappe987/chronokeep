@@ -58,9 +58,9 @@ type PortOpts struct {
 }
 
 type App struct {
-	In      chan []byte // To App
-	Out     chan []byte // From App
-	WsOut   chan []byte // Websocket data from App to client
+	In      chan []byte     // To App
+	Out     chan []byte     // From App
+	WsOut   chan PacketData // Websocket data from App to client
 	Running bool
 	Opts    CommonOpts
 	Cli     bool
@@ -72,7 +72,7 @@ func NewApp(opts CommonOpts, init_channels bool, cli bool) *App {
 		return &App{
 			In:    make(chan []byte, 100),
 			Out:   make(chan []byte, 100),
-			WsOut: make(chan []byte, 100),
+			WsOut: make(chan PacketData, 100),
 			Opts:  opts,
 			Cli:   cli,
 		}

@@ -43,7 +43,7 @@ type Port struct {
 	annoSeq       uint16
 	delaySeq      uint16
 	opts          CommonOpts
-	app           *App
+	App           *App
 }
 
 func (port *Port) EnableRecording() {
@@ -200,9 +200,11 @@ func (port *Port) RxMode(ch chan PacketData, quit chan int) {
 			return
 		case pd := <-eventCh:
 			port.recordRx(pd)
+			port.ShowPacket(&pd)
 			ch <- pd
 		case pd := <-genCh:
 			port.recordRx(pd)
+			port.ShowPacket(&pd)
 			ch <- pd
 		}
 	}
@@ -454,7 +456,7 @@ func (port *Port) Init(app *App, clockid uint16, portnum uint16) error {
 		ClockIdentity: 0xbeef00fffeaa0000 + ptp.ClockIdentity(clockid),
 	}
 	port.opts = app.Opts
-	port.app = app
+	port.App = app
 	err := port.openSocket(true)
 	if err != nil {
 		return err
@@ -509,49 +511,57 @@ func (port *Port) GetVersion() uint8 {
 	return (port.opts.MinorVersion << 4) | ptp.MajorVersion
 }
 
+func (port *Port) ShowPacket(pd *PacketData) {
+	if port.App.Cli {
+		pd.Print()
+	} else if port.App.WsOut != nil {
+		port.App.WsOut <- *pd
+	}
+}
+
 func (port *Port) TransmitSyncFup() {
 	sync := port.BuildSync(port.syncSeq)
 	port.Transmit(sync)
-	sync.Print()
+	port.ShowPacket(sync)
 	port.syncSeq += 1
 	if !port.opts.Onestep {
 		fup := port.MakeFollowUp(sync)
 		port.Transmit(fup)
-		fup.Print()
+		port.ShowPacket(fup)
 	}
 }
 
 func (port *Port) TransmitAnnounce() {
 	anno := port.BuildAnnounce(port.annoSeq)
 	port.Transmit(anno)
-	anno.Print()
+	port.ShowPacket(anno)
 	port.annoSeq += 1
 }
 
 func (port *Port) TransmitPDelayReq() {
 	pdelayReq := port.BuildPDelayReq(port.delaySeq)
 	port.Transmit(pdelayReq)
-	pdelayReq.Print()
+	port.ShowPacket(pdelayReq)
 	port.delaySeq += 1
 }
 
 func (port *Port) TransmitDelayReq() {
 	delayReq := port.BuildDelayReq(port.delaySeq)
 	port.Transmit(delayReq)
-	delayReq.Print()
+	port.ShowPacket(delayReq)
 	port.delaySeq += 1
 }
 
 func (port *Port) ReplyToDelayReq(pd *PacketData) {
 	resp := port.MakeResponseDelay(pd)
 	port.Transmit(resp)
-	resp.Print()
+	port.ShowPacket(resp)
 }
 func (port *Port) ReplyToPDelayReq(pd *PacketData) {
 	resp := port.MakeResponsePDelay(pd)
 	port.Transmit(resp)
-	resp.Print()
+	port.ShowPacket(resp)
 	respFup := port.MakeFollowUpPDelay(resp)
 	port.Transmit(respFup)
-	respFup.Print()
+	port.ShowPacket(respFup)
 }

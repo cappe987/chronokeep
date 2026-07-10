@@ -14,6 +14,8 @@ import (
 	. "intime/app/cmd"
 	. "intime/internal"
 
+	ptp "github.com/facebook/time/ptp/protocol"
+
 	"github.com/coder/websocket"
 )
 
@@ -35,6 +37,63 @@ var content embed.FS
 type WebApp struct {
 	App    *App
 	TeOpts *TeOpts
+}
+
+func buildHtmxPacket(pd PacketData) string {
+	msgtype := pd.Packet.MessageType()
+	hdr := pd.GetHeader()
+	rx_ns := pd.HwTstamp.UnixNano() % 1000000000
+	rx_s := pd.HwTstamp.Unix()
+	seq := hdr.SequenceID
+	corr := hdr.CorrectionField.Duration()
+	domain := hdr.DomainNumber
+	iface := fmt.Sprintf("%6s", pd.Iface)
+
+	var originTs ptp.Timestamp
+	ots_s := int64(0)
+	ots_ns := int64(0)
+	switch msgtype {
+	case ptp.MessageSync:
+		originTs = pd.GetSyncOriginTimestamp()
+		ots_s = originTs.Nano() / 1000000000
+		ots_ns = originTs.Nano() % 1000000000
+	case ptp.MessageFollowUp:
+		originTs = pd.GetFupOriginTimestamp()
+		ots_s = originTs.Nano() / 1000000000
+		ots_ns = originTs.Nano() % 1000000000
+	case ptp.MessageDelayResp:
+		originTs = pd.GetDelayRespOriginTimestamp()
+		ots_s = originTs.Nano() / 1000000000
+		ots_ns = originTs.Nano() % 1000000000
+	case ptp.MessagePDelayResp:
+		originTs = pd.GetPDelayRespRequestReceiptTimestamp()
+		ots_s = originTs.Nano() / 1000000000
+		ots_ns = originTs.Nano() % 1000000000
+	case ptp.MessagePDelayRespFollowUp:
+		originTs = pd.GetPDelayRespFupResponseOriginTimestamp()
+		ots_s = originTs.Nano() / 1000000000
+		ots_ns = originTs.Nano() % 1000000000
+	}
+
+	rxtx_str := "RX"
+	if pd.IsTx {
+		rxtx_str = "TX"
+	}
+
+	return fmt.Sprintf(`
+<tbody hx-swap-oob="beforeend:#msgs">
+<tr>
+    <td>%s</td>
+    <td>%s</td>
+    <td>%s</td>
+    <td>%d</td>
+    <td>%d</td>
+    <td>%d</td>
+    <td>%d.%09d</td>
+    <td>%d.%09d</td>
+</tr>
+</tbody>
+`, iface, rxtx_str, msgtype, domain, seq, corr, ots_s, ots_ns, rx_s, rx_ns)
 }
 
 func wsHandler(wa *WebApp) http.HandlerFunc {
@@ -70,15 +129,16 @@ func wsHandler(wa *WebApp) http.HandlerFunc {
 				conn.Close(websocket.StatusNormalClosure, "")
 				return
 
-			case msg := <-wa.App.WsOut:
+			case pd := <-wa.App.WsOut:
 				// TODO: Add command to start recording manually
-				if string(msg) == "exit" {
-					conn.Close(websocket.StatusNormalClosure, "")
-					return
-				}
+				msg := buildHtmxPacket(pd)
+				// if string(msg) == "exit" {
+				// 	conn.Close(websocket.StatusNormalClosure, "")
+				// 	return
+				// }
 				writeCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 				// log.Printf("WS received from channel: %s\n", msg)
-				err := conn.Write(writeCtx, websocket.MessageText, msg)
+				err := conn.Write(writeCtx, websocket.MessageText, []byte(msg))
 				cancel()
 
 				if err != nil {

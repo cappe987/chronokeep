@@ -8,8 +8,6 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-
-	ptp "github.com/facebook/time/ptp/protocol"
 )
 
 type TeOpts struct {
@@ -164,7 +162,7 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 			// app.Out <- []byte("exit")
 		case pd := <-serverRx:
 			// fmt.Printf("Server rx\n")
-			pd.Print()
+			// pd.Print()
 			if !teOpts.Peertopeer && pd.IsDelayReq() {
 				server.ReplyToDelayReq(&pd)
 			}
@@ -173,11 +171,8 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 			}
 		case pd := <-clientRx:
 			// fmt.Printf("Client rx\n")
-			pd.Print()
+			// client.ShowPacket(pd)
 			// TODO: Make channel non-blocking
-			if app.WsOut != nil {
-				app.WsOut <- []byte(buildHtmxPacket(pd))
-			}
 			if teOpts.Peertopeer && pd.IsPDelayReq() {
 				client.ReplyToPDelayReq(&pd)
 			}
@@ -257,56 +252,4 @@ func buildHtmxStats(teOpts *TeOpts, stats Stats) string {
 `, stats.CalcMeanT1(), stats.CalcMeanT4(), stats.CalcMeanTwoway())
 
 	}
-}
-
-func buildHtmxPacket(pd PacketData) string {
-	msgtype := pd.Packet.MessageType()
-	hdr := pd.GetHeader()
-	rx_ns := pd.HwTstamp.UnixNano() % 1000000000
-	rx_s := pd.HwTstamp.Unix()
-	seq := hdr.SequenceID
-	corr := hdr.CorrectionField.Duration()
-	domain := hdr.DomainNumber
-	iface := fmt.Sprintf("%6s", pd.Iface)
-
-	var originTs ptp.Timestamp
-	ots_s := int64(0)
-	ots_ns := int64(0)
-	switch msgtype {
-	case ptp.MessageSync:
-		originTs = pd.GetSyncOriginTimestamp()
-		ots_s = originTs.Nano() / 1000000000
-		ots_ns = originTs.Nano() % 1000000000
-	case ptp.MessageFollowUp:
-		originTs = pd.GetFupOriginTimestamp()
-		ots_s = originTs.Nano() / 1000000000
-		ots_ns = originTs.Nano() % 1000000000
-	case ptp.MessageDelayResp:
-		originTs = pd.GetDelayRespOriginTimestamp()
-		ots_s = originTs.Nano() / 1000000000
-		ots_ns = originTs.Nano() % 1000000000
-	case ptp.MessagePDelayResp:
-		originTs = pd.GetPDelayRespRequestReceiptTimestamp()
-		ots_s = originTs.Nano() / 1000000000
-		ots_ns = originTs.Nano() % 1000000000
-	case ptp.MessagePDelayRespFollowUp:
-		originTs = pd.GetPDelayRespFupResponseOriginTimestamp()
-		ots_s = originTs.Nano() / 1000000000
-		ots_ns = originTs.Nano() % 1000000000
-	}
-
-	return fmt.Sprintf(`
-<tbody hx-swap-oob="beforeend:#msgs">
-<tr>
-    <td>%s</td>
-    <td>RX</td>
-    <td>%s</td>
-    <td>%d</td>
-    <td>%d</td>
-    <td>%d</td>
-    <td>%d.%09d</td>
-    <td>%d.%09d</td>
-</tr>
-</tbody>
-`, iface, msgtype, domain, seq, corr, ots_s, ots_ns, rx_s, rx_ns)
 }
