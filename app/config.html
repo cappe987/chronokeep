@@ -79,6 +79,19 @@
   <!--         </input> -->
   <!-- </div> -->
 
+  <label for="prio" class="font-medium text-heading color-text">Interval (ms):</label>
+  <div class="config-item">
+    <input
+      name="interval"
+      type="number"
+      min="0" max="999"
+      placeholder="Interval"
+      {{ if .TeOpts.Interval }} value="{{ .TeOpts.Interval }}" {{ end }} 
+      class="color-text bg-secondary py-1.5 px-4 rounded">
+          </input>
+  </div>
+
+
   <label for="vlan-tagged" class="font-medium text-heading color-text">VLAN tagged:</label>
   <div class="config-item" style="margin-top: 5px;">
     <label class="custom-checkbox">

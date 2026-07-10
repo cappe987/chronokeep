@@ -49,6 +49,7 @@ func InitTemplates(to TeOpts, opts CommonOpts, w http.ResponseWriter) {
 	// vid := uint16(100)
 	// opts.Vlan = &vid
 	opts.Prio = 4
+	to.Interval = 100
 	// TODO: Set default p1 and p2 from config file. Same for other settings.
 	td := TeData{
 		TeOpts:   to,

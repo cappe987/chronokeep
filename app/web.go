@@ -169,13 +169,14 @@ func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 			tagged := r.PostFormValue("vlan-tagged")
 			vid := r.PostFormValue("vlan")
 			prio := r.PostFormValue("prio")
-			log.Printf("Action: %s\n", action)
-			log.Printf("Swt: %s\n", swtstamp)
-			log.Printf("p2p: %s\n", peertopeer)
-			log.Printf("domain: %s\n", domain)
-			log.Printf("tagged: %s\n", tagged)
-			log.Printf("vid: %s\n", vid)
-			log.Printf("prio: %s\n", prio)
+			interval := r.PostFormValue("interval")
+			// log.Printf("Action: %s\n", action)
+			// log.Printf("Swt: %s\n", swtstamp)
+			// log.Printf("p2p: %s\n", peertopeer)
+			// log.Printf("domain: %s\n", domain)
+			// log.Printf("tagged: %s\n", tagged)
+			// log.Printf("vid: %s\n", vid)
+			// log.Printf("prio: %s\n", prio)
 
 			if swtstamp == "on" {
 				wa.App.Opts.SwTstamp = true
@@ -211,6 +212,11 @@ func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 					wa.App.Opts.Prio = uint8(i2)
 				}
 			}
+			interval_ms, err := strconv.Atoi(interval)
+			if err != nil {
+				fmt.Printf("Invalid interval\n")
+			}
+			wa.TeOpts.Interval = uint32(interval_ms)
 
 			wa.TeOpts.Ports[p1] = PortOpts{GM: true}
 			wa.TeOpts.Ports[p2] = PortOpts{}
