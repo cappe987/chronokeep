@@ -57,15 +57,6 @@ type PortOpts struct {
 	destIp string
 }
 
-// type TeData struct {
-// 	TeOpts   TeOpts
-// 	Opts     CommonOpts
-// 	AllPorts []string
-// 	HasPorts bool
-// 	Port1    string
-// 	Port2    string
-// }
-
 type App struct {
 	In      chan []byte // To App
 	Out     chan []byte // From App

@@ -2,7 +2,8 @@ package main
 
 import (
 	"fmt"
-	"intime/cmd"
+	app "intime/app"
+	cmd "intime/app/cmd"
 	"os"
 )
 
@@ -40,7 +41,7 @@ func main() {
 	} else if arg == "te" {
 		cmd.TeMode()
 	} else if arg == "web" {
-		cmd.WebServer()
+		app.WebServer()
 	} else if arg == "-v" || arg == "--version" || arg == "version" {
 		fmt.Println("intime - v0.1")
 	} else {

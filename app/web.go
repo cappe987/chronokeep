@@ -1,4 +1,4 @@
-package cmd
+package app
 
 import (
 	"context"
@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"time"
 
+	. "intime/app/cmd"
 	. "intime/internal"
 
 	"github.com/coder/websocket"
@@ -207,7 +208,7 @@ func get_ports(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 }
 func get_config(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// InitTemplates(app.TeOpts, app.Opts, w)
+		InitTemplates(*wa.TeOpts, wa.App.Opts, w)
 	}
 }
 
