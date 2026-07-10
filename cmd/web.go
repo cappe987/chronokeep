@@ -31,34 +31,12 @@ import (
 //go:embed static/tailwind.js
 var content embed.FS
 
-type App struct {
-	In      chan []byte // To App
-	Out     chan []byte // From App
-	WsOut   chan []byte // Websocket data from App to client
-	Running bool
-	TeOpts  TeOpts
-	Opts    CommonOpts
+type WebApp struct {
+	App    *App
+	TeOpts *TeOpts
 }
 
-func NewApp(init_channels bool) *App {
-	teOpts, opts := InitWebTeOpts()
-	if init_channels {
-		return &App{
-			In:     make(chan []byte, 100),
-			Out:    make(chan []byte, 100),
-			WsOut:  make(chan []byte, 100),
-			TeOpts: teOpts,
-			Opts:   opts,
-		}
-	} else {
-		return &App{
-			TeOpts: teOpts,
-			Opts:   opts,
-		}
-	}
-}
-
-func wsHandler(app *App) http.HandlerFunc {
+func wsHandler(wa *WebApp) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
@@ -91,7 +69,7 @@ func wsHandler(app *App) http.HandlerFunc {
 				conn.Close(websocket.StatusNormalClosure, "")
 				return
 
-			case msg := <-app.WsOut:
+			case msg := <-wa.App.WsOut:
 				// TODO: Add command to start recording manually
 				if string(msg) == "exit" {
 					conn.Close(websocket.StatusNormalClosure, "")
@@ -110,7 +88,7 @@ func wsHandler(app *App) http.HandlerFunc {
 	}
 }
 
-func toggle(app *App) func(w http.ResponseWriter, r *http.Request) {
+func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// if r.URL.Path != "/" {
 		// 	http.NotFound(w, r)
@@ -138,14 +116,14 @@ func toggle(app *App) func(w http.ResponseWriter, r *http.Request) {
 			log.Printf("prio: %s\n", prio)
 
 			if swtstamp == "on" {
-				app.Opts.SwTstamp = true
+				wa.App.Opts.SwTstamp = true
 			} else {
-				app.Opts.SwTstamp = false
+				wa.App.Opts.SwTstamp = false
 			}
 			if peertopeer == "on" {
-				app.TeOpts.Peertopeer = true
+				wa.TeOpts.Peertopeer = true
 			} else {
-				app.TeOpts.Peertopeer = false
+				wa.TeOpts.Peertopeer = false
 			}
 			if domain == "" {
 				fmt.Printf("Missing domain\n")
@@ -155,11 +133,11 @@ func toggle(app *App) func(w http.ResponseWriter, r *http.Request) {
 					// ... handle error
 					fmt.Printf("Invalid domain\n")
 				} else {
-					app.Opts.Domain = uint8(i)
+					wa.App.Opts.Domain = uint8(i)
 				}
 			}
 			if tagged == "" {
-				app.Opts.Vlan = nil
+				wa.App.Opts.Vlan = nil
 			} else {
 				i1, err1 := strconv.Atoi(vid)
 				i2, err2 := strconv.Atoi(prio)
@@ -167,31 +145,31 @@ func toggle(app *App) func(w http.ResponseWriter, r *http.Request) {
 					fmt.Printf("Missing or invalid VLAN/Prio\n")
 				} else {
 					v := uint16(i1)
-					app.Opts.Vlan = &v
-					app.Opts.Prio = uint8(i2)
+					wa.App.Opts.Vlan = &v
+					wa.App.Opts.Prio = uint8(i2)
 				}
 			}
 
-			app.TeOpts.Ports[p1] = PortOpts{GM: true}
-			app.TeOpts.Ports[p2] = PortOpts{}
+			wa.TeOpts.Ports[p1] = PortOpts{GM: true}
+			wa.TeOpts.Ports[p2] = PortOpts{}
 			if p1 == p2 {
 				return
 			}
 
 			if action == "start" {
-				start_app(app, false)
+				start_app(wa, false)
 			} else if action == "start-and-capture" {
-				start_app(app, true)
+				start_app(wa, true)
 			} else if action == "record" {
-				if app.Running {
-					app.In <- []byte(action)
+				if wa.App.Running {
+					wa.App.In <- []byte(action)
 				}
 			} else {
-				if app.Running {
-					app.In <- []byte("exit")
-					html := <-app.Out
+				if wa.App.Running {
+					wa.App.In <- []byte("exit")
+					html := <-wa.App.Out
 					fmt.Fprintf(w, string(html))
-					app.Running = false
+					wa.App.Running = false
 				}
 			}
 
@@ -201,7 +179,7 @@ func toggle(app *App) func(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func get_ports(app *App) func(w http.ResponseWriter, r *http.Request) {
+func get_ports(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
 			log.Printf("POST request get_ports")
@@ -227,40 +205,30 @@ func get_ports(app *App) func(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
-func get_config(app *App) func(w http.ResponseWriter, r *http.Request) {
+func get_config(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		InitTemplates(app.TeOpts, app.Opts, w)
+		// InitTemplates(app.TeOpts, app.Opts, w)
 	}
 }
 
-func InitWebTeOpts() (TeOpts, CommonOpts) {
-	var teOpts = TeOpts{}
-	var opts = CommonOpts{Mode: "te"}
-	opts.InitDefaults()
-	teOpts.Interval = uint32(1000)
-	teOpts.DelayRecord = uint32(0)
-
-	teOpts.Ports = make(map[string]PortOpts)
-	opts.Validate()
-	return teOpts, opts
-}
-
-func start_app(app *App, capture bool) {
-	app.Opts.RecordPackets = capture
-	go RunTeMode(app.Opts, app.TeOpts, app)
+func start_app(wa *WebApp, capture bool) {
+	wa.App.Opts.RecordPackets = capture
+	go RunTeMode(wa.TeOpts, wa.App)
 }
 
 func WebServer() {
 
 	// wsOut := make(chan []byte, 1000)
-	app := NewApp(true)
+	teOpts, opts := InitTeOpts()
+	app := NewApp(opts, true, false)
+	webapp := WebApp{App: app, TeOpts: &teOpts}
 
 	http.Handle("/", http.FileServer(http.FS(content)))
-	http.HandleFunc("/ws", wsHandler(app))
-	http.HandleFunc("/te-toggle", toggle(app))
-	http.HandleFunc("/get-ports", get_ports(app))
-	http.HandleFunc("/te-config", get_config(app))
-	// http.HandleFunc("/stop", toggle(app, false))
+	http.HandleFunc("/ws", wsHandler(&webapp))
+	http.HandleFunc("/te-toggle", toggle(&webapp))
+	http.HandleFunc("/get-ports", get_ports(&webapp))
+	http.HandleFunc("/te-config", get_config(&webapp))
+	// http.HandleFunc("/stop", toggle(webapp, false))
 
 	fmt.Printf("Serving on http://localhost:8080\n")
 	log.Fatal(http.ListenAndServe(":8080", nil))

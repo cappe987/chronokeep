@@ -6,7 +6,6 @@ import (
 	"net"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/BurntSushi/toml"
 	ptp "github.com/facebook/time/ptp/protocol"
@@ -58,24 +57,40 @@ type PortOpts struct {
 	destIp string
 }
 
-type TeOpts struct {
-	Ports       map[string]PortOpts
-	Interval    uint32
-	Count       uint32
-	Peertopeer  bool
-	DelayRecord uint32
+// type TeData struct {
+// 	TeOpts   TeOpts
+// 	Opts     CommonOpts
+// 	AllPorts []string
+// 	HasPorts bool
+// 	Port1    string
+// 	Port2    string
+// }
 
-	// Internal fields
-	IntervalTime time.Duration
+type App struct {
+	In      chan []byte // To App
+	Out     chan []byte // From App
+	WsOut   chan []byte // Websocket data from App to client
+	Running bool
+	Opts    CommonOpts
+	Cli     bool
 }
 
-type TeData struct {
-	TeOpts   TeOpts
-	Opts     CommonOpts
-	AllPorts []string
-	HasPorts bool
-	Port1    string
-	Port2    string
+func NewApp(opts CommonOpts, init_channels bool, cli bool) *App {
+	// teOpts, opts := InitWebTeOpts()
+	if init_channels {
+		return &App{
+			In:    make(chan []byte, 100),
+			Out:   make(chan []byte, 100),
+			WsOut: make(chan []byte, 100),
+			Opts:  opts,
+			Cli:   cli,
+		}
+	} else {
+		return &App{
+			Opts: opts,
+			Cli:  cli,
+		}
+	}
 }
 
 func (opts *CommonOpts) AddOpt(v interface{}, short rune, long string, usage string, help string) Opt {

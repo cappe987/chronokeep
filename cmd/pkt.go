@@ -111,7 +111,9 @@ func PktMode() {
 		}
 	}
 
-	err := port.Init(opts, 0, 1)
+	app := NewApp(opts, false, true)
+
+	err := port.Init(app, 0, 1)
 	if err != nil {
 		log.Fatalf("Failed initializing port: %s", err)
 	}

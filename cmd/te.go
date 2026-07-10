@@ -12,21 +12,25 @@ import (
 	ptp "github.com/facebook/time/ptp/protocol"
 )
 
+type TeOpts struct {
+	Ports    map[string]PortOpts
+	Interval uint32
+	// Count       uint32
+	Peertopeer  bool
+	DelayRecord uint32
+
+	// Internal fields
+	IntervalTime time.Duration
+}
+
 func TeMode() {
-	// var port Port
-	mode := "te"
-	var opts = CommonOpts{Mode: mode}
-	opts.InitDefaults()
-	var teOpts = TeOpts{}
-	// teOpts.Count = 1
-	teOpts.Interval = uint32(1000)
-	teOpts.DelayRecord = uint32(0)
+	teOpts, opts := InitTeOpts()
 
 	opts.DefineCommonFlags()
-	opts.AddModeOpt(mode, &teOpts.Interval, 'I', "interval", "<ms>", "TX packet interval (ms)")
-	opts.AddModeOpt(mode, &teOpts.Peertopeer, 'P', "p2p", "", "Use P2P mode")
+	opts.AddModeOpt(opts.Mode, &teOpts.Interval, 'I', "interval", "<ms>", "TX packet interval (ms)")
+	opts.AddModeOpt(opts.Mode, &teOpts.Peertopeer, 'P', "p2p", "", "Use P2P mode")
 	// opts.AddModeOpt(mode, &teOpts.Count, 'c', "count", "<num>", "Number of packets to transmit. 0=infinite")
-	opts.AddModeOpt(mode, &teOpts.DelayRecord, 'D', "delay_record", "<seconds>", "Time to wait until recording starts. Default: 0 seconds")
+	opts.AddModeOpt(opts.Mode, &teOpts.DelayRecord, 'D', "delay_record", "<seconds>", "Time to wait until recording starts. Default: 0 seconds")
 
 	if !opts.ParseFile(&teOpts) {
 		return
@@ -35,20 +39,38 @@ func TeMode() {
 		return
 	}
 
-	fmt.Printf("%v\n", teOpts)
-
-	if len(teOpts.Ports) != 2 {
-		fmt.Printf("Error: two ports are required\n")
+	if !ValidateTeOpts(teOpts, opts) {
 		return
 	}
 
-	app := NewApp(false)
-	app.TeOpts = teOpts
-	app.Opts = opts
-	RunTeMode(opts, teOpts, app)
+	app := NewApp(opts, false, true)
+	RunTeMode(&teOpts, app)
+}
+func InitTeOpts() (TeOpts, CommonOpts) {
+	var teOpts = TeOpts{}
+	var opts = CommonOpts{Mode: "te"}
+	opts.InitDefaults()
+	teOpts.Interval = uint32(1000)
+	teOpts.DelayRecord = uint32(0)
+
+	teOpts.Ports = make(map[string]PortOpts)
+	return teOpts, opts
 }
 
-func RunTeMode(opts CommonOpts, teOpts TeOpts, app *App) {
+func ValidateTeOpts(teOpts TeOpts, opts CommonOpts) bool {
+	ok := opts.Validate()
+	if !ok {
+		return false
+	}
+
+	if len(teOpts.Ports) != 2 {
+		fmt.Printf("Error: two ports are required\n")
+		return false
+	}
+	return true
+}
+
+func RunTeMode(teOpts *TeOpts, app *App) {
 
 	teOpts.IntervalTime = time.Duration(teOpts.Interval) * time.Millisecond
 	// Validate settings
@@ -57,7 +79,7 @@ func RunTeMode(opts CommonOpts, teOpts TeOpts, app *App) {
 	p1name := ""
 	p2name := ""
 	for name, port := range teOpts.Ports {
-		if opts.Udp && port.IP == "" {
+		if app.Opts.Udp && port.IP == "" {
 			fmt.Printf("Missing IP on port %s\n", name)
 			missingIp = true
 		}
@@ -94,22 +116,24 @@ func RunTeMode(opts CommonOpts, teOpts TeOpts, app *App) {
 	}
 
 	// Port1 is always GM
-	opts.IngressLatency = p1.IngressLatency
-	opts.EgressLatency = p1.EgressLatency
-	opts.Ip = p1.IP
-	opts.DestIp = p2.IP
-	opts.Iface = p1name
-	server.Init(opts, 0x64, 1)
+	app.Opts.IngressLatency = p1.IngressLatency
+	app.Opts.EgressLatency = p1.EgressLatency
+	app.Opts.Ip = p1.IP
+	app.Opts.DestIp = p2.IP
+	app.Opts.Iface = p1name
+	server.Init(app, 0x64, 1)
 
-	opts.IngressLatency = p2.IngressLatency
-	opts.EgressLatency = p2.EgressLatency
-	opts.Ip = p2.IP
-	opts.DestIp = p1.IP
-	opts.Iface = p2name
-	client.Init(opts, 0x32, 1)
+	app.Opts.IngressLatency = p2.IngressLatency
+	app.Opts.EgressLatency = p2.EgressLatency
+	app.Opts.Ip = p2.IP
+	app.Opts.DestIp = p1.IP
+	app.Opts.Iface = p2name
+	client.Init(app, 0x32, 1)
 
 	sigs := make(chan os.Signal)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	if app.Cli {
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	}
 	quit := make(chan int)
 	serverRx := make(chan PacketData, 100)
 	clientRx := make(chan PacketData, 100)
@@ -218,7 +242,7 @@ func RunTeMode(opts CommonOpts, teOpts TeOpts, app *App) {
 	}
 }
 
-func buildHtmxStats(teOpts TeOpts, stats Stats) string {
+func buildHtmxStats(teOpts *TeOpts, stats Stats) string {
 	if teOpts.Peertopeer {
 		return fmt.Sprintf(`
 <p>Mean T1: %d</p>

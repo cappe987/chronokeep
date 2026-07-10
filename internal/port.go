@@ -38,11 +38,12 @@ type Port struct {
 	txRecord      []PacketData
 	rxRecord      []PacketData
 	RecordPackets bool
-	opts          CommonOpts
 	portIdentity  ptp.PortIdentity
 	syncSeq       uint16
 	annoSeq       uint16
 	delaySeq      uint16
+	opts          CommonOpts
+	app           *App
 }
 
 func (port *Port) EnableRecording() {
@@ -433,18 +434,18 @@ func (port *Port) Transmit(pd *PacketData) *PacketData {
 // 	close(output)
 // }
 
-func (port *Port) Init(opts CommonOpts, clockid uint16, portnum uint16) error {
-	if opts.Udp {
-		ip := net.ParseIP(opts.Ip)
-		dest := net.ParseIP(opts.DestIp)
+func (port *Port) Init(app *App, clockid uint16, portnum uint16) error {
+	if app.Opts.Udp {
+		ip := net.ParseIP(app.Opts.Ip)
+		dest := net.ParseIP(app.Opts.DestIp)
 		port.Layer = LayerUDPv4
 		port.IP = ip
 		port.DestIP = dest
 	} else {
 		port.Layer = LayerMac
 	}
-	port.IfaceStr = opts.Iface
-	port.RecordPackets = opts.RecordPackets
+	port.IfaceStr = app.Opts.Iface
+	port.RecordPackets = app.Opts.RecordPackets
 	// Use portnum in clockid to make it unique for each port since we will
 	// never run as a BC/TC.
 	// TODO: Should other instances use other portnums?
@@ -452,7 +453,8 @@ func (port *Port) Init(opts CommonOpts, clockid uint16, portnum uint16) error {
 		PortNumber:    portnum,
 		ClockIdentity: 0xbeef00fffeaa0000 + ptp.ClockIdentity(clockid),
 	}
-	port.opts = opts
+	port.opts = app.Opts
+	port.app = app
 	err := port.openSocket(true)
 	if err != nil {
 		return err
@@ -469,9 +471,9 @@ func (port *Port) Init(opts CommonOpts, clockid uint16, portnum uint16) error {
 		return err
 	}
 	tstamp := timestamp.HW
-	if opts.SwTstamp {
+	if app.Opts.SwTstamp {
 		tstamp = timestamp.SW
-	} else if opts.Onestep {
+	} else if app.Opts.Onestep {
 		tstamp = timestamp.HWONESTEP
 	}
 	if err := timestamp.EnableTimestamps(tstamp, port.efd, netif); err != nil {
