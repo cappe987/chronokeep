@@ -47,6 +47,7 @@ func BuildTemplates() (map[string]*template.Template, error) {
 	for _, page := range pages {
 		tmpl := template.New(page.Name())
 		tmpl, err := tmpl.ParseFS(tfs,
+			pdir+"/chart.html",
 			pdir+"/config.html",
 			pdir+"/buttons.html",
 			dir+"/"+page.Name())
@@ -64,6 +65,7 @@ func BuildTemplates() (map[string]*template.Template, error) {
 		pname := strings.TrimSuffix(partial.Name(), filepath.Ext(partial.Name()))
 		tmpl := template.New(pname)
 		tmpl, err := tmpl.ParseFS(tfs,
+			pdir+"/chart.html",
 			pdir+"/"+partial.Name())
 		if err != nil {
 			return nil, err

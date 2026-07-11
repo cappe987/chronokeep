@@ -97,7 +97,6 @@ func wsHandler(wa *WebApp) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		log.Println("WS handler")
 		conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
 			InsecureSkipVerify: true, // allow all origins (dev only!)
 		})
@@ -118,7 +117,6 @@ func wsHandler(wa *WebApp) http.HandlerFunc {
 		// 	}
 		// }()
 
-		log.Println("WS loop")
 		// Writer loop
 		for {
 			select {
@@ -156,7 +154,7 @@ func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Invalid request method.", 405)
 		}
 		// fmt.Fprintf(w, "GET, %q", html.EscapeString(r.URL.Path))
-		log.Printf("POST request")
+		// log.Printf("POST request")
 
 		action := r.PostFormValue("action")
 		swtstamp := r.PostFormValue("software")
@@ -259,7 +257,6 @@ func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 		td["Capturing"] = wa.TeOpts.Capturing
 		td["Starting"] = starting
 		td["Exiting"] = exiting
-		fmt.Printf("HTML: %s", html)
 		td["Html"] = html
 		stats := wa.TeOpts.Stats
 		labels, values := stats.GenerateJson2Way()
@@ -270,6 +267,7 @@ func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 		twoway["Max"] = max
 		twoway["Min"] = min
 		twoway["Mean"] = mean
+		twoway["Title"] = "2Way TE"
 		td["Stats"] = twoway
 		err = wa.Tmpl["buttons"].Execute(w, td)
 		if err != nil {
@@ -282,7 +280,7 @@ func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 func get_ports(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
-			log.Printf("POST request get_ports")
+			// log.Printf("POST request get_ports")
 
 			files, err := os.ReadDir("/sys/class/net")
 			if err != nil {
@@ -354,7 +352,6 @@ func start_app(wa *WebApp, capture bool) {
 
 func serve_index(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Printf("Opening index.html\n")
 		wa.App.Opts.SwTstamp = true
 		// vid := uint16(100)
 		// opts.Vlan = &vid

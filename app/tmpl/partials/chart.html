@@ -1,0 +1,49 @@
+{{ define "chart" }}
+<div id="results" hx-swap-oob="true" class="color-text">
+
+  <div class="chart">
+    <h2 class="rounded color-text py-2 px-4">
+      {{ .Title }}
+    </h2>
+    <div class="chart-stats">
+      <p> Mean: {{ .Mean }}  </p>
+      <p> Max: {{ .Max }}  </p>
+      <p> Min: {{ .Min }}  </p>
+    </div>
+    <canvas id="myChart"></canvas>
+  </div>
+
+<script>
+config = {
+  type: 'line',
+  data: {
+    labels: JSON.parse({{ .Labels }}),
+    datasets: [
+      { label: {{ .Title }},
+        data:  JSON.parse({{ .Values }})
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+      title: {
+        display: true,
+        text: ''
+      }
+    }
+  },
+};
+
+if (chart)
+    chart.destroy()
+
+ctx = document.getElementById('myChart');
+chart = new Chart(ctx, config);
+</script>
+</div>
+
+{{ end }}

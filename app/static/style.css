@@ -273,3 +273,18 @@ input[type=number] {
     /* width: 100%; */
     padding-bottom: 30px;
 }
+
+.chart-stats {
+    display: grid;
+    grid-template-columns: repeat(3, auto);
+}
+
+.chart-stats > p {
+    text-align: center;
+}
+
+.chart > h2 {
+    text-align: center;
+    border: solid var(--color-border) 1px;
+    margin-bottom: 10px;
+}

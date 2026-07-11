@@ -72,43 +72,7 @@
 {{ end }}
 
 {{ if .Exiting }}
-<div id="results" hx-swap-oob="true" class="color-text">
-
-  <p> 2Way Max: {{ .Stats.Max }}  </p>
-  <p> 2Way Min: {{ .Stats.Min }}  </p>
-  <p> 2Way Mean: {{ .Stats.Mean }}  </p>
-
-<script>
-config = {
-  type: 'line',
-  data: {
-    labels: JSON.parse({{ .Stats.Labels }}),
-    datasets: [
-      { label: '2Way TE',
-        data:  JSON.parse({{ .Stats.Values }})
-      }
-    ]
-  },
-  options: {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'top',
-      },
-      title: {
-        display: true,
-        text: ''
-      }
-    }
-  },
-};
-
-if (chart)
-    chart.destroy()
-
-chart = new Chart(ctx, config);
-</script>
-</div>
+{{ template "chart" .Stats }}
 {{ end }}
 
 {{ end }}
