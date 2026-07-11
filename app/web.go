@@ -305,7 +305,7 @@ func get_stats(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 		labels, values := wa.TeOpts.Stats.GenerateJson2Way()
 		fmt.Fprintf(w, `
 <script>
-const config = {
+config = {
   type: 'line',
   data: { labels: %s, datasets: [{ label: '2Way TE', data: %s}]},
   options: {
@@ -322,7 +322,10 @@ const config = {
   },
 };
 
-let chart = new Chart(ctx, config);
+if (chart)
+    chart.destroy()
+
+chart = new Chart(ctx, config);
 </script>
 `, labels, values)
 	}
