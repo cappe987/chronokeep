@@ -1,0 +1,66 @@
+{{ define "buttons" }}
+<div style="padding-top: 10px" id="buttons">
+  <button type="submit"
+	  id="start-capture-button"
+	  name="action"
+	  value="start-and-capture"
+	  class="bg-quat bg-quat-hover color-text rounded py-2 px-4" 
+	  {{ if .Running }}
+	  disabled
+	  {{ end }}
+	  hx-post="/te-toggle"
+	  hx-swap="innerHTML"
+	  hx-target="#buttons">
+    Start-and-capture
+  </button>
+
+  <button type="submit"
+	  id="start-button"
+	  name="action"
+	  value="start"
+	  class="bg-quat bg-quat-hover color-text rounded py-2 px-4" 
+	  {{ if .Running }}
+	  disabled
+	  {{ end }}
+	  hx-post="/te-toggle"
+	  hx-swap="innerHTML"
+	  hx-target="#buttons">
+    Start
+  </button>
+
+  <button type="submit"
+	  id="record-button"
+	  name="action"
+	  value="record"
+	  class="bg-quat bg-quat-hover color-text rounded py-2 px-4" 
+	  {{ if or (not .Running) (.Capturing) }}
+	  disabled
+	  {{ end }}
+	  hx-post="/te-toggle"
+	  hx-swap="innerHTML"
+	  hx-target="#buttons">
+    Capture
+  </button>
+
+  <button type="submit"
+	  id="stop-button"
+	  name="action"
+	  value="stop"
+	  class="bg-quat bg-quat-hover color-text rounded py-2 px-4" 
+	  {{ if not .Running }}
+	  disabled
+	  {{ end }}
+	  hx-post="/te-toggle"
+	  hx-swap="innerHTML"
+	  hx-target="#buttons">
+    Stop
+  </button>
+</div>
+
+{{ if .Exiting }}
+<div id="results" hx-swap-oob="true">
+  {{ .Html }}
+</div>
+{{ end }}
+
+{{ end }}

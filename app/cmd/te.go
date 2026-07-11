@@ -22,6 +22,7 @@ type TeOpts struct {
 	server       *Port
 	client       *Port
 	Stats        Stats
+	Capturing    bool
 }
 
 func TeMode() {

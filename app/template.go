@@ -7,7 +7,9 @@ import (
 	"html/template"
 	"log"
 	"os"
+	"path/filepath"
 	"sort"
+	"strings"
 )
 
 //go:embed tmpl/*
@@ -44,11 +46,29 @@ func BuildTemplates() (map[string]*template.Template, error) {
 
 	for _, page := range pages {
 		tmpl := template.New(page.Name())
-		tmpl, err := tmpl.ParseFS(tfs, pdir+"/config.html", dir+"/"+page.Name())
+		tmpl, err := tmpl.ParseFS(tfs,
+			pdir+"/config.html",
+			pdir+"/buttons.html",
+			dir+"/"+page.Name())
 		if err != nil {
 			return nil, err
 		}
 		tc[page.Name()] = tmpl
+	}
+
+	partials, err := tfs.ReadDir(pdir)
+	if err != nil {
+		return nil, err
+	}
+	for _, partial := range partials {
+		pname := strings.TrimSuffix(partial.Name(), filepath.Ext(partial.Name()))
+		tmpl := template.New(pname)
+		tmpl, err := tmpl.ParseFS(tfs,
+			pdir+"/"+partial.Name())
+		if err != nil {
+			return nil, err
+		}
+		tc[pname] = tmpl
 	}
 
 	return tc, nil

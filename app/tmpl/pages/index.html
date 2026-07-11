@@ -26,59 +26,9 @@
 
     <form id="config-form">
       {{ template "config" . }}
-
       <hr style="color: var(--color-border)">
+      {{ template "buttons" . }}
       
-      <div style="padding-top: 10px">
-	<button type="submit"
-		id="start-capture-button"
-		name="action"
-		value="start-and-capture"
-		class="bg-quat bg-quat-hover color-text rounded py-2 px-4" 
-		onclick="start_stop(true, true)"
-		hx-post="/te-toggle"
-		hx-swap="innerHTML"
-		hx-target="#msgs">
-	  Start-and-capture
-	</button>
-
-	<button type="submit"
-		id="start-button"
-		name="action"
-		value="start"
-		class="bg-quat bg-quat-hover color-text rounded py-2 px-4" 
-		onclick="start_stop(true, false)"
-		hx-post="/te-toggle"
-		hx-swap="innerHTML"
-		hx-target="#msgs">
-	  Start
-	</button>
-
-	<button type="submit"
-		id="record-button"
-		name="action"
-		value="record"
-		onclick="record()"
-		class="bg-quat bg-quat-hover color-text rounded py-2 px-4" 
-		disabled
-		hx-post="/te-toggle"
-		hx-swap="none">
-	  Capture
-	</button>
-
-	<button type="submit"
-		id="stop-button"
-		name="action"
-		value="stop"
-		onclick="start_stop(false, false)"
-		class="bg-quat bg-quat-hover color-text rounded py-2 px-4" 
-		disabled
-		hx-post="/te-toggle"
-		hx-swap="innerHTML"
-		hx-target="#results">
-	  Stop
-	</button>
-      </div>
     </form>
 
     <!-- <form hx-post="/te-toggle" hx-swap="none"> -->
@@ -115,35 +65,6 @@
 </div>
 
 </body>
-
-
-<script>
-function start_stop(is_start, is_capture) {
-	const start = document.getElementById("start-button")
-	const start_cap = document.getElementById("start-capture-button")
-	const stop = document.getElementById("stop-button")
-	const record = document.getElementById("record-button")
-	
-	if (is_start) {
-		start.setAttribute("disabled", "")
-		start_cap.setAttribute("disabled", "")
-		stop.removeAttribute('disabled');
-		if (!is_capture)
-			record.removeAttribute('disabled');
-	} else {
-		stop.setAttribute("disabled", "")
-		record.setAttribute("disabled", "")
-		start.removeAttribute('disabled');
-		start_cap.removeAttribute('disabled');
-	}
-}
-function record() {
-	const record = document.getElementById("record-button")
-	record.setAttribute("disabled", "")
-}
-</script>
-
-
 
 
 </html>

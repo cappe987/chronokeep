@@ -23,12 +23,6 @@ import (
 	"github.com/coder/websocket"
 )
 
-// go:embed static/materialize.min.js
-// go:embed static/materialize.min.css
-// go:embed static/bootstrap.min.js
-// go:embed static/bootstrap.min.css
-// go:embed static/pico.jade.min.css
-
 //go:embed static/style.css
 //go:embed static/htmx.min.js
 //go:embed static/ws.min.js
@@ -158,98 +152,116 @@ func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 		// 	http.NotFound(w, r)
 		// 	return
 		// }
-		if r.Method == "POST" {
-			// fmt.Fprintf(w, "GET, %q", html.EscapeString(r.URL.Path))
-			log.Printf("POST request")
-
-			action := r.PostFormValue("action")
-			swtstamp := r.PostFormValue("software")
-			peertopeer := r.PostFormValue("peertopeer")
-			p1 := r.PostFormValue("port1")
-			p2 := r.PostFormValue("port2")
-			domain := r.PostFormValue("domain")
-			tagged := r.PostFormValue("vlan-tagged")
-			vid := r.PostFormValue("vlan")
-			prio := r.PostFormValue("prio")
-			interval := r.PostFormValue("interval")
-			// log.Printf("Action: %s\n", action)
-			// log.Printf("Swt: %s\n", swtstamp)
-			// log.Printf("p2p: %s\n", peertopeer)
-			// log.Printf("domain: %s\n", domain)
-			// log.Printf("tagged: %s\n", tagged)
-			// log.Printf("vid: %s\n", vid)
-			// log.Printf("prio: %s\n", prio)
-
-			if swtstamp == "on" {
-				wa.App.Opts.SwTstamp = true
-			} else {
-				wa.App.Opts.SwTstamp = false
-			}
-			if peertopeer == "on" {
-				wa.TeOpts.Peertopeer = true
-			} else {
-				wa.TeOpts.Peertopeer = false
-			}
-			if domain == "" {
-				fmt.Printf("Missing domain\n")
-			} else {
-				i, err := strconv.Atoi(domain)
-				if err != nil {
-					// ... handle error
-					fmt.Printf("Invalid domain\n")
-				} else {
-					wa.App.Opts.Domain = uint8(i)
-				}
-			}
-			if tagged == "" {
-				wa.App.Opts.Vlan = nil
-			} else {
-				i1, err1 := strconv.Atoi(vid)
-				i2, err2 := strconv.Atoi(prio)
-				if err1 != nil || err2 != nil {
-					fmt.Printf("Missing or invalid VLAN/Prio\n")
-				} else {
-					v := uint16(i1)
-					wa.App.Opts.Vlan = &v
-					wa.App.Opts.Prio = uint8(i2)
-				}
-			}
-			interval_ms, err := strconv.Atoi(interval)
-			if err != nil {
-				fmt.Printf("Invalid interval\n")
-			}
-			wa.TeOpts.Interval = uint32(interval_ms)
-
-			wa.TeOpts.Ports[p1] = PortOpts{GM: true}
-			wa.TeOpts.Ports[p2] = PortOpts{}
-			if p1 == p2 {
-				return
-			}
-
-			if !ValidateTeOpts(wa.TeOpts, &wa.App.Opts) {
-				return
-			}
-
-			if action == "start" {
-				start_app(wa, false)
-			} else if action == "start-and-capture" {
-				start_app(wa, true)
-			} else if action == "record" {
-				if wa.App.Running {
-					wa.App.In <- []byte(action)
-				}
-			} else {
-				if wa.App.Running {
-					wa.App.In <- []byte("exit")
-					html := <-wa.App.Out
-					fmt.Fprintf(w, string(html))
-					wa.App.Running = false
-				}
-			}
-
-		} else {
+		if r.Method != "POST" {
 			http.Error(w, "Invalid request method.", 405)
 		}
+		// fmt.Fprintf(w, "GET, %q", html.EscapeString(r.URL.Path))
+		log.Printf("POST request")
+
+		action := r.PostFormValue("action")
+		swtstamp := r.PostFormValue("software")
+		peertopeer := r.PostFormValue("peertopeer")
+		p1 := r.PostFormValue("port1")
+		p2 := r.PostFormValue("port2")
+		domain := r.PostFormValue("domain")
+		tagged := r.PostFormValue("vlan-tagged")
+		vid := r.PostFormValue("vlan")
+		prio := r.PostFormValue("prio")
+		interval := r.PostFormValue("interval")
+		// log.Printf("Action: %s\n", action)
+		// log.Printf("Swt: %s\n", swtstamp)
+		// log.Printf("p2p: %s\n", peertopeer)
+		// log.Printf("domain: %s\n", domain)
+		// log.Printf("tagged: %s\n", tagged)
+		// log.Printf("vid: %s\n", vid)
+		// log.Printf("prio: %s\n", prio)
+
+		if swtstamp == "on" {
+			wa.App.Opts.SwTstamp = true
+		} else {
+			wa.App.Opts.SwTstamp = false
+		}
+		if peertopeer == "on" {
+			wa.TeOpts.Peertopeer = true
+		} else {
+			wa.TeOpts.Peertopeer = false
+		}
+		if domain == "" {
+			fmt.Printf("Missing domain\n")
+		} else {
+			i, err := strconv.Atoi(domain)
+			if err != nil {
+				// ... handle error
+				fmt.Printf("Invalid domain\n")
+			} else {
+				wa.App.Opts.Domain = uint8(i)
+			}
+		}
+		if tagged == "" {
+			wa.App.Opts.Vlan = nil
+		} else {
+			i1, err1 := strconv.Atoi(vid)
+			i2, err2 := strconv.Atoi(prio)
+			if err1 != nil || err2 != nil {
+				fmt.Printf("Missing or invalid VLAN/Prio\n")
+			} else {
+				v := uint16(i1)
+				wa.App.Opts.Vlan = &v
+				wa.App.Opts.Prio = uint8(i2)
+			}
+		}
+		interval_ms, err := strconv.Atoi(interval)
+		if err != nil {
+			fmt.Printf("Invalid interval\n")
+		}
+		wa.TeOpts.Interval = uint32(interval_ms)
+
+		wa.TeOpts.Ports[p1] = PortOpts{GM: true}
+		wa.TeOpts.Ports[p2] = PortOpts{}
+		if p1 == p2 {
+			return
+		}
+
+		if !ValidateTeOpts(wa.TeOpts, &wa.App.Opts) {
+			return
+		}
+
+		exiting := false
+		html := ""
+		if action == "start" {
+			wa.App.Running = true
+			start_app(wa, false)
+		} else if action == "start-and-capture" {
+			wa.App.Running = true
+			wa.TeOpts.Capturing = true
+			start_app(wa, true)
+		} else if action == "record" {
+			wa.TeOpts.Capturing = true
+			if wa.App.Running {
+				wa.App.In <- []byte(action)
+			}
+		} else {
+			if wa.App.Running {
+				exiting = true
+				wa.App.In <- []byte("exit")
+				html = string(<-wa.App.Out)
+				// fmt.Fprintf(w, string(html))
+				wa.App.Running = false
+				wa.TeOpts.Capturing = false
+			}
+		}
+
+		td := make(map[string]any)
+		td["Running"] = wa.App.Running
+		td["Capturing"] = wa.TeOpts.Capturing
+		td["Exiting"] = exiting
+		fmt.Printf("HTML: %s", html)
+		td["Html"] = html
+		err = wa.Tmpl["buttons"].Execute(w, td)
+		if err != nil {
+			fmt.Printf("Error executing index.html template: %s\n", err)
+		}
+
 	}
 }
 
