@@ -12,9 +12,9 @@ Web:
 - Stateful server
 - Indicate when capture starts
 - Allow downloading data file for external graph generation
-- Better validation and error handling
-- More modes. Block swapping while one is active
-- In-web graphs. Chart.js?
+- Better error handling for invalid config
+- More modes. Block user from swapping while one is active
+- In-web graphs. Display min/max/mean next to or under every graph
 
 Uses a [fork](https://github.com/cappe987/facebook-time) of
 [facebook/time](https://github.com/facebook/time) for onestep support and
@@ -25,6 +25,8 @@ Build InTime
 ```bash
 # Host architecture
 go build
+# Without web server
+go build --tags noweb
 # ARM64
 GOARCH=arm64 go build -ldflags "-s -w"
 # ARMv7
