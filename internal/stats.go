@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"slices"
 	"time"
@@ -440,11 +441,11 @@ func (stats *Stats) GenerateJson2Way() (string, string) {
 		ms := ps.time.Milliseconds() % 1000
 		// return fmt.Sprintf("%d.%03d %d", s, ms, ps.value)
 		if i == 0 {
-			labels = fmt.Sprintf("%s%d.%03d\n", labels, s, ms)
-			values = fmt.Sprintf("%s%d\n", values, ps.value)
+			labels = fmt.Sprintf("%s%d.%03d", labels, s, ms)
+			values = fmt.Sprintf("%s%d", values, ps.value)
 		} else {
-			labels = fmt.Sprintf("%s, %d.%03d\n", labels, s, ms)
-			values = fmt.Sprintf("%s, %d\n", values, ps.value)
+			labels = fmt.Sprintf("%s, %d.%03d", labels, s, ms)
+			values = fmt.Sprintf("%s, %d", values, ps.value)
 		}
 	}
 	labels += "]"
@@ -709,4 +710,20 @@ func (port *Port) GetP2pTE() (int64, int64, int64, Stats) {
 	}
 
 	return (total_t1 / count_t1), (total_pdelay / count_pdelay), (total_fwd_acc / count_fwd_acc), stats
+}
+
+func (stats *Stats) CalcMaxMinMeanTwoway() (int64, int64, int64) {
+	min := int64(math.MaxInt64)
+	max := int64(math.MinInt64)
+	avg := int64(0)
+	for i, ps := range stats.Twoways {
+		avg += (ps.value - avg) / (int64(i) + 1)
+		if ps.value < min {
+			min = ps.value
+		}
+		if ps.value > max {
+			max = ps.value
+		}
+	}
+	return max, min, avg
 }

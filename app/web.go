@@ -261,6 +261,16 @@ func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 		td["Exiting"] = exiting
 		fmt.Printf("HTML: %s", html)
 		td["Html"] = html
+		stats := wa.TeOpts.Stats
+		labels, values := stats.GenerateJson2Way()
+		twoway := make(map[string]any)
+		max, min, mean := stats.CalcMaxMinMeanTwoway()
+		twoway["Labels"] = labels
+		twoway["Values"] = values
+		twoway["Max"] = max
+		twoway["Min"] = min
+		twoway["Mean"] = mean
+		td["Stats"] = twoway
 		err = wa.Tmpl["buttons"].Execute(w, td)
 		if err != nil {
 			fmt.Printf("Error executing index.html template: %s\n", err)

@@ -8,6 +8,7 @@
   same hardcoded PortID. Base PortID on MAC.
 
 Web:
+- Fix P2P stats
 - Indicate when capture starts
 - Allow downloading data file for external graph generation
 - Better error handling for invalid config

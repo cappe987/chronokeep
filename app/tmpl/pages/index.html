@@ -24,48 +24,44 @@
   <div id="main">
     <h1>InTime - Time Error Mode</h1>
 
-    <form id="config-form">
-      {{ template "config" . }}
-      <hr style="color: var(--color-border)">
-      {{ template "buttons" . }}
-      
-    </form>
+    <div class="page-content">
+      <form id="config-form">
+	{{ template "config" . }}
+	<hr style="color: var(--color-border)">
+	{{ template "buttons" . }}
+      </form>
 
-    <!-- <form hx-post="/te-toggle" hx-swap="none"> -->
-      <!-- <button type="submit" name="action" value="stop" class="bg-gray-700 hover:bg-gray-500 text-white rounded py-2 px-4">Stop</button> -->
-    <!-- </form> -->
-
-
-    <div hx-ext="ws" ws-connect="/ws" style="padding-left: 20px; padding-right: 20px">
-      <div id="table-container">
-	<table class="table-fixed">
-          <thead>
-            <tr>
-	      <th style="width: 5%">Port</th>
-	      <th style="width: 2%">Dir</th>
-	      <th style="width: 10%">Type</th>
-	      <th style="width: 5%">Domain</th>
-	      <th style="width: 5%">Seq</th>
-	      <th style="width: 13%">Correction</th>
-	      <th style="width: 13%">OriginTS</th>
-	      <th style="width: 13%">Timestamp</th>
-	      <!-- <th></th> -->
-            </tr>
-          </thead>
-          <tbody id="msgs">
-          </tbody>
-	</table>
+      <div hx-ext="ws" ws-connect="/ws" style="margin-top: 20px; margin-bottom: 20px;">
+	<div id="table-container">
+	  <table class="table-fixed">
+            <thead>
+              <tr>
+		<th style="width: 5%">Port</th>
+		<th style="width: 2%">Dir</th>
+		<th style="width: 10%">Type</th>
+		<th style="width: 5%">Domain</th>
+		<th style="width: 5%">Seq</th>
+		<th style="width: 13%">Correction</th>
+		<th style="width: 13%">OriginTS</th>
+		<th style="width: 13%">Timestamp</th>
+		<!-- <th></th> -->
+              </tr>
+            </thead>
+            <tbody id="msgs">
+            </tbody>
+	  </table>
+	</div>
       </div>
-    </div>
-    
-    <div id="results" class="color-text" style="padding-left: 20px; padding-top: 20px;">
-    </div>
-    <div class="chart">
-      <canvas id="myChart"></canvas>
-    </div>
+      
+      <div id="results" class="color-text" style="padding-left: 20px; padding-top: 20px;">
+      </div>
+      <div class="chart">
+	<canvas id="myChart"></canvas>
+      </div>
 
-  </div>
-</div>
+    </div> <!-- page-content -->
+  </div> <!-- main -->
+</div> <!-- page -->
 
 </body>
 
