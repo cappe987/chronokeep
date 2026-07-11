@@ -55,6 +55,13 @@
 	  hx-target="#buttons">
     Stop
   </button>
+
+  <button class="bg-quat bg-quat-hover color-text rounded py-2 px-4"
+	  hx-post="/get-stats"
+	  hx-swap="innerHTML"
+	  hx-target="#chart-script">
+    Get stats
+  </button>
 </div>
 
 {{ if .Starting }}
