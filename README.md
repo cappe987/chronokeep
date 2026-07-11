@@ -4,7 +4,6 @@
 - Log levels
 - Fix htons in port.go
 - Convert to using time.Duration in most places?
-- Better handle the facebook/time override
 - RX filters out packets from self. Problems when two instances run with the
   same hardcoded PortID. Base PortID on MAC.
 

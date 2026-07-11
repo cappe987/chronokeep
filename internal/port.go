@@ -8,8 +8,8 @@ import (
 	"time"
 	"unsafe"
 
-	ptp "github.com/facebook/time/ptp/protocol"
-	timestamp "github.com/facebook/time/timestamp"
+	ptp "github.com/cappe987/facebook-time/ptp/protocol"
+	timestamp "github.com/cappe987/facebook-time/timestamp"
 	"golang.org/x/net/bpf"
 	"golang.org/x/sys/unix"
 )

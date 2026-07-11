@@ -14,7 +14,7 @@ import (
 	. "intime/app/cmd"
 	. "intime/internal"
 
-	ptp "github.com/facebook/time/ptp/protocol"
+	ptp "github.com/cappe987/facebook-time/ptp/protocol"
 
 	"github.com/coder/websocket"
 )

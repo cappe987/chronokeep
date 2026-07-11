@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	ptp "github.com/facebook/time/ptp/protocol"
+	ptp "github.com/cappe987/facebook-time/ptp/protocol"
 	"github.com/pborman/getopt/v2"
 )
 
