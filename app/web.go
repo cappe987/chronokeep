@@ -226,12 +226,15 @@ func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		starting := false
 		exiting := false
 		html := ""
 		if action == "start" {
 			wa.App.Running = true
+			starting = true
 			start_app(wa, false)
 		} else if action == "start-and-capture" {
+			starting = true
 			wa.App.Running = true
 			wa.TeOpts.Capturing = true
 			start_app(wa, true)
@@ -254,6 +257,7 @@ func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 		td := make(map[string]any)
 		td["Running"] = wa.App.Running
 		td["Capturing"] = wa.TeOpts.Capturing
+		td["Starting"] = starting
 		td["Exiting"] = exiting
 		fmt.Printf("HTML: %s", html)
 		td["Html"] = html

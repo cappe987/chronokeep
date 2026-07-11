@@ -57,6 +57,13 @@
   </button>
 </div>
 
+{{ if .Starting }}
+<template>
+<tbody id="msgs" hx-swap-oob="true">
+</tbody>
+</template>
+{{ end }}
+
 {{ if .Exiting }}
 <div id="results" hx-swap-oob="true">
   {{ .Html }}
