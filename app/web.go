@@ -6,6 +6,8 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"html/template"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -21,16 +23,13 @@ import (
 	"github.com/coder/websocket"
 )
 
-// TODO: Add TX packets to websocket display
-
 // go:embed static/materialize.min.js
 // go:embed static/materialize.min.css
 // go:embed static/bootstrap.min.js
 // go:embed static/bootstrap.min.css
 // go:embed static/pico.jade.min.css
 
-//go:embed index.html
-//go:embed style.css
+//go:embed static/style.css
 //go:embed static/htmx.min.js
 //go:embed static/ws.min.js
 //go:embed static/tailwind.js
@@ -40,6 +39,7 @@ var content embed.FS
 type WebApp struct {
 	App    *App
 	TeOpts *TeOpts
+	Tmpl   map[string]*template.Template
 }
 
 func buildHtmxPacket(pd PacketData) string {
@@ -279,15 +279,38 @@ func get_ports(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
-func get_config(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		InitTemplates(*wa.TeOpts, wa.App.Opts, w)
-	}
-}
+
+// func get_config(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
+// 	return func(w http.ResponseWriter, r *http.Request) {
+// 		InitTemplates(*wa.TeOpts, wa.App.Opts, w)
+// 	}
+// }
 
 func start_app(wa *WebApp, capture bool) {
 	wa.App.Opts.RecordPackets = capture
 	go RunTeMode(wa.TeOpts, wa.App)
+}
+
+func serve_index(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		fmt.Printf("Opening index.html\n")
+		wa.App.Opts.SwTstamp = true
+		// vid := uint16(100)
+		// opts.Vlan = &vid
+		wa.App.Opts.Prio = 4
+		wa.TeOpts.Interval = 100
+		// TODO: Set default p1 and p2 from config file. Same for other settings.
+		td := make(map[string]any)
+		td["TeOpts"] = *wa.TeOpts
+		td["Opts"] = wa.App.Opts
+		td["AllPorts"] = GetSystemPorts()
+		td["Port1"] = "veth1"
+		td["Port2"] = "veth2"
+		err := wa.Tmpl["index.html"].Execute(w, td)
+		if err != nil {
+			fmt.Printf("Error executing index.html template: %s\n", err)
+		}
+	}
 }
 
 func WebServer() {
@@ -296,13 +319,25 @@ func WebServer() {
 	teOpts, opts := InitTeOpts()
 	app := NewApp(opts, true, false)
 	webapp := WebApp{App: app, TeOpts: &teOpts}
+	tmpl, err := BuildTemplates()
+	if err != nil {
+		fmt.Printf("Error parsing templates: %s\n", err)
+		return
+	}
+	webapp.Tmpl = tmpl
 
-	http.Handle("/", http.FileServer(http.FS(content)))
+	static_content, err := fs.Sub(content, "static")
+	if err != nil {
+		fmt.Printf("Error loading static content: %s\n", err)
+		return
+	}
+	handler := http.StripPrefix("/static/", http.FileServer(http.FS(static_content)))
+	http.Handle("/static/", handler)
 	http.HandleFunc("/ws", wsHandler(&webapp))
 	http.HandleFunc("/te-toggle", toggle(&webapp))
 	http.HandleFunc("/get-ports", get_ports(&webapp))
-	http.HandleFunc("/te-config", get_config(&webapp))
-	// http.HandleFunc("/stop", toggle(webapp, false))
+	// http.HandleFunc("/te-config", get_config(&webapp))
+	http.HandleFunc("/", serve_index(&webapp))
 
 	fmt.Printf("Serving on http://localhost:8080\n")
 	log.Fatal(http.ListenAndServe(":8080", nil))

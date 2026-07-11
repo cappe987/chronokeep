@@ -1,3 +1,4 @@
+{{ define "index.html" }}
 <!DOCTYPE html>
 <html>
 <head>
@@ -9,7 +10,7 @@
 <!-- <script src="/static/materialize.min.js"></script> -->
 <!-- <script src="/static/bootstrap.min.js"></script> -->
 <!-- <link rel="stylesheet" href="static/pico.jade.min.css"> -->
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="static/style.css">
 <!-- <link rel="stylesheet" href="static/materialize.min.css"> -->
 <!-- <link rel="stylesheet" href="static/bootstrap.min.css"> -->
 </head>
@@ -24,110 +25,7 @@
     <h1>InTime - Time Error Mode</h1>
 
     <form id="config-form">
-      <div id="config" hx-post="/te-config" hx-trigger="load">
-	<!-- <label for="port1" class="font-medium text-heading color-text">Port 1:</label> -->
-	<!-- <div class="config-item"> -->
-	<!--   <select -->
-	<!--     name="port1" -->
-	<!--     class="color-text bg-secondary py-2 px-4 rounded" -->
-	<!--     hx-post="/get-ports" -->
-	<!--     hx-trigger="load" -->
-	<!--     hx-swap="innerHTML"> -->
-	<!--   </select> -->
-	<!-- </div> -->
-
-	<!-- <label for="port2" class="font-medium text-heading color-text">Port 2:</label> -->
-	<!-- <div class="config-item"> -->
-	<!--   <select -->
-	<!--     name="port2" -->
-	<!--     class="color-text bg-secondary py-2 px-4 rounded" -->
-	<!--     hx-post="/get-ports" -->
-	<!--     hx-trigger="load" -->
-	<!--     hx-swap="innerHTML"> -->
-	<!--   </select> -->
-	<!-- </div> -->
-
-	<!-- <label for="domain" class="font-medium text-heading color-text">Domain:</label> -->
-	<!-- <div class="config-item"> -->
-	<!--   <input -->
-	<!--     name="domain" -->
-	<!--     type="number" -->
-	<!--     min="0" max="999" -->
-	<!--     placeholder="Domain" -->
-	<!--     class="color-text bg-secondary py-1.5 px-4 rounded"> -->
-        <!--   </input> -->
-	<!-- </div> -->
-
-	<!-- <label for="peertopeer" class="font-medium text-heading color-text">P2P:</label> -->
-	<!-- <div class="config-item" style="margin-top: 5px;"> -->
-	<!--   <label class="custom-checkbox"> -->
-	<!--     <input -->
-	<!--       name="peertopeer" -->
-	<!--       type="checkbox" -->
-	<!--       class="color-text bg-secondary py-2 px-4 rounded"> -->
-        <!--     </input> -->
-	<!--     <span class="checkmark"></span> -->
-	<!--   </label> -->
-	<!-- </div> -->
-
-	<!-- <label for="software" class="font-medium text-heading color-text">SwTstamp:</label> -->
-	<!-- <div class="config-item" style="margin-top: 5px;"> -->
-	<!--   <label class="custom-checkbox"> -->
-	<!--     <input -->
-	<!--       name="software" -->
-	<!--       type="checkbox" -->
-	<!--       class="color-text bg-secondary py-2 px-4 rounded"> -->
-        <!--     </input> -->
-	<!--     <span class="checkmark"></span> -->
-	<!--   </label> -->
-	<!-- </div> -->
-
-	<!-- <label for="record-delay" class="font-medium text-heading color-text">Recording delay:</label> -->
-	<!-- <div class="config-item"> -->
-	<!--   <input -->
-	<!--     name="record-delay" -->
-	<!--     type="number" -->
-	<!--     min="0" max="999" -->
-	<!--     placeholder="Delay" -->
-	<!--     class="color-text bg-secondary py-1.5 px-4 rounded"> -->
-        <!--   </input> -->
-	<!-- </div> -->
-
-	<!-- <label for="vlan-tagged" class="font-medium text-heading color-text">VLAN tagged:</label> -->
-	<!-- <div class="config-item" style="margin-top: 5px;"> -->
-	<!--   <label class="custom-checkbox"> -->
-	<!--     <input -->
-	<!--       name="vlan-tagged" -->
-	<!--       type="checkbox" -->
-	<!--       class="color-text bg-secondary py-2 px-4 rounded"> -->
-        <!--     </input> -->
-	<!--     <span class="checkmark"></span> -->
-	<!--   </label> -->
-	<!-- </div> -->
-
-	<!-- <label for="vlan" class="font-medium text-heading color-text">VID:</label> -->
-	<!-- <div class="config-item"> -->
-	<!--   <input -->
-	<!--     name="vlan" -->
-	<!--     type="number" -->
-	<!--     min="0" max="999" -->
-	<!--     placeholder="VID" -->
-	<!--     class="color-text bg-secondary py-1.5 px-4 rounded"> -->
-        <!--   </input> -->
-	<!-- </div> -->
-
-	<!-- <label for="prio" class="font-medium text-heading color-text">PRIO:</label> -->
-	<!-- <div class="config-item"> -->
-	<!--   <input -->
-	<!--     name="prio" -->
-	<!--     type="number" -->
-	<!--     min="0" max="999" -->
-	<!--     placeholder="Prio" -->
-	<!--     class="color-text bg-secondary py-1.5 px-4 rounded"> -->
-        <!--   </input> -->
-	<!-- </div> -->
-
-      </div>
+      {{ template "config" . }}
 
       <hr style="color: var(--color-border)">
       
@@ -249,3 +147,5 @@ function record() {
 
 
 </html>
+
+{{ end }}

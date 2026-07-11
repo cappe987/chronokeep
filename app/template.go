@@ -6,25 +6,15 @@ import (
 	"embed"
 	"html/template"
 	"log"
-	"net/http"
 	"os"
 	"sort"
-
-	. "intime/app/cmd"
-	. "intime/internal"
 )
 
-//go:embed config.html
-//go:embed timeerror.html
-var fs embed.FS
+//go:embed tmpl/*
+var tmplFs embed.FS
 
-type TeData struct {
-	TeOpts   TeOpts
-	Opts     CommonOpts
-	AllPorts []string
-	HasPorts bool
-	Port1    string
-	Port2    string
+func GetTemplateFS() embed.FS {
+	return tmplFs
 }
 
 func GetSystemPorts() []string {
@@ -40,28 +30,26 @@ func GetSystemPorts() []string {
 	return names
 }
 
-// Temporary testing with templates. Needs much cleanup
-func InitTemplates(to TeOpts, opts CommonOpts, w http.ResponseWriter) {
-	tmplFile := "config.html"
-	tmpl, err := template.New(tmplFile).ParseFS(fs, tmplFile)
+func BuildTemplates() (map[string]*template.Template, error) {
+	tc := make(map[string]*template.Template)
+	tfs := GetTemplateFS()
+
+	// Read the files and get the pages
+	dir := "tmpl/pages"
+	pdir := "tmpl/partials"
+	pages, err := tfs.ReadDir(dir)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	opts.SwTstamp = true
-	// vid := uint16(100)
-	// opts.Vlan = &vid
-	opts.Prio = 4
-	to.Interval = 100
-	// TODO: Set default p1 and p2 from config file. Same for other settings.
-	td := TeData{
-		TeOpts:   to,
-		Opts:     opts,
-		AllPorts: GetSystemPorts(),
-		Port1:    "veth1",
-		Port2:    "veth2",
+
+	for _, page := range pages {
+		tmpl := template.New(page.Name())
+		tmpl, err := tmpl.ParseFS(tfs, pdir+"/config.html", dir+"/"+page.Name())
+		if err != nil {
+			return nil, err
+		}
+		tc[page.Name()] = tmpl
 	}
-	err = tmpl.Execute(w, td)
-	if err != nil {
-		panic(err)
-	}
+
+	return tc, nil
 }
