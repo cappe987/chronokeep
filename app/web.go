@@ -292,6 +292,38 @@ func get_ports(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func get_stats(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			return
+		}
+		// TODO: Check wa.App.Opts.Mode
+		labels, values := wa.TeOpts.Stats.GenerateJson2Way()
+		fmt.Fprintf(w, `
+<script>
+const config = {
+  type: 'line',
+  data: { labels: %s, datasets: [{ label: '2Way TE', data: %s}]},
+  options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+      title: {
+        display: true,
+        text: ''
+      }
+    }
+  },
+};
+
+let chart = new Chart(ctx, config);
+</script>
+`, labels, values)
+	}
+}
+
 // func get_config(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 // 	return func(w http.ResponseWriter, r *http.Request) {
 // 		InitTemplates(*wa.TeOpts, wa.App.Opts, w)
@@ -348,6 +380,7 @@ func WebServer() {
 	http.HandleFunc("/ws", wsHandler(&webapp))
 	http.HandleFunc("/te-toggle", toggle(&webapp))
 	http.HandleFunc("/get-ports", get_ports(&webapp))
+	http.HandleFunc("/get-stats", get_stats(&webapp))
 	// http.HandleFunc("/te-config", get_config(&webapp))
 	http.HandleFunc("/", serve_index(&webapp))
 
