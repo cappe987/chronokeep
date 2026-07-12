@@ -8,12 +8,11 @@
   same hardcoded PortID. Base PortID on MAC.
 
 Web:
-- Fix P2P stats
+- Different colors for charts?
 - Indicate when capture starts
 - Allow downloading data file for external graph generation
 - Better error handling for invalid config
 - More modes. Block user from swapping while one is active
-- In-web graphs. Display min/max/mean next to or under every graph
 - Template dependency graph?
 
 Uses a [fork](https://github.com/cappe987/facebook-time) of

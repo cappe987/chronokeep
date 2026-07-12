@@ -270,7 +270,7 @@ input[type=number] {
 
 .chart {
     max-width: 50%;
-    /* width: 100%; */
+    flex-grow: 1;
     padding-bottom: 30px;
 }
 
@@ -287,4 +287,13 @@ input[type=number] {
     text-align: center;
     border: solid var(--color-border) 1px;
     margin-bottom: 10px;
+}
+
+#chart-box {
+    max-width: 100%;
+    display: flex;
+    flex-shrink: 0;
+    justify-content: space-between;
+    gap: 30px;
+    flex-wrap: wrap;
 }

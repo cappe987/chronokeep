@@ -53,7 +53,7 @@
 	</div>
       </div>
       
-      <div id="results" class="color-text" style="padding-left: 20px; padding-top: 20px;">
+      <div id="chart-box" class="color-text" style="padding-left: 20px; padding-top: 20px;">
       </div>
 
     </div> <!-- page-content -->
@@ -63,9 +63,45 @@
 </body>
 
 <script>
-let ctx = null
-let config = {}
-let chart = null
+
+let charts = {}
+Chart.defaults.color = '#cdd9e5';
+
+function make_chart(title, id, labels, values) {
+	const config = {
+		type: 'line',
+		data: {
+			labels: labels,
+			datasets: [
+				{ label: title,
+				  data:  values
+				}
+			]
+		},
+		options: {
+			responsive: true,
+			plugins: {
+				legend: {
+					position: 'top',
+				},
+				title: {
+					display: true,
+					text: ''
+				}
+			}
+		},
+	};
+
+	let chart = charts[id]
+	if (chart)
+		chart.destroy()
+
+	const ctx = document.getElementById(id);
+	chart = new Chart(ctx, config);
+	charts[id] = chart
+}
+
+
 </script>
 
 <script id="chart-script" hx-post="/get-stats" hx-swap="innerHTML">

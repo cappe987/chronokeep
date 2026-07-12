@@ -146,10 +146,6 @@ func wsHandler(wa *WebApp) http.HandlerFunc {
 
 func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// if r.URL.Path != "/" {
-		// 	http.NotFound(w, r)
-		// 	return
-		// }
 		if r.Method != "POST" {
 			http.Error(w, "Invalid request method.", 405)
 		}
@@ -226,7 +222,6 @@ func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 
 		starting := false
 		exiting := false
-		html := ""
 		if action == "start" {
 			wa.App.Running = true
 			starting = true
@@ -245,8 +240,11 @@ func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 			if wa.App.Running {
 				exiting = true
 				wa.App.In <- []byte("exit")
-				html = string(<-wa.App.Out)
-				// fmt.Fprintf(w, string(html))
+				msg := string(<-wa.App.Out)
+				if msg != "exited" {
+					fmt.Printf("Expected mode to exit\n")
+					return
+				}
 				wa.App.Running = false
 				wa.TeOpts.Capturing = false
 			}
@@ -257,18 +255,10 @@ func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 		td["Capturing"] = wa.TeOpts.Capturing
 		td["Starting"] = starting
 		td["Exiting"] = exiting
-		td["Html"] = html
 		stats := wa.TeOpts.Stats
-		labels, values := stats.GenerateJson2Way()
-		twoway := make(map[string]any)
-		max, min, mean := stats.CalcMaxMinMeanTwoway()
-		twoway["Labels"] = labels
-		twoway["Values"] = values
-		twoway["Max"] = max
-		twoway["Min"] = min
-		twoway["Mean"] = mean
-		twoway["Title"] = "2Way TE"
-		td["Stats"] = twoway
+		if exiting {
+			td["Stats"] = stats.GetWebStats(wa.TeOpts.Peertopeer)
+		}
 		err = wa.Tmpl["buttons"].Execute(w, td)
 		if err != nil {
 			fmt.Printf("Error executing index.html template: %s\n", err)
@@ -280,8 +270,6 @@ func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 func get_ports(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
-			// log.Printf("POST request get_ports")
-
 			files, err := os.ReadDir("/sys/class/net")
 			if err != nil {
 				log.Fatal(err)
@@ -303,47 +291,6 @@ func get_ports(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
-
-func get_stats(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" {
-			return
-		}
-		// TODO: Check wa.App.Opts.Mode
-		labels, values := wa.TeOpts.Stats.GenerateJson2Way()
-		fmt.Fprintf(w, `
-<script>
-config = {
-  type: 'line',
-  data: { labels: %s, datasets: [{ label: '2Way TE', data: %s}]},
-  options: {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'top',
-      },
-      title: {
-        display: true,
-        text: ''
-      }
-    }
-  },
-};
-
-if (chart)
-    chart.destroy()
-
-chart = new Chart(ctx, config);
-</script>
-`, labels, values)
-	}
-}
-
-// func get_config(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
-// 	return func(w http.ResponseWriter, r *http.Request) {
-// 		InitTemplates(*wa.TeOpts, wa.App.Opts, w)
-// 	}
-// }
 
 func start_app(wa *WebApp, capture bool) {
 	wa.App.Opts.RecordPackets = capture
@@ -373,7 +320,6 @@ func serve_index(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 
 func WebServer() {
 
-	// wsOut := make(chan []byte, 1000)
 	teOpts, opts := InitTeOpts()
 	app := NewApp(opts, true, false)
 	webapp := WebApp{App: app, TeOpts: &teOpts}
@@ -394,8 +340,6 @@ func WebServer() {
 	http.HandleFunc("/ws", wsHandler(&webapp))
 	http.HandleFunc("/te-toggle", toggle(&webapp))
 	http.HandleFunc("/get-ports", get_ports(&webapp))
-	http.HandleFunc("/get-stats", get_stats(&webapp))
-	// http.HandleFunc("/te-config", get_config(&webapp))
 	http.HandleFunc("/", serve_index(&webapp))
 
 	fmt.Printf("Serving on http://localhost:8080\n")

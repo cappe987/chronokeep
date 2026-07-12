@@ -232,47 +232,29 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 
 	fmt.Printf("\n")
 	if teOpts.Peertopeer {
-		_, _, _, stats := client.GetP2pTE()
+		stats := client.GetP2pTE()
 		if app.Cli {
-			fmt.Printf("Mean T1: %d\n", stats.CalcMeanT1())
-			fmt.Printf("Mean Pdelay: %d\n", stats.CalcMeanPDelay())
-			fmt.Printf("Mean FwdAcc: %d\n", stats.CalcMeanFwdAcc())
+			fmt.Printf("Mean T1: %d\n", stats.T1M.Mean)
+			fmt.Printf("Mean Pdelay: %d\n", stats.PDelayM.Mean)
+			fmt.Printf("Mean FwdAcc: %d\n", stats.FwdAccM.Mean)
 		}
 		stats.GenerateFile(true, "measurement.dat")
 		teOpts.Stats = stats
 		if app.Out != nil {
-			app.Out <- []byte(buildHtmxStats(teOpts, stats))
+			app.Out <- []byte("exited")
 		}
 	} else {
-		_, _, _, stats := client.GetMeanTE()
+		stats := client.GetE2eTE()
 		if app.Cli {
-			fmt.Printf("Mean T1: %d\n", stats.CalcMeanT1())
-			fmt.Printf("Mean T4: %d\n", stats.CalcMeanT4())
-			fmt.Printf("Mean 2Way: %d\n", stats.CalcMeanTwoway())
+			fmt.Printf("Mean T1: %d\n", stats.T1M.Mean)
+			fmt.Printf("Mean T4: %d\n", stats.T4M.Mean)
+			fmt.Printf("Mean 2Way: %d\n", stats.TwowayM.Mean)
 		}
 
 		stats.GenerateFile(false, "measurement.dat")
 		teOpts.Stats = stats
 		if app.Out != nil {
-			app.Out <- []byte(buildHtmxStats(teOpts, stats))
+			app.Out <- []byte("exited")
 		}
-	}
-}
-
-func buildHtmxStats(teOpts *TeOpts, stats Stats) string {
-	if teOpts.Peertopeer {
-		return fmt.Sprintf(`
-<p>Mean T1: %d</p>
-<p>Mean Pdelay: %d</p>
-<p>Mean FwdAcc: %d</p>
-`, stats.CalcMeanT1(), stats.CalcMeanPDelay(), stats.CalcMeanFwdAcc())
-	} else {
-		return fmt.Sprintf(`
-<p>Mean T1: %d</p>
-<p>Mean T4: %d</p>
-<p>Mean 2Way: %d</p>
-
-`, stats.CalcMeanT1(), stats.CalcMeanT4(), stats.CalcMeanTwoway())
-
 	}
 }
