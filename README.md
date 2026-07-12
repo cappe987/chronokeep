@@ -1,25 +1,28 @@
 # InTime
 
-**TODO:**
-- Add license to project. MIT?
-- Rename project?
-- Log levels
-- Convert to using time.Duration in most places?
-- Add documentation
-- Add images to README
-- Add proper description in this README
+Measure, test, and debug PTP. Send individual packets or run a whole
+server/client setup that calculates time error and latencies. The application
+must run on a device with two synchronised PTP-capable ports, with traffic
+isolated to not cause a broadcast storm.
 
-Web:
-- Help page that describes how things are calculated
-- Indicate when capture starts
-- Allow downloading data file for external graph generation
-- Better error handling for invalid config
-- More modes. Block user from swapping while one is active
-- Template dependency graph?
+It can run without dedicated hardware support, but the results will not be
+accurate and software timestamping must be explicitly selected. See <a
+href="#testing">Testing</a> section.
 
 Uses a [fork](https://github.com/cappe987/facebook-time) of
 [facebook/time](https://github.com/facebook/time) for onestep support and
 .Nano() function for timestamps.
+
+## Getting Started
+
+```bash
+go build
+sudo ./intime web
+```
+
+
+## Webgui
+
 
 ## Building
 
@@ -39,6 +42,7 @@ GOARCH=arm GOARM=5 go build -ldflags "-s -w"
 The extra flags are useful on systems with limited resources and minimizes the binary size.
 - `-s` strips binary
 - `-w` removes DWARF debugging info
+
 
 ## Testing
 
@@ -65,3 +69,27 @@ sudo ./intime te -S -f configs/te.toml
 TE mode relies a lot on config file to handle configuration of the two ports
 separately.
 
+
+## TODO
+- Add license to project. MIT?
+- Rename project?
+- Log levels
+- Convert to using time.Duration in most places?
+- Add documentation
+- Add images to README
+- Add proper description in this README
+
+Web:
+- Help page that describes how things are calculated
+- Indicate when capture starts
+- Allow downloading data file for external graph generation
+- Better error handling for invalid config
+- More modes. Block user from swapping while one is active
+- Template dependency graph?
+- Pkt mode:
+  - Allow crafting specific sequences
+  - Setting whether it should auto-reply to (P)Delays
+  - Config file that supports similar behavior
+- Wiretime mode?
+  - A port of my wiretime project. Can theoretically be done in TE mode but it's
+    nicer to have a dedicated mode.
