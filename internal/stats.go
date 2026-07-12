@@ -267,7 +267,7 @@ func calcSyfup(sync *PacketData, fup *PacketData) *int64 {
 	return &curr_t1
 }
 
-func calcDelay(req *PacketData, resp *PacketData) *int64 {
+func CalcDelay(req *PacketData, resp *PacketData) *int64 {
 	// Calculate t4-t3
 	if req == nil || resp == nil {
 		return nil
@@ -501,7 +501,7 @@ func (port *Port) GetE2eTE() Stats {
 			// stats.AddT1TE(curr_t1, GetSyncLatency(last_sync, last_fup), normTs)
 		case ptp.MessageDelayReq:
 			last_delay_req = &pd
-			ct4 := calcDelay(last_delay_req, last_delay_resp)
+			ct4 := CalcDelay(last_delay_req, last_delay_resp)
 			if ct4 == nil {
 				continue
 			}
@@ -518,7 +518,7 @@ func (port *Port) GetE2eTE() Stats {
 			// stats.AddTwowayTE(curr_delay, normTs)
 		case ptp.MessageDelayResp:
 			last_delay_resp = &pd
-			ct4 := calcDelay(last_delay_req, last_delay_resp)
+			ct4 := CalcDelay(last_delay_req, last_delay_resp)
 			if ct4 == nil {
 				continue
 			}
@@ -541,7 +541,7 @@ func (port *Port) GetE2eTE() Stats {
 	return stats
 }
 
-func calcPDelay(req *PacketData, resp *PacketData, respFup *PacketData) *int64 {
+func CalcPDelay(req *PacketData, resp *PacketData, respFup *PacketData) *int64 {
 	if req == nil || resp == nil {
 		return nil
 	}
@@ -658,7 +658,7 @@ func (port *Port) GetP2pTE() Stats {
 			}
 		case ptp.MessagePDelayReq:
 			last_pdelay_req = &pd
-			pdelay := calcPDelay(last_pdelay_req, last_pdelay_resp, last_pdelay_resp_fup)
+			pdelay := CalcPDelay(last_pdelay_req, last_pdelay_resp, last_pdelay_resp_fup)
 			if pdelay == nil {
 				continue
 			}
@@ -668,7 +668,7 @@ func (port *Port) GetP2pTE() Stats {
 			stats.AddPDelay(last_pdelay_req, last_pdelay_resp, last_pdelay_resp_fup, curr_pdelay, normTs)
 		case ptp.MessagePDelayResp:
 			last_pdelay_resp = &pd
-			pdelay := calcPDelay(last_pdelay_req, last_pdelay_resp, last_pdelay_resp_fup)
+			pdelay := CalcPDelay(last_pdelay_req, last_pdelay_resp, last_pdelay_resp_fup)
 			if pdelay == nil {
 				continue
 			}
@@ -678,7 +678,7 @@ func (port *Port) GetP2pTE() Stats {
 			stats.AddPDelay(last_pdelay_req, last_pdelay_resp, last_pdelay_resp_fup, curr_pdelay, normTs)
 		case ptp.MessagePDelayRespFollowUp:
 			last_pdelay_resp_fup = &pd
-			pdelay := calcPDelay(last_pdelay_req, last_pdelay_resp, last_pdelay_resp_fup)
+			pdelay := CalcPDelay(last_pdelay_req, last_pdelay_resp, last_pdelay_resp_fup)
 			if pdelay == nil {
 				continue
 			}
