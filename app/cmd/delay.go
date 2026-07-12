@@ -172,7 +172,7 @@ func client(app *App, do *DelayOpts, port *Port) {
 				if !app.Cli {
 					continue
 				}
-				fmt.Printf("PDelay: %d\n", *ns)
+				fmt.Printf("PDelay seq %d: %d\n", req.GetSequenceID(), *ns)
 
 			} else {
 				if !app.Cli {
@@ -185,8 +185,8 @@ func client(app *App, do *DelayOpts, port *Port) {
 				t3_ns := t3 % 1000000000
 				t3_s := t3 / 1000000000
 				cf := resp.GetCorrectionField()
-				fmt.Printf("ReqTS %d.%09d | RespTs %d.%09d | Cf %d\n",
-					t3_s, t3_ns, t4_s, t4_ns, cf)
+				fmt.Printf("Seq %d | ReqTS %d.%09d | RespTs %d.%09d | Cf %d\n",
+					req.GetSequenceID(), t3_s, t3_ns, t4_s, t4_ns, cf)
 			}
 		case <-ticker.C:
 			var req *PacketData
