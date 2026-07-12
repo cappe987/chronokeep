@@ -1,1 +1,6 @@
 intime
+
+# Data exports from TE mode
+*.dat
+# Generated PDF files
+*.pdf
