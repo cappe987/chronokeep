@@ -91,6 +91,10 @@ func PktMode() {
 	if opts.Iface != "dummy" {
 		pname = opts.Iface
 	}
+	if pname == "" {
+		fmt.Printf("No port selected\n")
+		return
+	}
 
 	port := Port{
 		IfaceStr: pname,
@@ -177,7 +181,6 @@ func PktMode() {
 }
 
 func noWaitMode(port *Port, pktOpts *PktOpts, sigs chan os.Signal) {
-	fmt.Printf("hello\n")
 	txCount := uint32(1)
 	running := true
 	infinite := (pktOpts.Count == 0)
