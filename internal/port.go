@@ -46,6 +46,7 @@ type Port struct {
 	PortOpts      PortOpts
 	App           *App
 	Silent        bool
+	Mac           []byte
 }
 
 func (port *Port) EnableRecording() {
@@ -277,11 +278,6 @@ func (p *Port) openSocket(isEventSocket bool) error {
 		if err != nil {
 			return err
 		}
-		interf, err := net.InterfaceByName(p.IfaceStr)
-		if err != nil {
-			return err
-		}
-		p.Interface = interf
 		if isEventSocket {
 			p.efd = fd
 		} else {
@@ -291,7 +287,7 @@ func (p *Port) openSocket(isEventSocket bool) error {
 
 		sll := &syscall.SockaddrLinklayer{
 			Protocol: htons(syscall.ETH_P_ALL),
-			Ifindex:  interf.Index,
+			Ifindex:  p.Interface.Index,
 		}
 		if err := syscall.Bind(fd, sll); err != nil {
 			log.Fatalf("bind to %s failed: %v", p.IfaceStr, err)
@@ -438,7 +434,25 @@ func (port *Port) Transmit(pd *PacketData) *PacketData {
 // 	close(output)
 // }
 
-func (port *Port) Init(app *App, clockid uint16, portnum uint16) error {
+func makeClockIdentity(iface *net.Interface) uint64 {
+	mac := iface.HardwareAddr
+	bytes := make([]byte, 8)
+	bytes[7] = mac[0]
+	bytes[6] = mac[1]
+	bytes[5] = mac[2]
+	bytes[4] = 0xff
+	bytes[3] = 0xfe
+	bytes[2] = mac[3]
+	bytes[1] = mac[4]
+	bytes[0] = mac[5]
+	cid := uint64(0)
+	for i := range 8 {
+		cid |= uint64(bytes[i]) << (i * 8)
+	}
+	return cid
+}
+
+func (port *Port) Init(app *App, portnum uint16) error {
 	if app.Opts.Udp {
 		ip := net.ParseIP(app.Opts.Ip)
 		dest := net.ParseIP(app.Opts.DestIp)
@@ -452,28 +466,27 @@ func (port *Port) Init(app *App, clockid uint16, portnum uint16) error {
 		port.IfaceStr = app.Opts.Iface
 	}
 	port.RecordPackets = app.Opts.RecordPackets
-	// Use portnum in clockid to make it unique for each port since we will
-	// never run as a BC/TC.
-	// TODO: Should other instances use other portnums?
+	netif, err := net.InterfaceByName(port.IfaceStr)
+	port.Interface = netif
+	port.Mac = netif.HardwareAddr
+	if err != nil {
+		fmt.Printf("Failed fetching interface\n")
+		return err
+	}
+	cid := makeClockIdentity(port.Interface)
 	port.portIdentity = ptp.PortIdentity{
 		PortNumber:    portnum,
-		ClockIdentity: 0xbeef00fffeaa0000 + ptp.ClockIdentity(clockid),
+		ClockIdentity: ptp.ClockIdentity(cid),
 	}
+
 	port.opts = app.Opts
 	port.App = app
-	err := port.openSocket(true)
+	err = port.openSocket(true)
 	if err != nil {
 		return err
 	}
 	err = port.openSocket(false)
 	if err != nil {
-		return err
-	}
-
-	netif, err := net.InterfaceByName(port.IfaceStr)
-	port.Interface = netif
-	if err != nil {
-		fmt.Printf("Failed fetching interface\n")
 		return err
 	}
 	tstamp := timestamp.HW

@@ -134,13 +134,13 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 	// app.Opts.EgressLatency = p1.EgressLatency
 	app.Opts.Ip = server.PortOpts.IP
 	app.Opts.DestIp = client.PortOpts.IP
-	server.Init(app, 0x64, 1)
+	server.Init(app, 1)
 
 	// app.Opts.IngressLatency = p2.IngressLatency
 	// app.Opts.EgressLatency = p2.EgressLatency
 	app.Opts.Ip = teOpts.client.PortOpts.IP
 	app.Opts.DestIp = teOpts.server.PortOpts.IP
-	client.Init(app, 0x32, 1)
+	client.Init(app, 1)
 
 	sigs := make(chan os.Signal)
 	if app.Cli {

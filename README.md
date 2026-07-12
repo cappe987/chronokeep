@@ -4,10 +4,8 @@
 - Add license to project. MIT?
 - Rename project?
 - Log levels
-- Fix htons in port.go
+- Fix htons in port.go. Currently assumes host is LE
 - Convert to using time.Duration in most places?
-- RX filters out packets from self. Problems when two instances run with the
-  same hardcoded PortID. Base PortID on MAC.
 
 Web:
 - Different colors for charts?
