@@ -5,10 +5,14 @@
     {{ template "single_chart" .T1Chart }}
     {{ template "single_chart" .PDelayChart }}
     {{ template "single_chart" .FwdAccChart }}
+    {{ template "single_chart" .SyncLatencyChart }}
+    {{ template "single_chart" .PDelayLatencyChart }}
   {{ else }}
     {{ template "single_chart" .T1Chart }}
     {{ template "single_chart" .T4Chart }}
     {{ template "single_chart" .TwowayChart }}
+    {{ template "single_chart" .SyncLatencyChart }}
+    {{ template "single_chart" .DelayLatencyChart }}
   {{ end }}
 
 </div>
@@ -30,7 +34,7 @@
 
 <script>
 
-make_chart({{ .Title }}, {{ .CssId }}, JSON.parse({{ .Labels }}), JSON.parse({{ .Values }}))
+make_chart({{ .Title }}, {{ .CssId }}, JSON.parse({{ .Labels }}), JSON.parse({{ .Values }}), {{ .Color }})
 
 </script>
 

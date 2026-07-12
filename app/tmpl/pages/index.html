@@ -67,14 +67,16 @@
 let charts = {}
 Chart.defaults.color = '#cdd9e5';
 
-function make_chart(title, id, labels, values) {
+function make_chart(title, id, labels, values, color) {
+	console.log("Color:", color)
 	const config = {
 		type: 'line',
 		data: {
 			labels: labels,
 			datasets: [
 				{ label: title,
-				  data:  values
+				  data:  values,
+				  borderColor: color
 				}
 			]
 		},

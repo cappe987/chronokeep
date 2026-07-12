@@ -319,15 +319,18 @@ type MaxMinMean struct {
 }
 
 type Stats struct {
-	Syncs   []PacketStat
-	Delays  []PacketStat
-	Twoways []PacketStat
-	FwdAcc  []PacketStat
-	T1M     MaxMinMean
-	T4M     MaxMinMean
-	PDelayM MaxMinMean
-	TwowayM MaxMinMean
-	FwdAccM MaxMinMean
+	Syncs      []PacketStat
+	Delays     []PacketStat
+	Twoways    []PacketStat
+	FwdAcc     []PacketStat
+	T1M        MaxMinMean
+	T4M        MaxMinMean
+	PDelayM    MaxMinMean
+	TwowayM    MaxMinMean
+	FwdAccM    MaxMinMean
+	T1LatM     MaxMinMean
+	T4LatM     MaxMinMean
+	PDelayLatM MaxMinMean
 }
 
 type WebChart struct {
@@ -338,15 +341,19 @@ type WebChart struct {
 	Max    int64
 	Min    int64
 	Mean   int64
+	Color  string
 }
 
 type WebStats struct {
-	Peertopeer  bool
-	T1Chart     WebChart
-	T4Chart     WebChart
-	PDelayChart WebChart
-	TwowayChart WebChart
-	FwdAccChart WebChart
+	Peertopeer         bool
+	T1Chart            WebChart
+	T4Chart            WebChart
+	PDelayChart        WebChart
+	TwowayChart        WebChart
+	FwdAccChart        WebChart
+	SyncLatencyChart   WebChart
+	DelayLatencyChart  WebChart
+	PDelayLatencyChart WebChart
 }
 
 func (stats *Stats) AddSync(sync, fup *PacketData, t1 int64, normTs time.Duration) {
@@ -528,9 +535,7 @@ func (port *Port) GetE2eTE() Stats {
 
 	}
 
-	stats.CalcMaxMinMeanT1()
-	stats.CalcMaxMinMeanT4()
-	stats.CalcMaxMinMeanTwoway()
+	stats.calcE2eValues()
 	return stats
 }
 
@@ -682,9 +687,7 @@ func (port *Port) GetP2pTE() Stats {
 		}
 	}
 
-	stats.CalcMaxMinMeanT1()
-	stats.CalcMaxMinMeanPDelay()
-	stats.CalcMaxMinMeanFwdAcc()
+	stats.calcP2pValues()
 	return stats
 }
 
@@ -704,32 +707,115 @@ func calcMaxMinMean(list []PacketStat) (int64, int64, int64) {
 	return max, min, avg
 }
 
-func (stats *Stats) CalcMaxMinMeanTwoway() {
-	max, min, mean := calcMaxMinMean(stats.Twoways)
-	stats.TwowayM = MaxMinMean{Max: max, Min: min, Mean: mean}
+func calcMaxMinMeanLat(list []PacketStat) (int64, int64, int64) {
+	min := int64(math.MaxInt64)
+	max := int64(math.MinInt64)
+	avg := int64(0)
+	for i, ps := range list {
+		avg += (ps.latency - avg) / (int64(i) + 1)
+		if ps.latency < min {
+			min = ps.latency
+		}
+		if ps.value > max {
+			max = ps.latency
+		}
+	}
+	return max, min, avg
 }
 
-func (stats *Stats) CalcMaxMinMeanT1() {
+func (stats *Stats) calcMaxMinMeanT1() {
 	max, min, mean := calcMaxMinMean(stats.Syncs)
 	stats.T1M = MaxMinMean{Max: max, Min: min, Mean: mean}
 }
 
-func (stats *Stats) CalcMaxMinMeanT4() {
+func (stats *Stats) calcMaxMinMeanT4() {
 	max, min, mean := calcMaxMinMean(stats.Delays)
 	stats.T4M = MaxMinMean{Max: max, Min: min, Mean: mean}
 }
 
-func (stats *Stats) CalcMaxMinMeanPDelay() {
+func (stats *Stats) calcMaxMinMeanTwoway() {
+	max, min, mean := calcMaxMinMean(stats.Twoways)
+	stats.TwowayM = MaxMinMean{Max: max, Min: min, Mean: mean}
+}
+
+func (stats *Stats) calcMaxMinMeanPDelay() {
 	max, min, mean := calcMaxMinMean(stats.Delays)
 	stats.PDelayM = MaxMinMean{Max: max, Min: min, Mean: mean}
 }
 
-func (stats *Stats) CalcMaxMinMeanFwdAcc() {
+func (stats *Stats) calcMaxMinMeanFwdAcc() {
 	max, min, mean := calcMaxMinMean(stats.FwdAcc)
 	stats.FwdAccM = MaxMinMean{Max: max, Min: min, Mean: mean}
 }
 
-func prepareWebChart(title string, mmm MaxMinMean, list []PacketStat) WebChart {
+func (stats *Stats) calcMaxMinMeanT1Lat() {
+	max, min, mean := calcMaxMinMeanLat(stats.Syncs)
+	stats.T1LatM = MaxMinMean{Max: max, Min: min, Mean: mean}
+}
+
+func (stats *Stats) calcMaxMinMeanT4Lat() {
+	max, min, mean := calcMaxMinMeanLat(stats.Delays)
+	stats.T4LatM = MaxMinMean{Max: max, Min: min, Mean: mean}
+}
+
+func (stats *Stats) calcMaxMinMeanPDelayLat() {
+	max, min, mean := calcMaxMinMeanLat(stats.Delays)
+	stats.PDelayLatM = MaxMinMean{Max: max, Min: min, Mean: mean}
+}
+
+func (stats *Stats) calcE2eValues() {
+	stats.calcMaxMinMeanT1()
+	stats.calcMaxMinMeanT4()
+	stats.calcMaxMinMeanTwoway()
+	stats.calcMaxMinMeanT1Lat()
+	stats.calcMaxMinMeanT4Lat()
+}
+
+func (stats *Stats) calcP2pValues() {
+	stats.calcMaxMinMeanT1()
+	stats.calcMaxMinMeanPDelay()
+	stats.calcMaxMinMeanFwdAcc()
+	stats.calcMaxMinMeanT1Lat()
+	stats.calcMaxMinMeanPDelayLat()
+}
+
+// func prepareWebChartLat(title string, mmm MaxMinMean, list []PacketStat) WebChart {
+// 	labels := "["
+// 	values := "["
+// 	for _, ps := range list {
+// 		s := int(ps.time.Seconds())
+// 		ms := ps.time.Milliseconds() % 1000
+// 		if i == 0 {
+// 			labels = fmt.Sprintf("%s%d.%03d\n", labels, s, ms)
+// 			values = fmt.Sprintf("%s%d\n", values, ps.latency)
+
+// 		} else {
+// 			labels = fmt.Sprintf("%s, %d.%03d\n", labels, s, ms)
+// 			values = fmt.Sprintf("%s, %d\n", values, ps.latency)
+// 		}
+// 	}
+// 	labels += "]"
+// 	values += "]"
+// 	id := strings.Replace(strings.ToLower(title), " ", "-", -1)
+// 	return WebChart{
+// 		Title:  title,
+// 		CssId:  id,
+// 		Labels: labels,
+// 		Values: values,
+// 		Max:    mmm.Max,
+// 		Min:    mmm.Min,
+// 		Mean:   mmm.Mean,
+// 	}
+// }
+
+func getVal(ps PacketStat) int64 {
+	return ps.value
+}
+func getLat(ps PacketStat) int64 {
+	return ps.latency
+}
+
+func prepareWebChart(title string, mmm MaxMinMean, list []PacketStat, getF func(PacketStat) int64, color string) WebChart {
 	labels := "["
 	values := "["
 	for i, ps := range list {
@@ -737,10 +823,10 @@ func prepareWebChart(title string, mmm MaxMinMean, list []PacketStat) WebChart {
 		ms := ps.time.Milliseconds() % 1000
 		if i == 0 {
 			labels = fmt.Sprintf("%s%d.%03d", labels, s, ms)
-			values = fmt.Sprintf("%s%d", values, ps.value)
+			values = fmt.Sprintf("%s%d", values, getF(ps))
 		} else {
 			labels = fmt.Sprintf("%s, %d.%03d", labels, s, ms)
-			values = fmt.Sprintf("%s, %d", values, ps.value)
+			values = fmt.Sprintf("%s, %d", values, getF(ps))
 		}
 	}
 	labels += "]"
@@ -754,16 +840,24 @@ func prepareWebChart(title string, mmm MaxMinMean, list []PacketStat) WebChart {
 		Max:    mmm.Max,
 		Min:    mmm.Min,
 		Mean:   mmm.Mean,
+		Color:  color,
 	}
 }
+
+const chartBlue = "#36a2eb"
+const chartOrange = "#ff9f40"
 
 func (stats *Stats) GetWebStats(p2p bool) WebStats {
 	return WebStats{
 		Peertopeer:  p2p,
-		T1Chart:     prepareWebChart("T1 TE", stats.T1M, stats.Syncs),
-		T4Chart:     prepareWebChart("T4 TE", stats.T4M, stats.Delays),
-		PDelayChart: prepareWebChart("PDelay TE", stats.PDelayM, stats.Delays),
-		TwowayChart: prepareWebChart("Twoway TE", stats.TwowayM, stats.Twoways),
-		FwdAccChart: prepareWebChart("FwdAcc TE", stats.FwdAccM, stats.FwdAcc),
+		T1Chart:     prepareWebChart("T1 TE", stats.T1M, stats.Syncs, getVal, chartBlue),
+		T4Chart:     prepareWebChart("T4 TE", stats.T4M, stats.Delays, getVal, chartBlue),
+		PDelayChart: prepareWebChart("PDelay TE", stats.PDelayM, stats.Delays, getVal, chartBlue),
+		TwowayChart: prepareWebChart("Twoway TE", stats.TwowayM, stats.Twoways, getVal, chartBlue),
+		FwdAccChart: prepareWebChart("FwdAcc TE", stats.FwdAccM, stats.FwdAcc, getVal, chartBlue),
+		// Note: Sync/DelayLatency not applicable to BC
+		SyncLatencyChart:   prepareWebChart("T1 Latency", stats.T1LatM, stats.Syncs, getLat, chartOrange),
+		DelayLatencyChart:  prepareWebChart("T4 Latency", stats.T4LatM, stats.Delays, getLat, chartOrange),
+		PDelayLatencyChart: prepareWebChart("PDelay Turnaround Latency", stats.PDelayLatM, stats.Delays, getLat, chartOrange),
 	}
 }

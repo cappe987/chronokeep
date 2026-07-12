@@ -5,9 +5,11 @@
 - Rename project?
 - Log levels
 - Convert to using time.Duration in most places?
+- Add documentation
+- Add images to README
 
 Web:
-- Different colors for charts?
+- Help page that describes how things are calculated
 - Indicate when capture starts
 - Allow downloading data file for external graph generation
 - Better error handling for invalid config

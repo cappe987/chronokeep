@@ -269,7 +269,7 @@ input[type=number] {
 }
 
 .chart {
-    max-width: 50%;
+    max-width: 49%;
     flex-grow: 1;
     padding-bottom: 30px;
 }
