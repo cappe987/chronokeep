@@ -545,7 +545,7 @@ func (port *Port) ShowPacket(pd *PacketData) {
 	}
 }
 
-func (port *Port) TransmitSyncFup() {
+func (port *Port) TransmitSyncFup() (*PacketData, *PacketData) {
 	sync := port.BuildSync(port.syncSeq)
 	port.Transmit(sync)
 	port.ShowPacket(sync)
@@ -554,40 +554,49 @@ func (port *Port) TransmitSyncFup() {
 		fup := port.MakeFollowUp(sync)
 		port.Transmit(fup)
 		port.ShowPacket(fup)
+		return sync, fup
 	}
+	return sync, nil
 }
 
-func (port *Port) TransmitAnnounce() {
+func (port *Port) TransmitAnnounce() *PacketData {
 	anno := port.BuildAnnounce(port.annoSeq)
 	port.Transmit(anno)
 	port.ShowPacket(anno)
 	port.annoSeq += 1
+	return anno
 }
 
-func (port *Port) TransmitPDelayReq() {
+func (port *Port) TransmitPDelayReq() *PacketData {
 	pdelayReq := port.BuildPDelayReq(port.delaySeq)
 	port.Transmit(pdelayReq)
 	port.ShowPacket(pdelayReq)
 	port.delaySeq += 1
+	return pdelayReq
 }
 
-func (port *Port) TransmitDelayReq() {
+func (port *Port) TransmitDelayReq() *PacketData {
 	delayReq := port.BuildDelayReq(port.delaySeq)
 	port.Transmit(delayReq)
 	port.ShowPacket(delayReq)
 	port.delaySeq += 1
+	return delayReq
 }
 
-func (port *Port) ReplyToDelayReq(pd *PacketData) {
+func (port *Port) ReplyToDelayReq(pd *PacketData) *PacketData {
 	resp := port.MakeResponseDelay(pd)
 	port.Transmit(resp)
 	port.ShowPacket(resp)
+	return resp
 }
-func (port *Port) ReplyToPDelayReq(pd *PacketData) {
+
+func (port *Port) ReplyToPDelayReq(pd *PacketData) (*PacketData, *PacketData) {
 	resp := port.MakeResponsePDelay(pd)
 	port.Transmit(resp)
 	port.ShowPacket(resp)
+	// TODO: Handle p2p1step?
 	respFup := port.MakeFollowUpPDelay(resp)
 	port.Transmit(respFup)
 	port.ShowPacket(respFup)
+	return resp, respFup
 }

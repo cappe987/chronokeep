@@ -18,6 +18,7 @@ func Usage() {
 	fmt.Println("Modes:")
 	fmt.Println("\tpkt - Send and receive timestamped packets")
 	fmt.Println("\tgm - Run a PTP GM on a port")
+	fmt.Println("\tdelay - Run either a client or server for (p)delays")
 	fmt.Println("\textts - Listen to EXTTS events")
 	fmt.Println("\tdelay - Perform path delay measurements")
 	fmt.Println("\tte - Measure time error and accuracy")
@@ -40,6 +41,8 @@ func main() {
 		cmd.PktMode()
 	} else if arg == "gm" {
 		cmd.GmMode()
+	} else if arg == "delay" {
+		cmd.DelayMode()
 	} else if arg == "te" {
 		cmd.TeMode()
 	} else if arg == "web" {
