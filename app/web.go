@@ -1,5 +1,8 @@
 //go:build !noweb
 
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2026 Casper Andersson <casper.casan@gmail.com>
+
 package app
 
 import (

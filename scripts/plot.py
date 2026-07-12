@@ -1,4 +1,5 @@
-
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 Casper Andersson <casper.casan@gmail.com>
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.font_manager import FontProperties
 import matplotlib.ticker as mticker

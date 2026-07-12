@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: MIT -->
+<!-- SPDX-FileCopyrightText: 2026 Casper Andersson <casper.casan@gmail.com> -->
 # InTime
 
 Measure, test, and debug PTP. Send individual packets or run a whole
@@ -71,13 +73,11 @@ separately.
 
 
 ## TODO
-- Add license to project. MIT?
 - Rename project?
 - Log levels
 - Convert to using time.Duration in most places?
 - Add documentation
 - Add images to README
-- Add proper description in this README
 
 Web:
 - Help page that describes how things are calculated
