@@ -4,7 +4,6 @@
 - Add license to project. MIT?
 - Rename project?
 - Log levels
-- Fix htons in port.go. Currently assumes host is LE
 - Convert to using time.Duration in most places?
 
 Web:

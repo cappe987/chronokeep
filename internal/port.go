@@ -10,6 +10,7 @@ import (
 
 	ptp "github.com/cappe987/facebook-time/ptp/protocol"
 	timestamp "github.com/cappe987/facebook-time/timestamp"
+	"github.com/facebook/time/hostendian"
 	"golang.org/x/net/bpf"
 	"golang.org/x/sys/unix"
 )
@@ -267,8 +268,10 @@ func (p *Port) addSocketFilter(isEventSocket bool) error {
 	}
 }
 
-// TODO: Replace with proper function, this assumes host is LE
 func htons(i uint16) uint16 {
+	if hostendian.IsBigEndian { // Not tested on actual BE hardware
+		return i
+	}
 	return (i<<8)&0xff00 | i>>8
 }
 
