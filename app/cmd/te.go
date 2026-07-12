@@ -230,7 +230,9 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 	server.Deinit()
 	client.Deinit()
 
-	fmt.Printf("\n")
+	if app.Cli {
+		fmt.Printf("\n")
+	}
 	if teOpts.Peertopeer {
 		stats := client.GetP2pTE()
 		if app.Cli {
