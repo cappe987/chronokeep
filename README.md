@@ -1,6 +1,8 @@
 # InTime
 
 **TODO:**
+- Add license to project. MIT?
+- Rename project?
 - Log levels
 - Fix htons in port.go
 - Convert to using time.Duration in most places?
