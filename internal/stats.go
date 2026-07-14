@@ -615,6 +615,11 @@ func (port *Port) GetP2pTE() Stats {
 	count_t1 := int64(0)
 	count_fwd_acc := int64(0)
 	count_pdelay := int64(0)
+
+	if len(pkts) == 0 {
+		return stats
+	}
+
 	baseTs := pkts[0].SwTstamp
 
 	// TODO: Use iterative mean calculation to avoid potential overflow
