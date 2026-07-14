@@ -18,8 +18,8 @@ import (
 	"strconv"
 	"time"
 
-	. "intime/app/cmd"
-	. "intime/internal"
+	. "ckeep/app/cmd"
+	. "ckeep/internal"
 
 	ptp "github.com/cappe987/facebook-time/ptp/protocol"
 

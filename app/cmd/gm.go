@@ -3,7 +3,7 @@
 package cmd
 
 import (
-	. "intime/internal"
+	. "ckeep/internal"
 	"log"
 	"os"
 	"os/signal"

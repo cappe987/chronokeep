@@ -3,8 +3,8 @@
 package cmd
 
 import (
+	. "ckeep/internal"
 	"fmt"
-	. "intime/internal"
 	"log"
 	"os"
 	"os/signal"

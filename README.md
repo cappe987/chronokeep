@@ -1,6 +1,6 @@
 <!-- SPDX-License-Identifier: MIT -->
 <!-- SPDX-FileCopyrightText: 2026 Casper Andersson <casper.casan@gmail.com> -->
-# InTime
+# ChronoKeep
 
 Measure, test, and debug PTP. Send individual packets or run a whole
 server/client setup that calculates time error and latencies. The application
@@ -19,7 +19,7 @@ Uses a [fork](https://github.com/cappe987/facebook-time) of
 
 ```bash
 go build
-sudo ./intime web
+sudo ./ckeep web
 ```
 
 
@@ -57,7 +57,7 @@ software timestamping, otherwise it will fail to timestamp.
 sudo ip link add dev veth1 type veth peer name veth2
 sudo ip link set dev veth1 up
 sudo ip link set dev veth2 up
-sudo ./intime web
+sudo ./ckeep web
 ```
 
 And access it via localhost:8080.
@@ -65,7 +65,7 @@ And access it via localhost:8080.
 Or use via CLI
 
 ```bash
-sudo ./intime te -S -f configs/te.toml
+sudo ./ckeep te -S -f configs/te.toml
 ```
 
 TE mode relies a lot on config file to handle configuration of the two ports
@@ -97,3 +97,7 @@ Web:
   https://github.com/cappe987/ptpmonitor that uses expvar and the Linuxptp patch
   for `ptpmon` to transmit data from `ptp4l` to a TCP server. Display with
   chart.js?
+  
+## Credits
+
+Logo uses the font `Gayathri`. Logo design by me.
