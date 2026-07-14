@@ -91,6 +91,9 @@ python3 scripts/plot.py measurement.dat
 - Add documentation
 - Add images to README
 - Configurable .dat export
+- Test more with UDP more
+- Fix UDP multicast?
+- Write tests. How?
 
 Web:
 - Help page that describes how things are calculated

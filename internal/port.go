@@ -37,7 +37,9 @@ type Port struct {
 	Interface     *net.Interface
 	Layer         Layer
 	efd           int
+	econn         *net.UDPConn
 	gfd           int
+	gconn         *net.UDPConn
 	txRecord      []PacketData
 	rxRecord      []PacketData
 	RecordPackets bool
@@ -316,8 +318,10 @@ func (p *Port) openSocket(isEventSocket bool) error {
 		fd, err := timestamp.ConnFd(conn)
 		if isEventSocket {
 			p.efd = fd
+			p.econn = conn
 		} else {
 			p.gfd = fd
+			p.gconn = conn
 		}
 	} else {
 		log.Fatal("openSocket: not implemented")
