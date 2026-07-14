@@ -31,6 +31,8 @@ import (
 //go:embed static/ws.min.js
 //go:embed static/tailwind.js
 //go:embed static/chart-4.5.1.js
+//go:embed static/logo/logo-grey.svg
+//go:embed static/logo/favicon.svg
 var content embed.FS
 
 type WebApp struct {
