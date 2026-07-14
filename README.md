@@ -6,7 +6,10 @@
 Measure, test, and debug PTP. Send individual packets or run a whole
 server/client setup that calculates time error and latencies. The application
 must run on a device with two synchronised PTP-capable ports, with traffic
-isolated to not cause a broadcast storm.
+isolated to not cause a broadcast storm. ChronoKeep comes with both CLI and Web
+depending on your use case. Web can display graphs directly, but both allows for
+exporting the data and generating a PDF externally. Everything except PDF
+generation is embedded in a single binary.
 
 It can run without dedicated hardware support, but the results will not be
 accurate and software timestamping must be explicitly selected. See <a
@@ -72,13 +75,22 @@ sudo ./ckeep te -S -f configs/te.toml
 TE mode relies a lot on config file to handle configuration of the two ports
 separately.
 
+## Generate PDF
+
+A `measurement.dat` file is generated when Time Error capture is stopped.
+Running the plotting script on it will create the file `output.pdf`.
+
+```bash
+python3 scripts/plot.py measurement.dat
+```
+
 
 ## TODO
-- Rename project?
 - Log levels
 - Convert to using time.Duration in most places?
 - Add documentation
 - Add images to README
+- Configurable .dat export
 
 Web:
 - Help page that describes how things are calculated
