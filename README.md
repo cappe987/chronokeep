@@ -1,6 +1,7 @@
 <!-- SPDX-License-Identifier: MIT -->
 <!-- SPDX-FileCopyrightText: 2026 Casper Andersson <casper.casan@gmail.com> -->
-# ChronoKeep
+
+![ChronoKeep](app/static/logo/logo-grey.svg)
 
 Measure, test, and debug PTP. Send individual packets or run a whole
 server/client setup that calculates time error and latencies. The application
