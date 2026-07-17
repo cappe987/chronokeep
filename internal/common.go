@@ -127,7 +127,7 @@ func (opts *CommonOpts) DefineCommonFlags() {
 
 func (opts *CommonOpts) Usage() {
 	hdr := strings.Repeat("-", 16)
-	fmt.Printf("%s InTime %s %s\n", hdr, opts.Mode, hdr)
+	fmt.Printf("%s ChronoKeep %s %s\n", hdr, opts.Mode, hdr)
 	fmt.Println(opts.getUsage())
 }
 

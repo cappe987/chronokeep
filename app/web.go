@@ -18,8 +18,8 @@ import (
 	"strconv"
 	"time"
 
-	. "intime/app/cmd"
-	. "intime/internal"
+	. "ckeep/app/cmd"
+	. "ckeep/internal"
 
 	ptp "github.com/cappe987/facebook-time/ptp/protocol"
 
@@ -31,6 +31,8 @@ import (
 //go:embed static/ws.min.js
 //go:embed static/tailwind.js
 //go:embed static/chart-4.5.1.js
+//go:embed static/logo/logo-grey-vectorized.svg
+//go:embed static/logo/favicon.svg
 var content embed.FS
 
 type WebApp struct {

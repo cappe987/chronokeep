@@ -3,17 +3,17 @@
 package main
 
 import (
+	app "ckeep/app"
+	cmd "ckeep/app/cmd"
 	"fmt"
-	app "intime/app"
-	cmd "intime/app/cmd"
 	"os"
 )
 
 func Usage() {
-	fmt.Println("------- InTime v0.1 -------")
+	fmt.Println("------- ChronoKeep v0.1 -------")
 	fmt.Println("")
 	fmt.Println("Usage:")
-	fmt.Println("\tintime [mode]")
+	fmt.Println("\tckeep [mode]")
 	fmt.Println("")
 	fmt.Println("Modes:")
 	fmt.Println("\tpkt - Send and receive timestamped packets")
@@ -48,7 +48,7 @@ func main() {
 	} else if arg == "web" {
 		app.WebServer()
 	} else if arg == "-v" || arg == "--version" || arg == "version" {
-		fmt.Println("intime - v0.1")
+		fmt.Println("ChronoKeep - v0.1")
 	} else {
 		Usage()
 	}
