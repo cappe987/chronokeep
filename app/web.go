@@ -311,6 +311,8 @@ func te_page(wa *WebApp, td map[string]any) {
 	td["AllPorts"] = GetSystemPorts()
 	td["Port1"] = "veth1"
 	td["Port2"] = "veth2"
+	td["Running"] = wa.App.Running
+	td["Capturing"] = wa.TeOpts.Capturing
 }
 
 func help_page(wa *WebApp, td map[string]any) {
