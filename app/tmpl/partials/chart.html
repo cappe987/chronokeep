@@ -1,5 +1,22 @@
+
+{{ define "chart-empty-div" }}
+    <div id="chart-box" class="color-text" style="padding-left: 20px; padding-top: 20px;">
+    </div>
+{{ end }}
+
+{{ define "chart-oob" }}
+    <div id="chart-box" hx-swap-oob="true" class="color-text">
+        {{ template "_chart" . }}
+    </div>
+{{ end }}
+
 {{ define "chart" }}
-<div id="chart-box" hx-swap-oob="true" class="color-text">
+    <div id="chart-box" class="color-text" style="padding-left: 20px; padding-top: 20px;">
+        {{ template "_chart" . }}
+    </div>
+{{ end }}
+
+{{ define "_chart" }}
 
   {{ if .Peertopeer }}
     {{ template "single_chart" .T1Chart }}
@@ -14,8 +31,6 @@
     {{ template "single_chart" .SyncLatencyChart }}
     {{ template "single_chart" .DelayLatencyChart }}
   {{ end }}
-
-</div>
 
 {{ end }}
 

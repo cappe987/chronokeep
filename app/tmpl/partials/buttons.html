@@ -4,7 +4,7 @@
 	  id="start-capture-button"
 	  name="action"
 	  value="start-and-capture"
-	  class="bg-quat bg-quat-hover color-text rounded py-2 px-4" 
+	  class="bg-quat bg-quat-hover color-text rounded py-2 px-4"
 	  {{ if .Running }}
 	  disabled
 	  {{ end }}
@@ -18,7 +18,7 @@
 	  id="start-button"
 	  name="action"
 	  value="start"
-	  class="bg-quat bg-quat-hover color-text rounded py-2 px-4" 
+	  class="bg-quat bg-quat-hover color-text rounded py-2 px-4"
 	  {{ if .Running }}
 	  disabled
 	  {{ end }}
@@ -32,7 +32,7 @@
 	  id="record-button"
 	  name="action"
 	  value="record"
-	  class="bg-quat bg-quat-hover color-text rounded py-2 px-4" 
+	  class="bg-quat bg-quat-hover color-text rounded py-2 px-4"
 	  {{ if or (not .Running) (.Capturing) }}
 	  disabled
 	  {{ end }}
@@ -46,7 +46,7 @@
 	  id="stop-button"
 	  name="action"
 	  value="stop"
-	  class="bg-quat bg-quat-hover color-text rounded py-2 px-4" 
+	  class="bg-quat bg-quat-hover color-text rounded py-2 px-4"
 	  {{ if not .Running }}
 	  disabled
 	  {{ end }}
@@ -66,7 +66,7 @@
 {{ end }}
 
 {{ if .Exiting }}
-{{ template "chart" .Stats }}
+{{ template "chart-oob" .Stats }}
 {{ end }}
 
 {{ end }}

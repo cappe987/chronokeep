@@ -25,6 +25,7 @@ type TeOpts struct {
 	client       *Port
 	Stats        Stats
 	Capturing    bool
+	HasStats     bool
 }
 
 func TeMode() {
@@ -129,6 +130,7 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 		// configurable later.
 		server.Silent = true
 	}
+	teOpts.HasStats = false
 
 	// Port1 is always GM
 	// TODO: ingress/egress latency should be set via PortOpts and should not have to use CommonOpts
@@ -244,6 +246,7 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 		}
 		stats.GenerateFile(true, "measurement.dat")
 		teOpts.Stats = stats
+		teOpts.HasStats = true
 		if app.Out != nil {
 			app.Out <- []byte("exited")
 		}
@@ -257,6 +260,7 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 
 		stats.GenerateFile(false, "measurement.dat")
 		teOpts.Stats = stats
+		teOpts.HasStats = true
 		if app.Out != nil {
 			app.Out <- []byte("exited")
 		}

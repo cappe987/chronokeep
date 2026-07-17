@@ -313,6 +313,10 @@ func te_page(wa *WebApp, td map[string]any) {
 	td["Port2"] = "veth2"
 	td["Running"] = wa.App.Running
 	td["Capturing"] = wa.TeOpts.Capturing
+	if wa.TeOpts.HasStats {
+		td["HasStats"] = true
+		td["Stats"] = wa.TeOpts.Stats.GetWebStats(wa.TeOpts.Peertopeer)
+	}
 }
 
 func help_page(wa *WebApp, td map[string]any) {

@@ -28,8 +28,11 @@
 	</div>
   </div>
 
-  <div id="chart-box" class="color-text" style="padding-left: 20px; padding-top: 20px;">
-  </div>
+  {{ if .HasStats }}
+    {{ template "chart" .Stats }}
+  {{ else }}
+    {{ template "chart-empty-div" }}
+  {{ end }}
 
 <span id="mode-title" hx-swap-oob="true"> {{ .ModeTitle }} </span>
 
