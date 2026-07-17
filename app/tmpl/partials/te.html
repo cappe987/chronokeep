@@ -1,0 +1,36 @@
+{{ define "te" }}
+
+  <form id="config-form">
+	{{ template "config" . }}
+	<hr style="color: var(--color-border)">
+	{{ template "buttons" . }}
+  </form>
+
+  <div hx-ext="ws" ws-connect="/ws" style="margin-top: 20px; margin-bottom: 20px;">
+	<div id="table-container">
+	  <table class="table-fixed">
+        <thead>
+          <tr>
+		<th style="width: 5%">Port</th>
+		<th style="width: 2%">Dir</th>
+		<th style="width: 10%">Type</th>
+		<th style="width: 5%">Domain</th>
+		<th style="width: 5%">Seq</th>
+		<th style="width: 13%">Correction</th>
+		<th style="width: 13%">OriginTS</th>
+		<th style="width: 13%">Timestamp</th>
+		<!-- <th></th> -->
+          </tr>
+        </thead>
+        <tbody id="msgs">
+        </tbody>
+	  </table>
+	</div>
+  </div>
+
+  <div id="chart-box" class="color-text" style="padding-left: 20px; padding-top: 20px;">
+  </div>
+
+<span id="mode-title" hx-swap-oob="true"> {{ .ModeTitle }} </span>
+
+{{ end }}

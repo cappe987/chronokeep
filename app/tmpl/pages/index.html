@@ -17,51 +17,52 @@
 </head>
 <body>
 
-<div id="page">  
+<div id="page">
   <div id="sidebar" class="bg-primary" style="border-right: solid var(--color-border) 1px">
-    <p class="bg-tertiary-hover border-gray-500 border text-white">TE Mode</p>
-    <p class="bg-tertiary-hover border-gray-500 border text-white">Packet Mode</p>
+    <form>
+        <button class="bg-tertiary-hover border-gray-500 border text-white"
+            name="page"
+            value="te"
+            hx-post="/serve-page"
+            hx-target="#page-content"
+            hx-swap="innerHTML">
+                TE Mode
+        </button>
+        <button class="bg-tertiary-hover border-gray-500 border text-white"
+            name="page"
+            value="packet"
+            hx-post="/serve-page"
+            hx-target="#page-content"
+            hx-swap="innerHTML">
+                Packet Mode
+        </button>
+        <button class="bg-tertiary-hover border-gray-500 border text-white"
+            name="page"
+            value="help"
+            hx-post="/serve-page"
+            hx-target="#page-content"
+            hx-swap="innerHTML">
+                Help Page
+        </button>
+    </form>
   </div>
   <div id="main">
 
     <h1>
       <img src="/static/logo/logo-grey-vectorized.svg" alt="ChronoKeep logo" id="logo">
-      - Time Error Mode
+      - <span id="mode-title">{{ .ModeTitle }}</span>
     </h1>
 
-    <div class="page-content">
-      <form id="config-form">
-	{{ template "config" . }}
-	<hr style="color: var(--color-border)">
-	{{ template "buttons" . }}
-      </form>
-
-      <div hx-ext="ws" ws-connect="/ws" style="margin-top: 20px; margin-bottom: 20px;">
-	<div id="table-container">
-	  <table class="table-fixed">
-            <thead>
-              <tr>
-		<th style="width: 5%">Port</th>
-		<th style="width: 2%">Dir</th>
-		<th style="width: 10%">Type</th>
-		<th style="width: 5%">Domain</th>
-		<th style="width: 5%">Seq</th>
-		<th style="width: 13%">Correction</th>
-		<th style="width: 13%">OriginTS</th>
-		<th style="width: 13%">Timestamp</th>
-		<!-- <th></th> -->
-              </tr>
-            </thead>
-            <tbody id="msgs">
-            </tbody>
-	  </table>
-	</div>
-      </div>
-      
-      <div id="chart-box" class="color-text" style="padding-left: 20px; padding-top: 20px;">
-      </div>
-
+    <div id="page-content">
+    {{ if (eq .Mode "time-error" )}}
+      {{ template "te" . }}
+      {{ else if (eq .Mode "packet" )}}
+        {{ template "packet" . }}
+    {{ else if (eq .Mode "help" )}}
+      {{ template "help" . }}
+    {{ end }}
     </div> <!-- page-content -->
+
   </div> <!-- main -->
 </div> <!-- page -->
 

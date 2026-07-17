@@ -46,13 +46,21 @@ func BuildTemplates() (map[string]*template.Template, error) {
 		return nil, err
 	}
 
+	// Dependency order
+	partialsS := []string{
+		pdir + "/chart.html",
+		pdir + "/config.html",
+		pdir + "/buttons.html",
+		pdir + "/te.html",
+		pdir + "/help.html",
+		pdir + "/packet.html",
+	}
+
 	for _, page := range pages {
 		tmpl := template.New(page.Name())
+		partialsAll := append(partialsS, dir+"/"+page.Name())
 		tmpl, err := tmpl.ParseFS(tfs,
-			pdir+"/chart.html",
-			pdir+"/config.html",
-			pdir+"/buttons.html",
-			dir+"/"+page.Name())
+			partialsAll...)
 		if err != nil {
 			return nil, err
 		}
@@ -66,9 +74,10 @@ func BuildTemplates() (map[string]*template.Template, error) {
 	for _, partial := range partials {
 		pname := strings.TrimSuffix(partial.Name(), filepath.Ext(partial.Name()))
 		tmpl := template.New(pname)
-		tmpl, err := tmpl.ParseFS(tfs,
-			pdir+"/chart.html",
-			pdir+"/"+partial.Name())
+		partialsAll := append(partialsS, pdir+"/"+partial.Name())
+		tmpl, err := tmpl.ParseFS(tfs, partialsAll...)
+		// pdir+"/chart.html",
+		// pdir+"/"+partial.Name())
 		if err != nil {
 			return nil, err
 		}

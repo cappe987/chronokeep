@@ -9,6 +9,7 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"html"
 	"html/template"
 	"io/fs"
 	"log"
@@ -302,6 +303,47 @@ func start_app(wa *WebApp, capture bool) {
 	go RunTeMode(wa.TeOpts, wa.App)
 }
 
+func te_page(wa *WebApp, td map[string]any) {
+	td["Mode"] = "time-error"
+	td["ModeTitle"] = "Time Error Mode"
+	td["TeOpts"] = *wa.TeOpts
+	td["Opts"] = wa.App.Opts
+	td["AllPorts"] = GetSystemPorts()
+	td["Port1"] = "veth1"
+	td["Port2"] = "veth2"
+}
+
+func help_page(wa *WebApp, td map[string]any) {
+	td["Mode"] = "help"
+	td["ModeTitle"] = "Help page"
+}
+
+func packet_page(wa *WebApp, td map[string]any) {
+	td["Mode"] = "packet"
+	td["ModeTitle"] = "Packet Mode"
+}
+
+func serve_page(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		page := r.PostFormValue("page")
+		td := make(map[string]any)
+		switch page {
+		case "te":
+			te_page(wa, td)
+		case "help":
+			help_page(wa, td)
+		case "packet":
+			packet_page(wa, td)
+		default:
+			return
+		}
+		err := wa.Tmpl[page].Execute(w, td)
+		if err != nil {
+			fmt.Printf("Error executing index.html template: %s\n", err)
+		}
+	}
+}
+
 func serve_index(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		wa.App.Opts.SwTstamp = true
@@ -311,11 +353,14 @@ func serve_index(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 		wa.TeOpts.Interval = 100
 		// TODO: Set default p1 and p2 from config file. Same for other settings.
 		td := make(map[string]any)
-		td["TeOpts"] = *wa.TeOpts
-		td["Opts"] = wa.App.Opts
-		td["AllPorts"] = GetSystemPorts()
-		td["Port1"] = "veth1"
-		td["Port2"] = "veth2"
+		switch html.EscapeString((r.URL.Path)) {
+		case "/":
+			te_page(wa, td)
+		case "/index.html":
+			te_page(wa, td)
+		case "/help.html":
+			help_page(wa, td)
+		}
 		err := wa.Tmpl["index.html"].Execute(w, td)
 		if err != nil {
 			fmt.Printf("Error executing index.html template: %s\n", err)
@@ -345,6 +390,7 @@ func WebServer() {
 	http.HandleFunc("/ws", wsHandler(&webapp))
 	http.HandleFunc("/te-toggle", toggle(&webapp))
 	http.HandleFunc("/get-ports", get_ports(&webapp))
+	http.HandleFunc("/serve-page", serve_page(&webapp))
 	http.HandleFunc("/", serve_index(&webapp))
 
 	fmt.Printf("Serving on http://localhost:8080\n")
