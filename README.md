@@ -96,6 +96,7 @@ python3 scripts/plot.py measurement.dat
 - Write tests. How?
 
 Web:
+- Allow web to load initial state from file.
 - Help page that describes how things are calculated
 - Indicate when capture starts
 - Allow downloading data file for external graph generation

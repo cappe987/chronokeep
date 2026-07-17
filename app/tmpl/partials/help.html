@@ -1,7 +1,21 @@
 {{ define "help" }}
 
-Help page
-
+{{ if .DoOob}}
 <span id="mode-title" hx-swap-oob="true"> {{ .ModeTitle }} </span>
+{{ end }}
+
+<div id="help-container">
+
+<h2>Time Error Mode</h2>
+<p>
+Help page
+</p>
+
+<hr style="color: var(--color-border); margin-top: 20px; margin-bottom: 20px;">
+<h2>Packet Mode</h2>
+
+</div>
+
+
 
 {{ end }}

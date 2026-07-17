@@ -64,11 +64,19 @@ html, th {
     font-family: Arial;
 }
 
-h1, h2, h3 {
+h1 {
     color: rgb(218, 218, 218);
     /* background: rgb(29, 30, 32); */
     background: var(--color-tertiary);
     border-bottom: solid var(--color-border) 1px;
+}
+
+h2, h3, p {
+    color: var(--color-text);
+}
+
+h2 {
+    font-size: 2em;
 }
 
 #table-container {
@@ -160,10 +168,11 @@ body {
     margin: 0;
     text-align: center;
     width: 100%;
+    /*border-color: var(--color-text);*/
     /* border-color: rgb(200, 200, 200); */
     /* border-color: rgb(200, 200, 200); */
-    /* border-style: solid; */
-    /* border-width: 1px; */
+     /*border-style: solid;*/
+     /*border-width: 1px;*/
 }
 
 /* #sidebar > p:hover { */
@@ -291,10 +300,11 @@ input[type=number] {
     text-align: center;
 }
 
-.chart > h2 {
+.chart > p {
     text-align: center;
     border: solid var(--color-border) 1px;
     margin-bottom: 10px;
+    font-size: 1.2em;
 }
 
 #chart-box {

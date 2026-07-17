@@ -321,7 +321,7 @@ func te_page(wa *WebApp, td map[string]any) {
 
 func help_page(wa *WebApp, td map[string]any) {
 	td["Mode"] = "help"
-	td["ModeTitle"] = "Help page"
+	td["ModeTitle"] = "Help"
 }
 
 func packet_page(wa *WebApp, td map[string]any) {
@@ -343,6 +343,7 @@ func serve_page(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 		default:
 			return
 		}
+		td["DoOob"] = true
 		err := wa.Tmpl[page].Execute(w, td)
 		if err != nil {
 			fmt.Printf("Error executing index.html template: %s\n", err)
@@ -364,6 +365,8 @@ func serve_index(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 			te_page(wa, td)
 		case "/index.html":
 			te_page(wa, td)
+		case "/packet.html":
+			packet_page(wa, td)
 		case "/help.html":
 			help_page(wa, td)
 		}

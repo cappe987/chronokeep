@@ -20,30 +20,36 @@
 <div id="page">
   <div id="sidebar" class="bg-primary" style="border-right: solid var(--color-border) 1px">
     <form>
-        <button class="bg-tertiary-hover border-gray-500 border text-white"
+        <button class="bg-tertiary-hover color-text"
             name="page"
             value="te"
             hx-post="/serve-page"
             hx-target="#page-content"
+            hx-push-url="/"
             hx-swap="innerHTML">
                 TE Mode
         </button>
-        <button class="bg-tertiary-hover border-gray-500 border text-white"
+        <hr style="color: var(--color-border); margin-left: 10px; margin-right: 10px;">
+        <button class="bg-tertiary-hover color-text"
             name="page"
             value="packet"
             hx-post="/serve-page"
             hx-target="#page-content"
+            hx-push-url="/packet.html"
             hx-swap="innerHTML">
                 Packet Mode
         </button>
-        <button class="bg-tertiary-hover border-gray-500 border text-white"
+        <hr style="color: var(--color-border); margin-left: 10px; margin-right: 10px;">
+        <button class="bg-tertiary-hover color-text"
             name="page"
             value="help"
             hx-post="/serve-page"
             hx-target="#page-content"
+            hx-push-url="/help.html"
             hx-swap="innerHTML">
-                Help Page
+                Help
         </button>
+        <hr style="color: var(--color-border); margin-left: 10px; margin-right: 10px;">
     </form>
   </div>
   <div id="main">

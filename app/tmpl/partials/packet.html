@@ -1,7 +1,11 @@
 {{ define "packet" }}
 
+<p>
 Packet mode
+</p>
 
+{{ if .DoOob}}
 <span id="mode-title" hx-swap-oob="true"> {{ .ModeTitle }} </span>
+{{ end }}
 
 {{ end }}
