@@ -95,6 +95,12 @@ h3 {
     /*color:  var(--color-border);*/
 }
 
+#help-container > hr {
+    color: var(--color-border);
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
 pre {
     /*color: var(--color-text);*/
     /*color:  var(--color-border);*/
