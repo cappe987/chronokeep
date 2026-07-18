@@ -26,7 +26,7 @@ up the web server on `localhost:8080` with a predefined config for running with
 software timestamping on the veth ports.
 
 ```bash
-go build
+make
 sudo ./scripts/veth.sh create
 sudo ./ckeep web -f configs/te.toml
 ```
@@ -55,6 +55,9 @@ destination IP `10.11.0.2` over UDP.
 
 ## Webgui
 
+## Dependencies
+
+Build depends on `go`, `make`, `python3` and `pandoc` (optional).
 
 ## Build options
 

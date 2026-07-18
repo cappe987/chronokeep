@@ -37,7 +37,7 @@ For Transparent Clock, this is the total error incurred through the DUT.
 For Boundary Clock, this is the difference between DUT and server/client
 time (cable delay included).
 
-### T4 Time Error<
+### T4 Time Error
 
 Only for E2e. Similar to T1 Time Error, but for Delay request.
 `t3` is the timestamp of DelayReq being transmitted by the
@@ -88,7 +88,7 @@ fwd_accuracy = t1_te + pdelay
 ```
 
 
-### T1 Latency<
+### T1 Latency
 
 The total time a Sync is on the wire. Subtract OriginTS from the client RX
 timestamp. For Boundary Clock, this is the same as T1TE (except no

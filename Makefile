@@ -1,5 +1,4 @@
 
-
 all:
-	python3 scripts/doc.py
-	go build
+	@python3 scripts/doc.py
+	@go build
