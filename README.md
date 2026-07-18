@@ -101,7 +101,6 @@ Web:
 - Indicate when capture starts
 - Allow downloading data file for external graph generation
 - Better error handling for invalid config
-- More modes. Block user from swapping while one is active
 - Template dependency graph?
 - Pkt mode:
   - Allow crafting specific sequences
