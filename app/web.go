@@ -298,8 +298,8 @@ func start_app(wa *WebApp, capture bool) {
 }
 
 func fill_page_data(wa *WebApp, td map[string]any, mode, title string) {
-	td["Mode"] = "time-error"
-	td["ModeTitle"] = "Time Error Mode"
+	td["Mode"] = mode
+	td["ModeTitle"] = title
 	td["TeRunning"] = wa.TeOpts.Running
 }
 
