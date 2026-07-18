@@ -83,11 +83,9 @@ python3 scripts/plot.py measurement.dat
 - Write tests. How?
 
 Web:
-- Help page that describes how things are calculated
 - Indicate when capture starts
 - Allow downloading data file for external graph generation
 - Better error handling for invalid config
-- Template dependency graph?
 - Pkt mode:
   - Allow crafting specific sequences
   - Setting whether it should auto-reply to (P)Delays

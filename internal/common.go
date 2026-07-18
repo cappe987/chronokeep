@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -299,4 +300,17 @@ func StringToMessageType(str string) ptp.MessageType {
 	}
 	log.Fatalf("Invalid message type: %s", str)
 	panic("Invalid message type")
+}
+
+func GetSystemPorts() []string {
+	files, err := os.ReadDir("/sys/class/net")
+	if err != nil {
+		log.Fatal(err)
+	}
+	names := make([]string, 0)
+	for _, file := range files {
+		names = append(names, file.Name())
+	}
+	sort.Strings(names)
+	return names
 }

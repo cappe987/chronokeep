@@ -7,10 +7,7 @@ package app
 import (
 	"embed"
 	"html/template"
-	"log"
-	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 )
 
@@ -19,19 +16,6 @@ var tmplFs embed.FS
 
 func GetTemplateFS() embed.FS {
 	return tmplFs
-}
-
-func GetSystemPorts() []string {
-	files, err := os.ReadDir("/sys/class/net")
-	if err != nil {
-		log.Fatal(err)
-	}
-	names := make([]string, 0)
-	for _, file := range files {
-		names = append(names, file.Name())
-	}
-	sort.Strings(names)
-	return names
 }
 
 func BuildTemplates() (map[string]*template.Template, error) {

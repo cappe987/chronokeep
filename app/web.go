@@ -14,8 +14,6 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
-	"os"
-	"sort"
 	"strconv"
 	"time"
 
@@ -268,31 +266,6 @@ func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func get_ports(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "POST" {
-			files, err := os.ReadDir("/sys/class/net")
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			str := ""
-			names := make([]string, 0)
-			for _, file := range files {
-				names = append(names, file.Name())
-			}
-			// TODO: Set default p1 and p2 from config file. Same for other settings.
-			sort.Strings(names)
-			for _, name := range names {
-				str += fmt.Sprintf("<option>%s</option>", name)
-			}
-			fmt.Fprintf(w, str)
-		} else {
-			http.Error(w, "Invalid request method.", 405)
-		}
-	}
-}
-
 func start_app(wa *WebApp, capture bool) {
 	wa.App.Opts.RecordPackets = capture
 	go RunTeMode(wa.TeOpts, wa.App)
@@ -394,7 +367,6 @@ func WebServer() {
 	http.Handle("/static/", handler)
 	http.HandleFunc("/ws", wsHandler(&webapp))
 	http.HandleFunc("/te-toggle", toggle(&webapp))
-	http.HandleFunc("/get-ports", get_ports(&webapp))
 	http.HandleFunc("/serve-page", serve_page(&webapp))
 	http.HandleFunc("/", serve_index(&webapp))
 
