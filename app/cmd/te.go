@@ -26,6 +26,7 @@ type TeOpts struct {
 	Stats        Stats
 	Capturing    bool
 	HasStats     bool
+	Running      bool
 }
 
 func TeMode() {
@@ -168,7 +169,7 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 
 	// TODO: Bad file descriptor after seqid ~280. Seems to be an UDP problem
 
-	app.Running = true
+	teOpts.Running = true
 	go server.RxMode(serverRx, serverQuit)
 	go client.RxMode(clientRx, clientQuit)
 	for running {

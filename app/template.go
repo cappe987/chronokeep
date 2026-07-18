@@ -50,6 +50,7 @@ func BuildTemplates() (map[string]*template.Template, error) {
 	partialsS := []string{
 		pdir + "/chart.html",
 		pdir + "/config.html",
+		pdir + "/navbar.html",
 		pdir + "/buttons.html",
 		pdir + "/te.html",
 		pdir + "/help.html",

@@ -27,13 +27,7 @@ import (
 	"github.com/coder/websocket"
 )
 
-//go:embed static/style.css
-//go:embed static/htmx.min.js
-//go:embed static/ws.min.js
-//go:embed static/tailwind.js
-//go:embed static/chart-4.5.1.js
-//go:embed static/logo/logo-grey-vectorized.svg
-//go:embed static/logo/favicon.svg
+//go:embed static/*
 var content embed.FS
 
 type WebApp struct {
@@ -229,21 +223,21 @@ func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 		starting := false
 		exiting := false
 		if action == "start" {
-			wa.App.Running = true
+			wa.TeOpts.Running = true
 			starting = true
 			start_app(wa, false)
 		} else if action == "start-and-capture" {
 			starting = true
-			wa.App.Running = true
+			wa.TeOpts.Running = true
 			wa.TeOpts.Capturing = true
 			start_app(wa, true)
 		} else if action == "record" {
 			wa.TeOpts.Capturing = true
-			if wa.App.Running {
+			if wa.TeOpts.Running {
 				wa.App.In <- []byte(action)
 			}
 		} else {
-			if wa.App.Running {
+			if wa.TeOpts.Running {
 				exiting = true
 				wa.App.In <- []byte("exit")
 				msg := string(<-wa.App.Out)
@@ -251,13 +245,13 @@ func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 					fmt.Printf("Expected mode to exit\n")
 					return
 				}
-				wa.App.Running = false
+				wa.TeOpts.Running = false
 				wa.TeOpts.Capturing = false
 			}
 		}
 
 		td := make(map[string]any)
-		td["Running"] = wa.App.Running
+		td["TeRunning"] = wa.TeOpts.Running
 		td["Capturing"] = wa.TeOpts.Capturing
 		td["Starting"] = starting
 		td["Exiting"] = exiting
@@ -303,15 +297,19 @@ func start_app(wa *WebApp, capture bool) {
 	go RunTeMode(wa.TeOpts, wa.App)
 }
 
-func te_page(wa *WebApp, td map[string]any) {
+func fill_page_data(wa *WebApp, td map[string]any, mode, title string) {
 	td["Mode"] = "time-error"
 	td["ModeTitle"] = "Time Error Mode"
+	td["TeRunning"] = wa.TeOpts.Running
+}
+
+func te_page(wa *WebApp, td map[string]any) {
+	fill_page_data(wa, td, "time-error", "Time Error Mode")
 	td["TeOpts"] = *wa.TeOpts
 	td["Opts"] = wa.App.Opts
 	td["AllPorts"] = GetSystemPorts()
 	td["Port1"] = "veth1"
 	td["Port2"] = "veth2"
-	td["Running"] = wa.App.Running
 	td["Capturing"] = wa.TeOpts.Capturing
 	if wa.TeOpts.HasStats {
 		td["HasStats"] = true
@@ -320,13 +318,11 @@ func te_page(wa *WebApp, td map[string]any) {
 }
 
 func help_page(wa *WebApp, td map[string]any) {
-	td["Mode"] = "help"
-	td["ModeTitle"] = "Help"
+	fill_page_data(wa, td, "help", "Help")
 }
 
 func packet_page(wa *WebApp, td map[string]any) {
-	td["Mode"] = "packet"
-	td["ModeTitle"] = "Packet Mode"
+	fill_page_data(wa, td, "packet", "Packet Mode")
 }
 
 func serve_page(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {

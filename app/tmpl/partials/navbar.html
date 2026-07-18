@@ -1,0 +1,47 @@
+
+{{ define "navbar-oob" }}
+<div id="navbar" hx-swap-oob="true">
+    {{ template "_navbar" . }}
+</div>
+{{ end }}
+
+{{ define "navbar" }}
+<div id="navbar" class="bg-primary">
+    {{ template "_navbar" . }}
+</div>
+{{ end }}
+
+{{ define "_navbar" }}
+  <form>
+      <button class="bg-tertiary-hover color-text {{ if .TeRunning}} dot {{ end }} "
+          name="page"
+          value="te"
+          hx-post="/serve-page"
+          hx-target="#page-content"
+          hx-push-url="/"
+          hx-swap="innerHTML">
+              TE Mode
+      </button>
+      <hr style="color: var(--color-border); margin-left: 10px; margin-right: 10px;">
+      <button class="bg-tertiary-hover color-text"
+          name="page"
+          value="packet"
+          hx-post="/serve-page"
+          hx-target="#page-content"
+          hx-push-url="/packet.html"
+          hx-swap="innerHTML">
+              Packet Mode
+      </button>
+      <hr style="color: var(--color-border); margin-left: 10px; margin-right: 10px;">
+      <button class="bg-tertiary-hover color-text"
+          name="page"
+          value="help"
+          hx-post="/serve-page"
+          hx-target="#page-content"
+          hx-push-url="/help.html"
+          hx-swap="innerHTML">
+              Help
+      </button>
+      <hr style="color: var(--color-border); margin-left: 10px; margin-right: 10px;">
+  </form>
+{{ end }}

@@ -1,5 +1,10 @@
 {{ define "te" }}
 
+{{ if .DoOob}}
+<span id="mode-title" hx-swap-oob="true"> {{ .ModeTitle }} </span>
+{{ template "navbar-oob" . }}
+{{ end }}
+
   <form id="config-form">
 	{{ template "config" . }}
 	<hr style="color: var(--color-border)">
@@ -33,9 +38,5 @@
   {{ else }}
     {{ template "chart-empty-div" }}
   {{ end }}
-
-{{ if .DoOob}}
-<span id="mode-title" hx-swap-oob="true"> {{ .ModeTitle }} </span>
-{{ end }}
 
 {{ end }}

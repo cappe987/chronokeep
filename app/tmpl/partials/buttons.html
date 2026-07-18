@@ -5,7 +5,7 @@
 	  name="action"
 	  value="start-and-capture"
 	  class="bg-quat bg-quat-hover color-text rounded py-2 px-4"
-	  {{ if .Running }}
+	  {{ if .TeRunning }}
 	  disabled
 	  {{ end }}
 	  hx-post="/te-toggle"
@@ -19,7 +19,7 @@
 	  name="action"
 	  value="start"
 	  class="bg-quat bg-quat-hover color-text rounded py-2 px-4"
-	  {{ if .Running }}
+	  {{ if .TeRunning }}
 	  disabled
 	  {{ end }}
 	  hx-post="/te-toggle"
@@ -33,7 +33,7 @@
 	  name="action"
 	  value="record"
 	  class="bg-quat bg-quat-hover color-text rounded py-2 px-4"
-	  {{ if or (not .Running) (.Capturing) }}
+	  {{ if or (not .TeRunning) (.Capturing) }}
 	  disabled
 	  {{ end }}
 	  hx-post="/te-toggle"
@@ -47,7 +47,7 @@
 	  name="action"
 	  value="stop"
 	  class="bg-quat bg-quat-hover color-text rounded py-2 px-4"
-	  {{ if not .Running }}
+	  {{ if not .TeRunning }}
 	  disabled
 	  {{ end }}
 	  hx-post="/te-toggle"
@@ -63,10 +63,14 @@
 <tbody id="msgs" hx-swap-oob="true">
 </tbody>
 </template>
+
+{{ template "navbar-oob" . }}
+
 {{ end }}
 
 {{ if .Exiting }}
-{{ template "chart-oob" .Stats }}
+    {{ template "chart-oob" .Stats }}
+    {{ template "navbar-oob" . }}
 {{ end }}
 
 {{ end }}

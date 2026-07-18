@@ -61,12 +61,11 @@ type PortOpts struct {
 }
 
 type App struct {
-	In      chan []byte     // To App
-	Out     chan []byte     // From App
-	WsOut   chan PacketData // Websocket data from App to client
-	Running bool
-	Opts    CommonOpts
-	Cli     bool
+	In    chan []byte     // To App
+	Out   chan []byte     // From App
+	WsOut chan PacketData // Websocket data from App to client
+	Opts  CommonOpts
+	Cli   bool
 }
 
 func NewApp(opts CommonOpts, init_channels bool, cli bool) *App {

@@ -154,16 +154,17 @@ body {
     min-height: 100vh;
 }
 
-#sidebar {
+#navbar {
     /* background-color: rgb(218, 218, 218); */
+    border-right: solid var(--color-border) 1px;
     width: 100px;
     min-height: 100vh;
     flex-basis: 10%;
     flex-shrink: 0;
 }
 
-#sidebar > form > button {
-    text-color: black;
+#navbar > form > button {
+    /*text-color: black;*/
     padding: 10px;
     margin: 0;
     text-align: center;
@@ -175,7 +176,7 @@ body {
      /*border-width: 1px;*/
 }
 
-/* #sidebar > p:hover { */
+/* #navbar > p:hover { */
     /* background: rgb(180, 180, 180); */
 /* } */
 
@@ -319,4 +320,15 @@ input[type=number] {
 #logo {
     display: inline;
     height: 50px;
+}
+
+.dot::after {
+    content: '';
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    -moz-border-radius: 7.5px;
+    -webkit-border-radius: 7.5px;
+    border-radius: 7.5px;
+    background-color: #8a4e38;
 }
