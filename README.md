@@ -64,7 +64,7 @@ software timestamping, otherwise it will fail to timestamp.
 sudo ip link add dev veth1 type veth peer name veth2
 sudo ip link set dev veth1 up
 sudo ip link set dev veth2 up
-sudo ./ckeep web
+sudo ./ckeep web -f config/te.toml
 ```
 
 And access it via localhost:8080.
