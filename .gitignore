@@ -5,3 +5,6 @@ ckeep
 *.dat
 # Generated PDF files
 *.pdf
+
+# This one is generated dynamically from markdown
+app/tmpl/partials/help.html
