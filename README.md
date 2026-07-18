@@ -12,71 +12,38 @@ exporting the data and generating a PDF externally. Everything except PDF
 generation is embedded in a single binary.
 
 It can run without dedicated hardware support, but the results will not be
-accurate and software timestamping must be explicitly selected. See <a
-href="#testing">Testing</a> section.
-
-Uses a [fork](https://github.com/cappe987/facebook-time) of
-[facebook/time](https://github.com/facebook/time) for onestep support and
-.Nano() function for timestamps.
+accurate and software timestamping must be explicitly selected.
 
 
 ## Getting Started
 
-This starts up the web server on `localhost:8080` with a predefined config for running with software timestamping on the ports `veth1` and `veth2` (assuming they exist).
+This builds the application, creates veth ports `veth1` and `veth2`, and starts
+up the web server on `localhost:8080` with a predefined config for running with
+software timestamping on the veth ports.
 
 ```bash
 go build
+sudo ./scripts/veth.sh create
 sudo ./ckeep web -f configs/te.toml
 ```
+
+Using it without sudo requires `CAP_NET_RAW` for L2 operation, and
+`CAP_NET_BIND_SERVICE` for UDP operation (PTP uses ports 319 and 320).
 
 
 ## Webgui
 
 
-## Building
+## Build options
 
-```bash
-# Host architecture
-go build
-# Without web server
-go build --tags noweb
-# ARM64
-GOARCH=arm64 go build -ldflags "-s -w"
-# ARMv7
-GOARCH=arm go build -ldflags "-s -w"
-# ARMv5
-GOARCH=arm GOARM=5 go build -ldflags "-s -w"
-```
+- No web: `go build --tags noweb`
+- Stripped: `go build -ldflags "-s -w"`
+- ARM64: `GOARCH=arm64 go build`
+- ARMv7: `GOARCH=arm go build`
+- ARMv5: `GOARCH=arm GOARM=5 go build`
 
-The extra flags are useful on systems with limited resources and minimizes the binary size.
-- `-s` strips binary
-- `-w` removes DWARF debugging info
-
-
-## Testing
-
-Getting proper values requires dedicated hardware. But using Veth ports is a
-good way to test the functionality without focusing too much on the actual
-results. To run it you must also select SwTstamp (Web) or `-S` (CLI) to enable
-software timestamping, otherwise it will fail to timestamp.
-
-```bash
-sudo ip link add dev veth1 type veth peer name veth2
-sudo ip link set dev veth1 up
-sudo ip link set dev veth2 up
-sudo ./ckeep web -f config/te.toml
-```
-
-And access it via localhost:8080.
-
-Or use via CLI
-
-```bash
-sudo ./ckeep te -f configs/te.toml
-```
-
-TE mode relies a lot on config file to handle configuration of the two ports
-separately.
+No web server and stripping debug info results in a much smaller binary, if
+desired. 14 MB vs 2.8 MB at the time of writing.
 
 
 ## Generate PDF
@@ -100,7 +67,6 @@ python3 scripts/plot.py measurement.dat
 - Write tests. How?
 
 Web:
-- Allow web to load initial state from file.
 - Help page that describes how things are calculated
 - Indicate when capture starts
 - Allow downloading data file for external graph generation
@@ -121,3 +87,7 @@ Web:
 ## Credits
 
 Logo uses the font `Gayathri`. Logo design by me.
+
+The project uses a [fork](https://github.com/cappe987/facebook-time) of
+[facebook/time](https://github.com/facebook/time) for onestep support and
+.Nano() function for timestamps.
