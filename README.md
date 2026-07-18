@@ -78,8 +78,8 @@ python3 scripts/plot.py measurement.dat
 - Add documentation
 - Add images to README
 - Configurable .dat export
-- Test more with UDP more
-- Fix UDP multicast?
+- Test more with UDP
+- Fix UDP multicast. With ListenMulticastUDP joins seem to happen but packets are not received.
 - Write tests. How?
 
 Web:

@@ -129,6 +129,8 @@ func client(app *App, do *DelayOpts, port *Port) {
 
 	if app.Cli {
 		fmt.Printf("Transmitting...\n")
+	} else {
+		log.Printf("Starting Delay Mode: client")
 	}
 	for running {
 		select {
@@ -199,6 +201,9 @@ func client(app *App, do *DelayOpts, port *Port) {
 		}
 	}
 	port.Deinit()
+	if !app.Cli {
+		log.Printf("Exiting Delay Mode: client")
+	}
 }
 
 func getPkt(pkts []PacketData, seq uint16) *PacketData {
@@ -222,6 +227,8 @@ func server(app *App, do *DelayOpts, port *Port) {
 
 	if app.Cli {
 		fmt.Printf("Listening...\n")
+	} else {
+		log.Printf("Starting Delay Mode: server")
 	}
 	go port.RxMode(rxCh, quit)
 	for running {
@@ -239,4 +246,7 @@ func server(app *App, do *DelayOpts, port *Port) {
 		}
 	}
 	port.Deinit()
+	if !app.Cli {
+		log.Printf("Exiting Delay Mode: server")
+	}
 }

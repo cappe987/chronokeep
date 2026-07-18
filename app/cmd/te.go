@@ -5,6 +5,7 @@ package cmd
 import (
 	. "ckeep/internal"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -177,6 +178,9 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 
 	// TODO: Bad file descriptor after seqid ~280. Seems to be an UDP problem
 
+	if !app.Cli {
+		log.Printf("Starting TE Mode")
+	}
 	teOpts.Running = true
 	go server.RxMode(serverRx, serverQuit)
 	go client.RxMode(clientRx, clientQuit)
@@ -273,5 +277,8 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 		if app.Out != nil {
 			app.Out <- []byte("exited")
 		}
+	}
+	if !app.Cli {
+		log.Printf("Exiting TE Mode")
 	}
 }

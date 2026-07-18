@@ -57,6 +57,9 @@ func GmMode() {
 	ticker = time.NewTicker(Interval)
 	gmTxPackets(&port, &seq, gmOpts.Peertopeer)
 
+	if !app.Cli {
+		log.Printf("Starting GM Mode")
+	}
 	go port.RxMode(rxCh, quit)
 	for running {
 		select {
@@ -72,6 +75,9 @@ func GmMode() {
 	}
 	// TODO: Requires HW to test
 	port.Deinit()
+	if !app.Cli {
+		log.Printf("Exiting GM Mode")
+	}
 }
 
 func replyToDelay(port *Port, pd *PacketData, pdelayMode bool) {

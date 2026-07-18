@@ -156,6 +156,9 @@ func PktMode() {
 		txPackets(&port, &pktOpts)
 	}
 
+	if !app.Cli {
+		log.Printf("Starting Packet Mode")
+	}
 	for running {
 		select {
 		case <-sigs:
@@ -178,6 +181,9 @@ func PktMode() {
 	}
 	// TODO: Requires HW to test
 	port.Deinit()
+	if !app.Cli {
+		log.Printf("Exiting Packet Mode")
+	}
 }
 
 func noWaitMode(port *Port, pktOpts *PktOpts, sigs chan os.Signal) {

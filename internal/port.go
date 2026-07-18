@@ -310,6 +310,8 @@ func (p *Port) openSocket(isEventSocket bool) error {
 			udp_port = general_port
 		}
 		conn, err := net.ListenUDP("udp", &net.UDPAddr{IP: p.IP, Port: udp_port})
+		// addr := &net.UDPAddr{IP: net.ParseIP("224.0.1.129"), Port: udp_port}
+		// conn, err := net.ListenMulticastUDP("udp4", p.Interface, addr)
 		if err != nil {
 			log.Fatalf("Listening error: %s", err)
 		}
