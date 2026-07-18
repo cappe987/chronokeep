@@ -14,6 +14,10 @@ generation is embedded in a single binary.
 It can run without PTP hardware support, but the results will not be accurate
 and software timestamping must be explicitly selected.
 
+Note: the accuracy of measurements depends on the test platform being
+known to be good. Otherwise there is no way to know if the problems are with the
+DUT.
+
 
 ## Getting Started
 
