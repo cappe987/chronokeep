@@ -2,7 +2,7 @@
 import subprocess
 
 files = [
-    ("doc.md", "app/pandoc_partial/help_template.html", "app/tmpl/partials/help.html")
+    ("doc/help.md", "app/pandoc_partial/help_template.html", "app/tmpl/partials/help.html")
 ]
 
 cmd = "pandoc"
