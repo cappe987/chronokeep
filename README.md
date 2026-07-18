@@ -19,11 +19,14 @@ Uses a [fork](https://github.com/cappe987/facebook-time) of
 [facebook/time](https://github.com/facebook/time) for onestep support and
 .Nano() function for timestamps.
 
+
 ## Getting Started
+
+This starts up the web server on `localhost:8080` with a predefined config for running with software timestamping on the ports `veth1` and `veth2` (assuming they exist).
 
 ```bash
 go build
-sudo ./ckeep web
+sudo ./ckeep web -f configs/te.toml
 ```
 
 
@@ -69,11 +72,12 @@ And access it via localhost:8080.
 Or use via CLI
 
 ```bash
-sudo ./ckeep te -S -f configs/te.toml
+sudo ./ckeep te -f configs/te.toml
 ```
 
 TE mode relies a lot on config file to handle configuration of the two ports
 separately.
+
 
 ## Generate PDF
 
@@ -113,7 +117,7 @@ Web:
   https://github.com/cappe987/ptpmonitor that uses expvar and the Linuxptp patch
   for `ptpmon` to transmit data from `ptp4l` to a TCP server. Display with
   chart.js?
-  
+
 ## Credits
 
 Logo uses the font `Gayathri`. Logo design by me.

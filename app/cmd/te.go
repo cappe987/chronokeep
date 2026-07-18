@@ -63,18 +63,7 @@ func InitTeOpts() (TeOpts, CommonOpts) {
 	return teOpts, opts
 }
 
-func ValidateTeOpts(teOpts *TeOpts, opts *CommonOpts) bool {
-	ok := opts.Validate()
-	if !ok {
-		return false
-	}
-
-	if len(teOpts.Ports) != 2 {
-		fmt.Printf("Error: two ports are required\n")
-		return false
-	}
-	teOpts.IntervalTime = time.Duration(teOpts.Interval) * time.Millisecond
-	// Validate settings
+func TeGetPortnames(teOpts *TeOpts, opts *CommonOpts) (string, string, error) {
 	missingIp := false
 	gmCount := 0
 	p1name := ""
@@ -92,14 +81,33 @@ func ValidateTeOpts(teOpts *TeOpts, opts *CommonOpts) bool {
 		}
 	}
 	if missingIp {
-		return false
+		return "", "", fmt.Errorf("Missing IP on ports")
 	}
 	if gmCount != 1 {
+		return "", "", fmt.Errorf("Missing GM port")
+	}
+	return p1name, p2name, nil
+}
+
+func ValidateTeOpts(teOpts *TeOpts, opts *CommonOpts) bool {
+	ok := opts.Validate()
+	if !ok {
 		return false
 	}
+
+	if len(teOpts.Ports) != 2 {
+		fmt.Printf("Error: two ports are required\n")
+		return false
+	}
+	teOpts.IntervalTime = time.Duration(teOpts.Interval) * time.Millisecond
 	// TODO: Validate port tstamp modes. facebook/time has some helpers.
 	// Move out the above part to a validation function?
 
+	p1name, p2name, err := TeGetPortnames(teOpts, opts)
+	if err != nil {
+		fmt.Printf("%s\n", err)
+		return false
+	}
 	p1 := teOpts.Ports[p1name]
 	p2 := teOpts.Ports[p2name]
 	ip1 := net.ParseIP(p1.IP)

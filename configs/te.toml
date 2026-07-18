@@ -1,8 +1,8 @@
 #Domain = 0
-#Count = 3
-#Interval = 1000
 #Vlan = 10
-# Udp = true
+#Udp = true
+SwTstamp = true
+Interval = 100
 
 [Ports.veth1]
 GM = true

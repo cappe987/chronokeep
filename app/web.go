@@ -144,6 +144,7 @@ func wsHandler(wa *WebApp) http.HandlerFunc {
 	}
 }
 
+// TODO: CLean up this function
 func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
@@ -308,8 +309,10 @@ func te_page(wa *WebApp, td map[string]any) {
 	td["TeOpts"] = *wa.TeOpts
 	td["Opts"] = wa.App.Opts
 	td["AllPorts"] = GetSystemPorts()
-	td["Port1"] = "veth1"
-	td["Port2"] = "veth2"
+	// TODO: handle errors for TeGetPortnames
+	p1name, p2name, _ := TeGetPortnames(wa.TeOpts, &wa.App.Opts)
+	td["Port1"] = p1name // Port 1 is always GM
+	td["Port2"] = p2name
 	td["Capturing"] = wa.TeOpts.Capturing
 	if wa.TeOpts.HasStats {
 		td["HasStats"] = true
@@ -349,12 +352,6 @@ func serve_page(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 
 func serve_index(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		wa.App.Opts.SwTstamp = true
-		// vid := uint16(100)
-		// opts.Vlan = &vid
-		wa.App.Opts.Prio = 4
-		wa.TeOpts.Interval = 100
-		// TODO: Set default p1 and p2 from config file. Same for other settings.
 		td := make(map[string]any)
 		switch html.EscapeString((r.URL.Path)) {
 		case "/":
@@ -374,8 +371,11 @@ func serve_index(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 }
 
 func WebServer() {
-
 	teOpts, opts := InitTeOpts()
+	if !opts.ParseFile(&teOpts) {
+		fmt.Printf("Failed parsing file\n")
+		return
+	}
 	app := NewApp(opts, true, false)
 	webapp := WebApp{App: app, TeOpts: &teOpts}
 	tmpl, err := BuildTemplates()
