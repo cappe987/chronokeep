@@ -30,6 +30,24 @@ sudo ./ckeep web -f configs/te.toml
 Using it without sudo requires `CAP_NET_RAW` for L2 operation, and
 `CAP_NET_BIND_SERVICE` for UDP operation (PTP uses ports 319 and 320).
 
+Send a L2 Delay_Req packet on `veth1` using software timestamping (`-S`).
+
+```bash
+./ckeep pkt -S -i veth1 delay_req
+```
+
+Listen for L2 packets on port `veth2` with software timestamping (`-S`).
+```bash
+./ckeep pkt -S -r -i veth2
+```
+
+Send 5 packets at 10 ms interval from `veth1` with IP `10.11.0.1` to
+destination IP `10.11.0.2` over UDP.
+
+```bash
+./ckeep pkt -4 --sip 10.11.0.1 --dip 10.11.0.2 -i veth1 -c 5 -I 10
+```
+
 
 ## Webgui
 
