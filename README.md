@@ -11,8 +11,8 @@ depending on your use case. Web can display graphs directly, but both allows for
 exporting the data and generating a PDF externally. Everything except PDF
 generation is embedded in a single binary.
 
-It can run without dedicated hardware support, but the results will not be
-accurate and software timestamping must be explicitly selected.
+It can run without PTP hardware support, but the results will not be accurate
+and software timestamping must be explicitly selected.
 
 
 ## Getting Started
