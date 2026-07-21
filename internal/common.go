@@ -19,8 +19,8 @@ type CommonOpts struct {
 	// Configuration file
 	TransportSpecific uint8
 	// TODO: latency is handled in both CommonOpts and PortOpts. Probably use only PortOpts
-	IngressLatency uint64
-	EgressLatency  uint64
+	IngressLatency int64
+	EgressLatency  int64
 	MinorVersion   uint8
 	Domain         uint8
 	Vlan           *uint16
@@ -50,8 +50,8 @@ type Opt struct {
 }
 
 type PortOpts struct {
-	IngressLatency uint64
-	EgressLatency  uint64
+	IngressLatency int64
+	EgressLatency  int64
 	IP             string
 	GM             bool
 	Vlan           *uint16

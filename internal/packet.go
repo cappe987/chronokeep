@@ -85,6 +85,7 @@ func (pd *PacketData) IsInformationPacket() bool {
 }
 
 func (pd *PacketData) IsNonTimestampPacket() bool {
+	// TODO: Should handle onestep?
 	msgtype := pd.Packet.MessageType()
 	switch msgtype {
 	case ptp.MessageSync, ptp.MessageDelayReq, ptp.MessagePDelayReq, ptp.MessagePDelayResp:
@@ -265,9 +266,10 @@ func (port *Port) BuildPacket(msgtype ptp.MessageType, seq uint16) (*PacketData,
 }
 
 // Build blank Sync
-func (port *Port) BuildSync(seq uint16) *PacketData {
+func (port *Port) BuildSync(seq uint16, corr int64) *PacketData {
 	twostep := !port.opts.Onestep
 	syncHdr := port.buildHeader(ptp.MessageSync, seq, twostep)
+	syncHdr.CorrectionField = ptp.Correction(corr)
 	// syncHdr.LogMessageInterval = 0
 
 	syncPkt := ptp.SyncDelayReq{

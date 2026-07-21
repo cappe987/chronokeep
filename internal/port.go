@@ -96,6 +96,10 @@ func (port *Port) receive(buf []byte, oob []byte, getTs bool) (*PacketData, erro
 		if err != nil {
 			return nil, err
 		}
+		if port.opts.IngressLatency != 0 && hwts.UnixNano() != 0 {
+			hwts = hwts.Add(time.Duration(port.opts.IngressLatency))
+			swts = swts.Add(time.Duration(port.opts.IngressLatency))
+		}
 		data := &PacketData{
 			Packet:   p,
 			HwTstamp: hwts,
@@ -122,6 +126,10 @@ func (port *Port) receive(buf []byte, oob []byte, getTs bool) (*PacketData, erro
 		p, err := ptp.DecodePacket(buf[:bytes])
 		if err != nil {
 			return nil, err
+		}
+		if port.opts.IngressLatency != 0 {
+			hwts = hwts.Add(time.Duration(port.opts.IngressLatency))
+			swts = swts.Add(time.Duration(port.opts.IngressLatency))
 		}
 		data := &PacketData{
 			Packet:   p,
@@ -390,6 +398,10 @@ func (port *Port) transmit_get_ts(pkt *ptp.Packet, oob []byte, toob []byte) (*ti
 	if err != nil {
 		return nil, nil, err
 	}
+	if port.opts.EgressLatency != 0 {
+		hwts = hwts.Add(time.Duration(port.opts.EgressLatency))
+		swts = swts.Add(time.Duration(port.opts.EgressLatency))
+	}
 	return &hwts, &swts, nil
 }
 
@@ -492,6 +504,12 @@ func (port *Port) Init(app *App, portnum uint16) error {
 
 	port.opts = app.Opts
 	port.App = app
+	if port.PortOpts.EgressLatency != 0 {
+		port.opts.EgressLatency = port.PortOpts.EgressLatency
+	}
+	if port.PortOpts.IngressLatency != 0 {
+		port.opts.IngressLatency = port.PortOpts.IngressLatency
+	}
 	err = port.openSocket(true)
 	if err != nil {
 		return err
@@ -552,7 +570,12 @@ func (port *Port) ShowPacket(pd *PacketData) {
 }
 
 func (port *Port) TransmitSyncFup() (*PacketData, *PacketData) {
-	sync := port.BuildSync(port.syncSeq)
+	var sync *PacketData
+	if port.opts.Onestep {
+		sync = port.BuildSync(port.syncSeq, port.opts.EgressLatency)
+	} else {
+		sync = port.BuildSync(port.syncSeq, 0)
+	}
 	port.Transmit(sync)
 	port.ShowPacket(sync)
 	port.syncSeq += 1
@@ -600,7 +623,7 @@ func (port *Port) ReplyToPDelayReq(pd *PacketData) (*PacketData, *PacketData) {
 	resp := port.MakeResponsePDelay(pd)
 	port.Transmit(resp)
 	port.ShowPacket(resp)
-	// TODO: Handle p2p1step?
+	// TODO: Handle p2p1step? Remember to add ingr/egr latency to correctionField
 	respFup := port.MakeFollowUpPDelay(resp)
 	port.Transmit(respFup)
 	port.ShowPacket(respFup)

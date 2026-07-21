@@ -73,7 +73,7 @@ python3 scripts/plot.py measurement.dat
 
 
 ## TODO
-- Ingress/egress latency for TE mode. Config file.
+- Test onestep properly and with ingr/egr latency
 - Log levels
 - Convert to using time.Duration in most places?
 - Add documentation
