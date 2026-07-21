@@ -165,39 +165,31 @@ func (opts *CommonOpts) getUsage() string {
 	return str
 }
 
-func (opts *CommonOpts) Validate() bool {
+func (opts *CommonOpts) Validate() error {
 	if opts.Help {
 		opts.Usage()
-		return false
+		return nil
 	}
-
-	var err error
-	err = nil
 
 	if opts.Udp {
 		if opts.Ip == "" {
-			err = fmt.Errorf("Must specify source IP with --sip")
+			return fmt.Errorf("Must specify source IP with --sip")
 		} else if opts.Iface == "" {
 			iface, err := InterfaceFromIP(opts.Ip)
 			if err != nil {
-				err = fmt.Errorf("Unable to find interface with IP %s", opts.Ip)
+				return fmt.Errorf("Unable to find interface with IP %s", opts.Ip)
 			}
 			opts.Iface = iface
 		}
 	} else {
 		if opts.Iface == "" {
-			err = fmt.Errorf("Must specify interface with --iface")
+			return fmt.Errorf("Must specify interface with --iface")
 		}
 	}
 	if opts.Onestep && opts.SwTstamp {
-		err = fmt.Errorf("Cannot use SwTstamp and Onestep at the same time")
+		return fmt.Errorf("Cannot use SwTstamp and Onestep at the same time")
 	}
-	if err != nil {
-		// opts.Usage()
-		fmt.Printf("Error: %s\n", err)
-		return false
-	}
-	return true
+	return nil
 }
 
 func (opts *CommonOpts) Parse() bool {
@@ -207,7 +199,9 @@ func (opts *CommonOpts) Parse() bool {
 		fmt.Printf("Error: %s\n", err)
 		return false
 	}
-	if !opts.Validate() {
+	err = opts.Validate()
+	if err != nil {
+		fmt.Printf("Error: %s\n", err)
 		return false
 	}
 	return true

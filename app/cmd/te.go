@@ -46,7 +46,9 @@ func TeMode() {
 		return
 	}
 
-	if !ValidateTeOpts(&teOpts, &opts) {
+	err := ValidateTeOpts(&teOpts, &opts)
+	if err != nil {
+		fmt.Printf("Error: %s\n", err)
 		return
 	}
 
@@ -90,15 +92,14 @@ func TeGetPortnames(teOpts *TeOpts, opts *CommonOpts) (string, string, error) {
 	return p1name, p2name, nil
 }
 
-func ValidateTeOpts(teOpts *TeOpts, opts *CommonOpts) bool {
-	ok := opts.Validate()
-	if !ok {
-		return false
+func ValidateTeOpts(teOpts *TeOpts, opts *CommonOpts) error {
+	err := opts.Validate()
+	if err != nil {
+		return err
 	}
 
 	if len(teOpts.Ports) != 2 {
-		fmt.Printf("Error: two ports are required\n")
-		return false
+		return fmt.Errorf("Error: two ports are required\n")
 	}
 	teOpts.IntervalTime = time.Duration(teOpts.Interval) * time.Millisecond
 	// TODO: Validate port tstamp modes. facebook/time has some helpers.
@@ -106,9 +107,12 @@ func ValidateTeOpts(teOpts *TeOpts, opts *CommonOpts) bool {
 
 	p1name, p2name, err := TeGetPortnames(teOpts, opts)
 	if err != nil {
-		fmt.Printf("%s\n", err)
-		return false
+		return err
 	}
+	if p1name == p2name {
+		return fmt.Errorf("Ports cannot be the same")
+	}
+
 	p1 := teOpts.Ports[p1name]
 	p2 := teOpts.Ports[p2name]
 	ip1 := net.ParseIP(p1.IP)
@@ -128,7 +132,7 @@ func ValidateTeOpts(teOpts *TeOpts, opts *CommonOpts) bool {
 	}
 	teOpts.server = server
 	teOpts.client = client
-	return true
+	return nil
 }
 
 func RunTeMode(teOpts *TeOpts, app *App) {

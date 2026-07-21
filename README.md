@@ -73,6 +73,7 @@ python3 scripts/plot.py measurement.dat
 
 
 ## TODO
+- Ingress/egress latency for TE mode. Config file.
 - Log levels
 - Convert to using time.Duration in most places?
 - Add documentation
@@ -83,7 +84,6 @@ python3 scripts/plot.py measurement.dat
 - Write tests. How?
 
 Web:
-- Propagate error to web when validation fails
 - Indicate when capture starts
 - Allow downloading data file for external graph generation
 - Better error handling for invalid config. Verify timestamping modes before starting.

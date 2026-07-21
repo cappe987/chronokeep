@@ -142,18 +142,16 @@ func wsHandler(wa *WebApp) http.HandlerFunc {
 	}
 }
 
-func send_buttons_error(w http.ResponseWriter, wa *WebApp, err error) {
-	td := make(map[string]any)
+func send_buttons(td map[string]any, w http.ResponseWriter, wa *WebApp) {
 	td["TeRunning"] = wa.TeOpts.Running
 	td["Capturing"] = wa.TeOpts.Capturing
-	td["Error"] = err
-	err = wa.Tmpl["buttons"].Execute(w, td)
+	err := wa.Tmpl["buttons"].Execute(w, td)
 	if err != nil {
 		fmt.Printf("Error executing index.html template: %s\n", err)
 	}
 }
 
-// TODO: CLean up this function
+// TODO: Clean up this function. Don't validate if stopping.
 func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
@@ -162,6 +160,7 @@ func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 		// fmt.Fprintf(w, "GET, %q", html.EscapeString(r.URL.Path))
 		// log.Printf("POST request")
 
+		td := make(map[string]any)
 		action := r.PostFormValue("action")
 		swtstamp := r.PostFormValue("software")
 		peertopeer := r.PostFormValue("peertopeer")
@@ -226,15 +225,30 @@ func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 		}
 		wa.TeOpts.Interval = uint32(interval_ms)
 
-		wa.TeOpts.Ports[p1] = PortOpts{GM: true}
-		wa.TeOpts.Ports[p2] = PortOpts{}
-		if p1 == p2 {
-			send_buttons_error(w, wa, nil)
-			return
+		// Preserve settings for port. E.g. ingr/egr latency since that isn't
+		// exposed. When latency is implemented in TE, it can be set via config
+		// file even if web doesn't support it.
+		newports := make(map[string]PortOpts)
+		val, ok := wa.TeOpts.Ports[p1]
+		if ok {
+			val.GM = true
+			newports[p1] = val
+		} else {
+			newports[p1] = PortOpts{GM: true}
 		}
+		val, ok = wa.TeOpts.Ports[p2]
+		if ok {
+			val.GM = false
+			newports[p2] = val
+		} else {
+			newports[p2] = PortOpts{}
+		}
+		wa.TeOpts.Ports = newports
 
-		if !ValidateTeOpts(wa.TeOpts, &wa.App.Opts) {
-			send_buttons_error(w, wa, nil)
+		err = ValidateTeOpts(wa.TeOpts, &wa.App.Opts)
+		if err != nil {
+			td["Error"] = err
+			send_buttons(td, w, wa)
 			return
 		}
 
@@ -269,20 +283,13 @@ func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		td := make(map[string]any)
-		td["TeRunning"] = wa.TeOpts.Running
-		td["Capturing"] = wa.TeOpts.Capturing
 		td["Starting"] = starting
 		td["Exiting"] = exiting
 		stats := wa.TeOpts.Stats
 		if exiting {
 			td["Stats"] = stats.GetWebStats(wa.TeOpts.Peertopeer)
 		}
-		err = wa.Tmpl["buttons"].Execute(w, td)
-		if err != nil {
-			fmt.Printf("Error executing index.html template: %s\n", err)
-		}
-
+		send_buttons(td, w, wa)
 	}
 }
 

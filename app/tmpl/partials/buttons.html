@@ -56,6 +56,10 @@
     Stop
   </button>
 
+  {{ if .Error }}
+  <p style="color: red">{{ .Error }}</p>
+  {{ end }}
+
 </div>
 
 {{ if .Starting }}
