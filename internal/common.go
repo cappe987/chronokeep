@@ -356,6 +356,8 @@ func getTstampCaps(ifname string) (uint32, uint32, error) {
 	return hw.Rx_filters, hw.Tx_types, nil
 }
 
+const TMP_HWTSTAMP_TX_ONESTEP_P2P = 0x3
+
 func (opts *CommonOpts) ValidateTstampMode(ifname string) error {
 	if !opts.SwTstamp {
 		_, tx, err := getTstampCaps(ifname)
@@ -367,6 +369,7 @@ func (opts *CommonOpts) ValidateTstampMode(ifname string) error {
 		} else if opts.Onestep && tx&(1<<unix.HWTSTAMP_TX_ONESTEP_SYNC) == 0 {
 			return fmt.Errorf("Onestep timestamping not supported on %s", ifname)
 		}
+		// TODO: Validate p2p1step once that is added as an option
 	}
 	return nil
 }
