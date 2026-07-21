@@ -55,9 +55,9 @@ Only for E2E. When a DelayResp is received, the most recent T1TE and the
 newly received T4TE is taken and used to calculate the TwowayTE at this
 moment in time. This is the true error a PTP client would experience. If
 this is not near zero then there is inaccuracy in the network. T1TE and T4TE
-should be the same value, except T1TE being negative. If T1 and T4 differ
-for a Transparent Clock, there is likely an asymmetry in the ingress/egress
-latency of the ports' timestamping blocks.
+should be the same value, except T1TE being negative. If T1 and T4 differ, there
+is likely an asymmetry in the ingress/egress latency of the ports' timestamping
+blocks.
 
 ```
 twoway_te = (t1_te + t4_te) / 2
