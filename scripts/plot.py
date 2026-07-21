@@ -1,14 +1,11 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2026 Casper Andersson <casper.casan@gmail.com>
 from matplotlib.backends.backend_pdf import PdfPages
-from matplotlib.font_manager import FontProperties
-import matplotlib.ticker as mticker
 import matplotlib.pyplot as plt
 import numpy as np
-import math
 import sys
 
-def make_page(info, t, s):
+def make_page(info, t, s) -> plt.Figure:
     AX_GRAPH = 0
     AX_TABLE = 1
     fig, ax = plt.subplots(2, height_ratios=[2, 1])
@@ -60,9 +57,7 @@ def make_page(info, t, s):
             cell = table[r, c]
             cell.set_height(0.1)
     ax[AX_TABLE].axis("off")
-    return fig
-
-
+    return fig # pyright:ignore[reportReturnType]. It complains FigureBase is returned when it is Figure
 
 texts = {
     'SYNC_TIME_ERROR': {'title': 'Sync Time Error', 'ylabel': 'Time Error [ns]', 'color': 'blue'},

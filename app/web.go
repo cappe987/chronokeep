@@ -221,21 +221,22 @@ func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 
 		starting := false
 		exiting := false
-		if action == "start" {
+		switch action {
+		case "start":
 			wa.TeOpts.Running = true
 			starting = true
 			start_app(wa, false)
-		} else if action == "start-and-capture" {
+		case "start-and-capture":
 			starting = true
 			wa.TeOpts.Running = true
 			wa.TeOpts.Capturing = true
 			start_app(wa, true)
-		} else if action == "record" {
+		case "record":
 			wa.TeOpts.Capturing = true
 			if wa.TeOpts.Running {
 				wa.App.In <- []byte(action)
 			}
-		} else {
+		case "stop":
 			if wa.TeOpts.Running {
 				exiting = true
 				wa.App.In <- []byte("exit")

@@ -156,7 +156,7 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 	app.Opts.DestIp = teOpts.server.PortOpts.IP
 	client.Init(app, 1)
 
-	sigs := make(chan os.Signal)
+	sigs := make(chan os.Signal, 10)
 	if app.Cli {
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	}
@@ -229,17 +229,18 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 			str1 := "========================"
 			str2 := " Starting recording "
 			str3 := "========================\n"
-			fmt.Printf(str1 + str2 + str3)
+			fmt.Print(str1 + str2 + str3)
 			server.RecordPackets = true
 			client.RecordPackets = true
 		case msg := <-app.In:
 			str := string(msg)
-			if str == "exit" {
+			switch str {
+			case "exit":
 				serverQuit <- 0
 				clientQuit <- 0
 				running = false
 				signal.Stop(sigs)
-			} else if str == "record" {
+			case "record":
 				client.EnableRecording()
 			}
 		}
