@@ -142,6 +142,11 @@ func wsHandler(wa *WebApp) http.HandlerFunc {
 	}
 }
 
+func send_buttons_error(td map[string]any, w http.ResponseWriter, wa *WebApp, err error) {
+	td["Error"] = err
+	send_buttons(td, w, wa)
+}
+
 func send_buttons(td map[string]any, w http.ResponseWriter, wa *WebApp) {
 	td["TeRunning"] = wa.TeOpts.Running
 	td["Capturing"] = wa.TeOpts.Capturing
@@ -151,116 +156,123 @@ func send_buttons(td map[string]any, w http.ResponseWriter, wa *WebApp) {
 	}
 }
 
-// TODO: Clean up this function. Don't validate if stopping.
+func (wa *WebApp) parse_domain(value string) error {
+	if value == "" {
+		return fmt.Errorf("Missing domain")
+	} else {
+		domain, err := strconv.Atoi(value)
+		if err != nil {
+			// ... handle error
+			return fmt.Errorf("Invalid domain")
+		} else {
+			wa.App.Opts.Domain = uint8(domain)
+		}
+	}
+	return nil
+}
+
+func (wa *WebApp) parse_vlan(tagged, vid, prio string) error {
+	if tagged == "" {
+		wa.App.Opts.Vlan = nil
+	} else {
+		i1, err1 := strconv.Atoi(vid)
+		if err1 != nil {
+			return fmt.Errorf("Missing or invalid VLAN")
+		} else {
+			v := uint16(i1)
+			wa.App.Opts.Vlan = &v
+		}
+		i2, err2 := strconv.Atoi(prio)
+		if err2 != nil {
+			return fmt.Errorf("Missing or invalid Prio")
+		} else {
+			wa.App.Opts.Prio = uint8(i2)
+		}
+	}
+	return nil
+}
+
+func (wa *WebApp) parse_ports(p1, p2 string) {
+	// Preserve settings for port. E.g. ingr/egr latency since that isn't
+	// exposed. When latency is implemented in TE, it can be set via config
+	// file even if web doesn't support it.
+	newports := make(map[string]PortOpts)
+	val, ok := wa.TeOpts.Ports[p1]
+	if ok {
+		val.GM = true
+		newports[p1] = val
+	} else {
+		newports[p1] = PortOpts{GM: true}
+	}
+	val, ok = wa.TeOpts.Ports[p2]
+	if ok {
+		val.GM = false
+		newports[p2] = val
+	} else {
+		newports[p2] = PortOpts{}
+	}
+	wa.TeOpts.Ports = newports
+}
+
+func (wa *WebApp) parse_settings(r *http.Request) error {
+	p1 := r.PostFormValue("port1")
+	p2 := r.PostFormValue("port2")
+	domain := r.PostFormValue("domain")
+	tagged := r.PostFormValue("vlan-tagged")
+	vid := r.PostFormValue("vlan")
+	prio := r.PostFormValue("prio")
+	interval := r.PostFormValue("interval")
+
+	wa.App.Opts.SwTstamp = r.PostFormValue("software") == "on"
+	wa.App.Opts.Onestep = r.PostFormValue("onestep") == "on"
+	wa.TeOpts.Peertopeer = r.PostFormValue("peertopeer") == "on"
+	err := wa.parse_domain(domain)
+	if err != nil {
+		return err
+	}
+	err = wa.parse_vlan(tagged, vid, prio)
+	if err != nil {
+		return err
+	}
+	interval_ms, err := strconv.Atoi(interval)
+	if err != nil {
+		return fmt.Errorf("Invalid interval")
+	}
+	wa.TeOpts.Interval = uint32(interval_ms)
+	wa.parse_ports(p1, p2)
+
+	err = ValidateTeOpts(wa.TeOpts, &wa.App.Opts)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			http.Error(w, "Invalid request method.", 405)
 		}
-		// fmt.Fprintf(w, "GET, %q", html.EscapeString(r.URL.Path))
-		// log.Printf("POST request")
-
 		td := make(map[string]any)
 		action := r.PostFormValue("action")
-		swtstamp := r.PostFormValue("software")
-		peertopeer := r.PostFormValue("peertopeer")
-		p1 := r.PostFormValue("port1")
-		p2 := r.PostFormValue("port2")
-		domain := r.PostFormValue("domain")
-		tagged := r.PostFormValue("vlan-tagged")
-		vid := r.PostFormValue("vlan")
-		prio := r.PostFormValue("prio")
-		interval := r.PostFormValue("interval")
-		onestep := r.PostFormValue("onestep")
-		// log.Printf("Action: %s\n", action)
-		// log.Printf("Swt: %s\n", swtstamp)
-		// log.Printf("p2p: %s\n", peertopeer)
-		// log.Printf("domain: %s\n", domain)
-		// log.Printf("tagged: %s\n", tagged)
-		// log.Printf("vid: %s\n", vid)
-		// log.Printf("prio: %s\n", prio)
 
-		if swtstamp == "on" {
-			wa.App.Opts.SwTstamp = true
-		} else {
-			wa.App.Opts.SwTstamp = false
-		}
-		if onestep == "on" {
-			wa.App.Opts.Onestep = true
-		} else {
-			wa.App.Opts.Onestep = false
-		}
-		if peertopeer == "on" {
-			wa.TeOpts.Peertopeer = true
-		} else {
-			wa.TeOpts.Peertopeer = false
-		}
-		if domain == "" {
-			fmt.Printf("Missing domain\n")
-		} else {
-			i, err := strconv.Atoi(domain)
-			if err != nil {
-				// ... handle error
-				fmt.Printf("Invalid domain\n")
-			} else {
-				wa.App.Opts.Domain = uint8(i)
-			}
-		}
-		if tagged == "" {
-			wa.App.Opts.Vlan = nil
-		} else {
-			i1, err1 := strconv.Atoi(vid)
-			i2, err2 := strconv.Atoi(prio)
-			if err1 != nil || err2 != nil {
-				fmt.Printf("Missing or invalid VLAN/Prio\n")
-			} else {
-				v := uint16(i1)
-				wa.App.Opts.Vlan = &v
-				wa.App.Opts.Prio = uint8(i2)
-			}
-		}
-		interval_ms, err := strconv.Atoi(interval)
-		if err != nil {
-			fmt.Printf("Invalid interval\n")
-		}
-		wa.TeOpts.Interval = uint32(interval_ms)
-
-		// Preserve settings for port. E.g. ingr/egr latency since that isn't
-		// exposed. When latency is implemented in TE, it can be set via config
-		// file even if web doesn't support it.
-		newports := make(map[string]PortOpts)
-		val, ok := wa.TeOpts.Ports[p1]
-		if ok {
-			val.GM = true
-			newports[p1] = val
-		} else {
-			newports[p1] = PortOpts{GM: true}
-		}
-		val, ok = wa.TeOpts.Ports[p2]
-		if ok {
-			val.GM = false
-			newports[p2] = val
-		} else {
-			newports[p2] = PortOpts{}
-		}
-		wa.TeOpts.Ports = newports
-
-		err = ValidateTeOpts(wa.TeOpts, &wa.App.Opts)
-		if err != nil {
-			td["Error"] = err
-			send_buttons(td, w, wa)
-			return
-		}
-
-		starting := false
-		exiting := false
 		switch action {
 		case "start":
+			err := wa.parse_settings(r)
+			if err != nil {
+				send_buttons_error(td, w, wa, err)
+				return
+			}
 			wa.TeOpts.Running = true
-			starting = true
+			td["Starting"] = true
 			start_app(wa, false)
 		case "start-and-capture":
-			starting = true
+			err := wa.parse_settings(r)
+			if err != nil {
+				send_buttons_error(td, w, wa, err)
+				return
+			}
+			td["Starting"] = true
 			wa.TeOpts.Running = true
 			wa.TeOpts.Capturing = true
 			start_app(wa, true)
@@ -270,23 +282,19 @@ func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 				wa.App.In <- []byte(action)
 			}
 		case "stop":
-			if wa.TeOpts.Running {
-				exiting = true
-				wa.App.In <- []byte("exit")
-				msg := string(<-wa.App.Out)
-				if msg != "exited" {
-					fmt.Printf("Expected mode to exit\n")
-					return
-				}
-				wa.TeOpts.Running = false
-				wa.TeOpts.Capturing = false
+			if !wa.TeOpts.Running {
+				break
 			}
-		}
-
-		td["Starting"] = starting
-		td["Exiting"] = exiting
-		stats := wa.TeOpts.Stats
-		if exiting {
+			td["Exiting"] = true
+			wa.App.In <- []byte("exit")
+			msg := string(<-wa.App.Out)
+			if msg != "exited" {
+				fmt.Printf("Expected mode to exit\n")
+				return
+			}
+			wa.TeOpts.Running = false
+			wa.TeOpts.Capturing = false
+			stats := wa.TeOpts.Stats
 			td["Stats"] = stats.GetWebStats(wa.TeOpts.Peertopeer)
 		}
 		send_buttons(td, w, wa)
