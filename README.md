@@ -73,7 +73,8 @@ python3 scripts/plot.py measurement.dat
 
 
 ## TODO
-- Test onestep properly and with ingr/egr latency
+- Submit PR for sys/unix to add HWTSTAMP_TX_ONESTEP_P2P and rx filters: https://github.com/golang/sys/tree/master/unix
+- Test onestep properly and with ingr/egr latency. We always wait for tstamp for Sync.
 - Log levels
 - Convert to using time.Duration in most places?
 - Add documentation

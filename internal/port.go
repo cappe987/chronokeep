@@ -629,3 +629,60 @@ func (port *Port) ReplyToPDelayReq(pd *PacketData) (*PacketData, *PacketData) {
 	port.ShowPacket(respFup)
 	return resp, respFup
 }
+
+func getTstampCaps(ifname string) (uint32, uint32, error) {
+	netif, err := net.InterfaceByName(ifname)
+	if err != nil {
+		return 0, 0, err
+	}
+	fd, err := syscall.Socket(syscall.AF_PACKET, syscall.SOCK_RAW, syscall.ETH_P_ALL)
+	if err != nil {
+		return 0, 0, err
+	}
+	sll := &syscall.SockaddrLinklayer{
+		Protocol: htons(syscall.ETH_P_ALL),
+		Ifindex:  netif.Index,
+	}
+	if err := syscall.Bind(fd, sll); err != nil {
+		log.Fatalf("bind to %s failed while checking tstamp: %v", ifname, err)
+	}
+
+	hw, err := unix.IoctlGetEthtoolTsInfo(fd, ifname)
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to run ioctl SIOCETHTOOL to see what is supported on %s: (%w)", ifname, err)
+	}
+
+	// var rxFilter, txFilter int32
+	// if hw.Tx_types&(1<<unix.HWTSTAMP_TX_ON) > 0 {
+	// txFilter = unix.HWTSTAMP_TX_ON
+	// txFilter = int32(hw.Tx_types)
+	// }
+
+	// if hw.Rx_filters&(1<<unix.HWTSTAMP_FILTER_PTP_V2_L4_EVENT) > 0 {
+	// 	rxFilter = unix.HWTSTAMP_FILTER_PTP_V2_L4_EVENT
+	// } else if hw.Rx_filters&(1<<unix.HWTSTAMP_FILTER_PTP_V2_EVENT) > 0 {
+	// 	rxFilter = unix.HWTSTAMP_FILTER_PTP_V2_EVENT
+	// } else if hw.Rx_filters&(1<<unix.HWTSTAMP_FILTER_ALL) > 0 {
+	// 	rxFilter = unix.HWTSTAMP_FILTER_ALL
+	// }
+
+	// if txFilter == 0 || rxFilter == 0 {
+	// 	return rxFilter, txFilter, fmt.Errorf("hardware timestamping is not supported for the interface %s", ifname)
+	// }
+	return hw.Rx_filters, hw.Tx_types, nil
+}
+
+func (opts *CommonOpts) ValidateTstampMode(ifname string) error {
+	if !opts.SwTstamp {
+		_, tx, err := getTstampCaps(ifname)
+		if err != nil {
+			return err
+		}
+		if !opts.Onestep && tx&(1<<unix.HWTSTAMP_TX_ON) == 0 {
+			return fmt.Errorf("Twostep timestamping not supported on %s", ifname)
+		} else if opts.Onestep && tx&(1<<unix.HWTSTAMP_TX_ONESTEP_SYNC) == 0 {
+			return fmt.Errorf("Onestep timestamping not supported on %s", ifname)
+		}
+	}
+	return nil
+}

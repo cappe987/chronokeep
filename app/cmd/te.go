@@ -113,6 +113,15 @@ func ValidateTeOpts(teOpts *TeOpts, opts *CommonOpts) error {
 		return fmt.Errorf("Ports cannot be the same")
 	}
 
+	err = opts.ValidateTstampMode(p1name)
+	if err != nil {
+		return err
+	}
+	err = opts.ValidateTstampMode(p2name)
+	if err != nil {
+		return err
+	}
+
 	p1 := teOpts.Ports[p1name]
 	p2 := teOpts.Ports[p2name]
 	ip1 := net.ParseIP(p1.IP)

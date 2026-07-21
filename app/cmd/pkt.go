@@ -96,6 +96,12 @@ func PktMode() {
 		return
 	}
 
+	err := opts.ValidateTstampMode(pname)
+	if err != nil {
+		fmt.Printf("Error: %s\n", err)
+		return
+	}
+
 	port := Port{
 		IfaceStr: pname,
 		// TODO: Fix IP parsing from file
@@ -119,7 +125,7 @@ func PktMode() {
 
 	app := NewApp(opts, false, true)
 
-	err := port.Init(app, 1)
+	err = port.Init(app, 1)
 	if err != nil {
 		log.Fatalf("Failed initializing port: %s", err)
 	}
