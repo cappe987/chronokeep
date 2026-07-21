@@ -6,9 +6,9 @@
       name="port1"
       class="color-text bg-secondary py-2 px-4 rounded">
       {{ range .AllPorts }}
-        {{ if (eq . $.Port1) }} 
-          <option selected="selected"> {{ . }} 
-	{{ else }} 
+        {{ if (eq . $.Port1) }}
+          <option selected="selected"> {{ . }}
+	{{ else }}
           <option> {{ . }} </option>
 	{{ end }}
       {{ end }}
@@ -21,9 +21,9 @@
       name="port2"
       class="color-text bg-secondary py-2 px-4 rounded">
       {{ range .AllPorts }}
-        {{ if (eq . $.Port2) }} 
-          <option selected="selected"> {{ . }} 
-	{{ else }} 
+        {{ if (eq . $.Port2) }}
+          <option selected="selected"> {{ . }}
+	{{ else }}
           <option> {{ . }} </option>
 	{{ end }}
       {{ end }}
@@ -48,7 +48,7 @@
       <input
 	name="peertopeer"
 	type="checkbox"
-	{{ if .TeOpts.Peertopeer }} checked {{ end }} 
+	{{ if .TeOpts.Peertopeer }} checked {{ end }}
 	class="color-text bg-secondary py-2 px-4 rounded">
             </input>
 	    <span class="checkmark"></span>
@@ -61,7 +61,7 @@
       <input
 	name="software"
 	type="checkbox"
-	{{ if .Opts.SwTstamp }} checked {{ end }} 
+	{{ if .Opts.SwTstamp }} checked {{ end }}
 	class="color-text bg-secondary py-2 px-4 rounded">
             </input>
 	    <span class="checkmark"></span>
@@ -87,7 +87,7 @@
       type="number"
       min="0" max="999"
       placeholder="Interval"
-      {{ if .TeOpts.Interval }} value="{{ .TeOpts.Interval }}" {{ end }} 
+      {{ if .TeOpts.Interval }} value="{{ .TeOpts.Interval }}" {{ end }}
       class="color-text bg-secondary py-1.5 px-4 rounded">
           </input>
   </div>
@@ -99,7 +99,7 @@
       <input
 	name="vlan-tagged"
 	type="checkbox"
-	{{ if .Opts.Vlan }} checked {{ end }} 
+	{{ if .Opts.Vlan }} checked {{ end }}
 	class="color-text bg-secondary py-2 px-4 rounded">
             </input>
 	    <span class="checkmark"></span>
@@ -113,7 +113,7 @@
       type="number"
       min="0" max="999"
       placeholder="VID"
-      {{ if .Opts.Vlan }} value="{{ .Opts.Vlan }}" {{ end }} 
+      {{ if .Opts.Vlan }} value="{{ .Opts.Vlan }}" {{ end }}
       class="color-text bg-secondary py-1.5 px-4 rounded">
           </input>
   </div>
@@ -125,9 +125,22 @@
       type="number"
       min="0" max="999"
       placeholder="Prio"
-      {{ if .Opts.Vlan }} value="{{ .Opts.Prio }}" {{ end }} 
+      {{ if .Opts.Vlan }} value="{{ .Opts.Prio }}" {{ end }}
       class="color-text bg-secondary py-1.5 px-4 rounded">
           </input>
+  </div>
+
+  <label for="onestep" class="font-medium text-heading color-text">Onestep:</label>
+  <div class="config-item" style="margin-top: 5px;">
+    <label class="custom-checkbox">
+      <input
+	name="onestep"
+	type="checkbox"
+	{{ if .Opts.Onestep }} checked {{ end }}
+	class="color-text bg-secondary py-2 px-4 rounded">
+            </input>
+	    <span class="checkmark"></span>
+    </label>
   </div>
 
 </div>

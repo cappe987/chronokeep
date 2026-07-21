@@ -142,6 +142,17 @@ func wsHandler(wa *WebApp) http.HandlerFunc {
 	}
 }
 
+func send_buttons_error(w http.ResponseWriter, wa *WebApp, err error) {
+	td := make(map[string]any)
+	td["TeRunning"] = wa.TeOpts.Running
+	td["Capturing"] = wa.TeOpts.Capturing
+	td["Error"] = err
+	err = wa.Tmpl["buttons"].Execute(w, td)
+	if err != nil {
+		fmt.Printf("Error executing index.html template: %s\n", err)
+	}
+}
+
 // TODO: CLean up this function
 func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -161,6 +172,7 @@ func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 		vid := r.PostFormValue("vlan")
 		prio := r.PostFormValue("prio")
 		interval := r.PostFormValue("interval")
+		onestep := r.PostFormValue("onestep")
 		// log.Printf("Action: %s\n", action)
 		// log.Printf("Swt: %s\n", swtstamp)
 		// log.Printf("p2p: %s\n", peertopeer)
@@ -173,6 +185,11 @@ func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 			wa.App.Opts.SwTstamp = true
 		} else {
 			wa.App.Opts.SwTstamp = false
+		}
+		if onestep == "on" {
+			wa.App.Opts.Onestep = true
+		} else {
+			wa.App.Opts.Onestep = false
 		}
 		if peertopeer == "on" {
 			wa.TeOpts.Peertopeer = true
@@ -212,10 +229,12 @@ func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 		wa.TeOpts.Ports[p1] = PortOpts{GM: true}
 		wa.TeOpts.Ports[p2] = PortOpts{}
 		if p1 == p2 {
+			send_buttons_error(w, wa, nil)
 			return
 		}
 
 		if !ValidateTeOpts(wa.TeOpts, &wa.App.Opts) {
+			send_buttons_error(w, wa, nil)
 			return
 		}
 

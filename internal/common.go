@@ -176,11 +176,11 @@ func (opts *CommonOpts) Validate() bool {
 
 	if opts.Udp {
 		if opts.Ip == "" {
-			err = fmt.Errorf("Must specify source IP with --sip\n")
+			err = fmt.Errorf("Must specify source IP with --sip")
 		} else if opts.Iface == "" {
 			iface, err := InterfaceFromIP(opts.Ip)
 			if err != nil {
-				err = fmt.Errorf("Unable to find interface with IP %s\n", opts.Ip)
+				err = fmt.Errorf("Unable to find interface with IP %s", opts.Ip)
 			}
 			opts.Iface = iface
 		}
@@ -189,8 +189,11 @@ func (opts *CommonOpts) Validate() bool {
 			err = fmt.Errorf("Must specify interface with --iface")
 		}
 	}
+	if opts.Onestep && opts.SwTstamp {
+		err = fmt.Errorf("Cannot use SwTstamp and Onestep at the same time")
+	}
 	if err != nil {
-		opts.Usage()
+		// opts.Usage()
 		fmt.Printf("Error: %s\n", err)
 		return false
 	}

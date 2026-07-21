@@ -83,9 +83,10 @@ python3 scripts/plot.py measurement.dat
 - Write tests. How?
 
 Web:
+- Propagate error to web when validation fails
 - Indicate when capture starts
 - Allow downloading data file for external graph generation
-- Better error handling for invalid config
+- Better error handling for invalid config. Verify timestamping modes before starting.
 - Pkt mode:
   - Allow crafting specific sequences
   - Setting whether it should auto-reply to (P)Delays
