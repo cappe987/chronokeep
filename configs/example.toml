@@ -3,7 +3,8 @@ Sequence = ["pdelay_req", "pdelay_resp"]
 Count = 3
 Interval = 1000
 Vlan = 10
- Udp = true
+Udp = true
+Onestep = true
 
 [Ports.veth1]
 GM = true

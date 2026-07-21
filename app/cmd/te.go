@@ -135,6 +135,14 @@ func ValidateTeOpts(teOpts *TeOpts, opts *CommonOpts) error {
 	return nil
 }
 
+func error_exit(teOpts *TeOpts, app *App) {
+	teOpts.HasStats = false
+	log.Printf("Failed to start TE Mode")
+	if app.Out != nil {
+		app.Out <- []byte("exited")
+	}
+}
+
 func RunTeMode(teOpts *TeOpts, app *App) {
 	server := teOpts.server
 	client := teOpts.client
@@ -147,18 +155,24 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 	teOpts.HasStats = false
 
 	// Port1 is always GM
-	// TODO: ingress/egress latency should be set via PortOpts and should not have to use CommonOpts
-	// app.Opts.IngressLatency = p1.IngressLatency
-	// app.Opts.EgressLatency = p1.EgressLatency
 	app.Opts.Ip = server.PortOpts.IP
 	app.Opts.DestIp = client.PortOpts.IP
-	server.Init(app, 1)
+	err := server.Init(app, 1)
+	if err != nil {
+		server.Deinit()
+		error_exit(teOpts, app)
+		return
+	}
 
-	// app.Opts.IngressLatency = p2.IngressLatency
-	// app.Opts.EgressLatency = p2.EgressLatency
 	app.Opts.Ip = teOpts.client.PortOpts.IP
 	app.Opts.DestIp = teOpts.server.PortOpts.IP
-	client.Init(app, 1)
+	err = client.Init(app, 1)
+	if err != nil {
+		server.Deinit()
+		client.Deinit()
+		error_exit(teOpts, app)
+		return
+	}
 
 	sigs := make(chan os.Signal, 10)
 	if app.Cli {

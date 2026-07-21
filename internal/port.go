@@ -525,7 +525,7 @@ func (port *Port) Init(app *App, portnum uint16) error {
 		tstamp = timestamp.HWONESTEP
 	}
 	if err := timestamp.EnableTimestamps(tstamp, port.efd, netif); err != nil {
-		fmt.Printf("Failed enabling timestamps\n")
+		fmt.Printf("Failed enabling timestamps: %s\n", err)
 		return err
 	}
 
