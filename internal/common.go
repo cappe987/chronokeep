@@ -168,11 +168,6 @@ func (opts *CommonOpts) getUsage() string {
 }
 
 func (opts *CommonOpts) Validate() error {
-	if opts.Help {
-		opts.Usage()
-		return nil
-	}
-
 	if opts.Udp {
 		if opts.Ip == "" {
 			return fmt.Errorf("Must specify source IP with --sip")
@@ -199,6 +194,10 @@ func (opts *CommonOpts) Parse() bool {
 	if err != nil {
 		opts.Usage()
 		fmt.Printf("Error: %s\n", err)
+		return false
+	}
+	if opts.Help {
+		opts.Usage()
 		return false
 	}
 	err = opts.Validate()
