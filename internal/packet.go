@@ -274,7 +274,7 @@ func (port *Port) BuildPacket(msgtype ptp.MessageType, seq uint16) (*PacketData,
 func (port *Port) BuildSync(seq uint16, corr int64) *PacketData {
 	twostep := !port.opts.Onestep
 	syncHdr := port.buildHeader(ptp.MessageSync, seq, twostep)
-	syncHdr.CorrectionField = ptp.Correction(corr)
+	syncHdr.CorrectionField = ptp.Correction(corr << 16)
 	// syncHdr.LogMessageInterval = 0
 
 	syncPkt := ptp.SyncDelayReq{
