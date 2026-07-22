@@ -21,6 +21,7 @@ import (
 	. "ckeep/internal"
 
 	ptp "github.com/cappe987/facebook-time/ptp/protocol"
+	"github.com/pborman/getopt/v2"
 
 	"github.com/coder/websocket"
 )
@@ -402,6 +403,19 @@ func serve_index(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 }
 
 func WebServer() {
+	mode := "web"
+	opts := CommonOpts{Mode: mode}
+	opts.DefineCommonFlagsFileOnly()
+	err := getopt.Getopt(nil)
+	if err != nil {
+		opts.Usage()
+		fmt.Printf("Error: %s\n", err)
+		return
+	}
+	if opts.Help {
+		opts.Usage()
+		return
+	}
 	teOpts, opts := InitTeOpts()
 	if !opts.ParseFile(&teOpts) {
 		fmt.Printf("Failed parsing file\n")

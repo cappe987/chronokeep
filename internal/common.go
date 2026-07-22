@@ -127,6 +127,11 @@ func (opts *CommonOpts) DefineCommonFlags() {
 	opts.AddOpt(&opts.Help, 'h', "help", "", "Show this help menu")
 }
 
+func (opts *CommonOpts) DefineCommonFlagsFileOnly() {
+	opts.AddOpt(&opts.dummyFile, 'f', "file", "<path>", "Config file")
+	opts.AddOpt(&opts.Help, 'h', "help", "", "Show this help menu")
+}
+
 func (opts *CommonOpts) Usage() {
 	hdr := strings.Repeat("-", 16)
 	fmt.Printf("%s ChronoKeep %s %s\n", hdr, opts.Mode, hdr)
