@@ -12,6 +12,20 @@ Select two ports. They must be synchronized (e.g. via
 forwarding planes (i.e. not the same VLAN/bridge). Port 1 becomes the PTP
 GM. SwTstamp is for software timestamping.
 
+```
++---------+
+|  TC/BC  |
+|eth1 eth2|
+| +-----+ |
++-|-----|-+
+  |     |
+  |     |
++-|-----|-+
+|eth1 eth2|
+|  ckeep  |
++---------+
+```
+
 `Start-and-capture` is primarily useful for E2E TC. In this mode
 the measurements can start immediately. A P2P TC may need a second or two to
 calculate the first peer delay before, so use `Start` and shortly
@@ -119,3 +133,5 @@ t4_lat = t4 - t1
 ---
 
 ## Packet Mode
+
+Coming soon...
