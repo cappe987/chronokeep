@@ -180,12 +180,12 @@ func client(app *App, do *DelayOpts, port *Port) {
 				if !app.Cli {
 					continue
 				}
-				t4 := resp.GetDelayRespOriginTimestamp().Nano()
-				t4_ns := t4 % 1000000000
-				t4_s := t4 / 1000000000
-				t3 := req.HwTstamp.UnixNano()
-				t3_ns := t3 % 1000000000
-				t3_s := t3 / 1000000000
+				t4 := resp.GetDelayRespOriginTimestamp().Time()
+				t4_ns := t4.Nanosecond()
+				t4_s := t4.Unix()
+				t3 := req.HwTstamp
+				t3_ns := t3.Nanosecond()
+				t3_s := t3.Unix()
 				cf := resp.GetCorrectionField()
 				fmt.Printf("Seq %d | ReqTS %d.%09d | RespTs %d.%09d | Cf %d\n",
 					req.GetSequenceID(), t3_s, t3_ns, t4_s, t4_ns, cf)

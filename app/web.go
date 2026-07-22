@@ -50,24 +50,39 @@ func buildHtmxPacket(pd PacketData) string {
 	switch msgtype {
 	case ptp.MessageSync:
 		originTs = pd.GetSyncOriginTimestamp()
-		ots_s = originTs.Nano() / 1000000000
-		ots_ns = originTs.Nano() % 1000000000
+		if !originTs.Empty() {
+			tm := originTs.Time()
+			ots_s = tm.Unix()
+			ots_ns = int64(tm.Nanosecond())
+		}
 	case ptp.MessageFollowUp:
 		originTs = pd.GetFupOriginTimestamp()
-		ots_s = originTs.Nano() / 1000000000
-		ots_ns = originTs.Nano() % 1000000000
+		if !originTs.Empty() {
+			tm := originTs.Time()
+			ots_s = tm.Unix()
+			ots_ns = int64(tm.Nanosecond())
+		}
 	case ptp.MessageDelayResp:
 		originTs = pd.GetDelayRespOriginTimestamp()
-		ots_s = originTs.Nano() / 1000000000
-		ots_ns = originTs.Nano() % 1000000000
+		if !originTs.Empty() {
+			tm := originTs.Time()
+			ots_s = tm.Unix()
+			ots_ns = int64(tm.Nanosecond())
+		}
 	case ptp.MessagePDelayResp:
 		originTs = pd.GetPDelayRespRequestReceiptTimestamp()
-		ots_s = originTs.Nano() / 1000000000
-		ots_ns = originTs.Nano() % 1000000000
+		if !originTs.Empty() {
+			tm := originTs.Time()
+			ots_s = tm.Unix()
+			ots_ns = int64(tm.Nanosecond())
+		}
 	case ptp.MessagePDelayRespFollowUp:
 		originTs = pd.GetPDelayRespFupResponseOriginTimestamp()
-		ots_s = originTs.Nano() / 1000000000
-		ots_ns = originTs.Nano() % 1000000000
+		if !originTs.Empty() {
+			tm := originTs.Time()
+			ots_s = tm.Unix()
+			ots_ns = int64(tm.Nanosecond())
+		}
 	}
 
 	rxtx_str := "RX"

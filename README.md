@@ -74,9 +74,7 @@ python3 scripts/plot.py measurement.dat
 
 ## TODO
 - Submit PR for sys/unix to add HWTSTAMP_TX_ONESTEP_P2P and rx filters: https://github.com/golang/sys/tree/master/unix
-- Test onestep properly and with ingr/egr latency. We always wait for tstamp for Sync.
 - Log levels
-- Convert to using time.Duration in most places?
 - Add documentation
 - Add images to README
 - Configurable .dat export
@@ -87,7 +85,6 @@ python3 scripts/plot.py measurement.dat
 Web:
 - Indicate when capture starts
 - Allow downloading data file for external graph generation
-- Better error handling for invalid config. Verify timestamping modes before starting.
 - Pkt mode:
   - Allow crafting specific sequences
   - Setting whether it should auto-reply to (P)Delays
