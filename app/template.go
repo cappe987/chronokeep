@@ -38,6 +38,7 @@ func BuildTemplates() (map[string]*template.Template, error) {
 		pdir + "/buttons.html",
 		pdir + "/te.html",
 		pdir + "/help.html",
+		pdir + "/examples.html",
 		pdir + "/packet.html",
 	}
 

@@ -1,0 +1,14 @@
+{{ define "examples" }}
+
+{{ if .DoOob}}
+<span id="mode-title" hx-swap-oob="true"> {{ .ModeTitle }} </span>
+{{ template "navbar-oob" . }}
+{{ end }}
+
+<div id="help-container">
+
+INSERT HERE
+
+</div>
+
+{{ end }}

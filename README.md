@@ -77,11 +77,11 @@ python3 scripts/plot.py measurement.dat
 
 ## TODO
 - Submit PR for sys/unix to add HWTSTAMP_TX_ONESTEP_P2P and rx filters: https://github.com/golang/sys/tree/master/unix
-- Log levels
-- Add documentation
+- Redesign webgui again? New color scheme? I need to get better at frontend.
 - Add images to README
-- Fix UDP multicast. With ListenMulticastUDP joins seem to happen but packets are not received.
 - Write tests. How?
+- Fix UDP multicast. With ListenMulticastUDP joins seem to happen but packets are not received.
+- Log levels
 
 Web:
 - Indicate when capture starts

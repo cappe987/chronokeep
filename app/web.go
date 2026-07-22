@@ -347,6 +347,10 @@ func help_page(wa *WebApp, td map[string]any) {
 	fill_page_data(wa, td, "help", "Help")
 }
 
+func examples_page(wa *WebApp, td map[string]any) {
+	fill_page_data(wa, td, "examples", "Examples")
+}
+
 func packet_page(wa *WebApp, td map[string]any) {
 	fill_page_data(wa, td, "packet", "Packet Mode")
 }
@@ -360,6 +364,8 @@ func serve_page(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 			te_page(wa, td)
 		case "help":
 			help_page(wa, td)
+		case "examples":
+			examples_page(wa, td)
 		case "packet":
 			packet_page(wa, td)
 		default:
@@ -385,6 +391,8 @@ func serve_index(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 			packet_page(wa, td)
 		case "/help.html":
 			help_page(wa, td)
+		case "/examples.html":
+			examples_page(wa, td)
 		}
 		err := wa.Tmpl["index.html"].Execute(w, td)
 		if err != nil {

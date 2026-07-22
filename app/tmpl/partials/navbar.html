@@ -43,5 +43,15 @@
               Help
       </button>
       <hr style="color: var(--color-border); margin-left: 10px; margin-right: 10px;">
+      <button class="bg-tertiary-hover color-text"
+          name="page"
+          value="examples"
+          hx-post="/serve-page"
+          hx-target="#page-content"
+          hx-push-url="/examples.html"
+          hx-swap="innerHTML">
+              Examples
+      </button>
+      <hr style="color: var(--color-border); margin-left: 10px; margin-right: 10px;">
   </form>
 {{ end }}

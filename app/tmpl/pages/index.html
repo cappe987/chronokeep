@@ -33,6 +33,8 @@
         {{ template "packet" . }}
     {{ else if (eq .Mode "help" )}}
       {{ template "help" . }}
+    {{ else if (eq .Mode "examples" )}}
+      {{ template "examples" . }}
     {{ end }}
     </div> <!-- page-content -->
 
