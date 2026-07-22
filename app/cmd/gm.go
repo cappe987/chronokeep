@@ -4,6 +4,7 @@ package cmd
 
 import (
 	. "ckeep/internal"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -33,6 +34,12 @@ func GmMode() {
 		return
 	}
 	if !opts.Parse() {
+		return
+	}
+
+	// TODO: Add PortOpts to gmOpts struct. Unify port parsing with pkt.go
+	if opts.Iface == "" {
+		fmt.Printf("No port selected\n")
 		return
 	}
 
