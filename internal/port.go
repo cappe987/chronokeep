@@ -422,10 +422,10 @@ func (port *Port) Transmit(pd *PacketData) *PacketData {
 	var hwts *time.Time
 	var swts *time.Time
 	var err error = nil
-	if pd.IsNonTimestampPacket() {
-		hwts, swts, err = port.transmit_no_ts(&pd.Packet, oob, toob)
-	} else {
+	if pd.ShouldTxTimestampPacket() {
 		hwts, swts, err = port.transmit_get_ts(&pd.Packet, oob, toob)
+	} else {
+		hwts, swts, err = port.transmit_no_ts(&pd.Packet, oob, toob)
 	}
 	if err != nil {
 		fmt.Printf("Error %s\n", err)

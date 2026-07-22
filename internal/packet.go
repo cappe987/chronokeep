@@ -84,14 +84,19 @@ func (pd *PacketData) IsInformationPacket() bool {
 	}
 }
 
-func (pd *PacketData) IsNonTimestampPacket() bool {
-	// TODO: Should handle onestep?
+func (pd *PacketData) ShouldTxTimestampPacket() bool {
 	msgtype := pd.Packet.MessageType()
 	switch msgtype {
-	case ptp.MessageSync, ptp.MessageDelayReq, ptp.MessagePDelayReq, ptp.MessagePDelayResp:
-		return false
-	default:
+	case ptp.MessageSync, ptp.MessagePDelayResp:
+		if pd.IsTwostepFlagSet() {
+			return true
+		} else {
+			return false
+		}
+	case ptp.MessageDelayReq, ptp.MessagePDelayReq:
 		return true
+	default:
+		return false
 	}
 }
 
