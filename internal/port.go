@@ -97,8 +97,8 @@ func (port *Port) receive(buf []byte, oob []byte, getTs bool) (*PacketData, erro
 			return nil, err
 		}
 		if port.opts.IngressLatency != 0 && hwts.UnixNano() != 0 {
-			hwts = hwts.Add(time.Duration(port.opts.IngressLatency))
-			swts = swts.Add(time.Duration(port.opts.IngressLatency))
+			hwts = hwts.Add(time.Duration(-port.opts.IngressLatency))
+			swts = swts.Add(time.Duration(-port.opts.IngressLatency))
 		}
 		data := &PacketData{
 			Packet:   p,
@@ -128,8 +128,8 @@ func (port *Port) receive(buf []byte, oob []byte, getTs bool) (*PacketData, erro
 			return nil, err
 		}
 		if port.opts.IngressLatency != 0 {
-			hwts = hwts.Add(time.Duration(port.opts.IngressLatency))
-			swts = swts.Add(time.Duration(port.opts.IngressLatency))
+			hwts = hwts.Add(time.Duration(-port.opts.IngressLatency))
+			swts = swts.Add(time.Duration(-port.opts.IngressLatency))
 		}
 		data := &PacketData{
 			Packet:   p,
