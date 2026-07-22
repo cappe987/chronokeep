@@ -110,9 +110,9 @@ func (pd *PacketData) IsTwostepFlagSet() bool {
 	return (hdr.FlagField & ptp.FlagTwoStep) != 0
 }
 
-func (pd *PacketData) GetCorrectionField() int64 {
+func (pd *PacketData) GetCorrectionField() time.Duration {
 	hdr := pd.GetHeader()
-	return hdr.CorrectionField.Duration().Nanoseconds()
+	return hdr.CorrectionField.Duration()
 }
 
 func (pd *PacketData) GetSyncOriginTimestamp() ptp.Timestamp {

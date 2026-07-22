@@ -239,16 +239,16 @@ func findGrouping(groups []*group, pd *PacketData) bool {
 	return false
 }
 
-func calcSyfup(sync *PacketData, fup *PacketData) *int64 {
+func calcSyfup(sync *PacketData, fup *PacketData) *time.Duration {
 	// Calculate t1-t2
 	if sync == nil {
 		return nil
 	}
 	if !sync.IsTwostepFlagSet() {
-		t1 := sync.GetSyncOriginTimestamp().Nano()
-		t2 := sync.HwTstamp.UnixNano()
+		t1 := sync.GetSyncOriginTimestamp().Time()
+		t2 := sync.HwTstamp
 		c1 := sync.GetCorrectionField()
-		curr_t1 := (t1 - t2) + c1
+		curr_t1 := t1.Sub(t2) + c1
 		return &curr_t1
 	}
 	if fup == nil {
@@ -258,16 +258,16 @@ func calcSyfup(sync *PacketData, fup *PacketData) *int64 {
 	if sync.GetSequenceID() != fup.GetSequenceID() {
 		return nil
 	}
-	t1 := fup.GetFupOriginTimestamp().Nano()
-	t2 := sync.HwTstamp.UnixNano()
+	t1 := fup.GetFupOriginTimestamp().Time()
+	t2 := sync.HwTstamp
 	c1 := sync.GetCorrectionField()
 	c2 := fup.GetCorrectionField()
-	curr_t1 := (t1 - t2) + c2 + c1
+	curr_t1 := t1.Sub(t2) + c2 + c1
 	// fmt.Printf("T1: %d\n", curr_t1)
 	return &curr_t1
 }
 
-func CalcDelay(req *PacketData, resp *PacketData) *int64 {
+func CalcDelay(req *PacketData, resp *PacketData) *time.Duration {
 	// Calculate t4-t3
 	if req == nil || resp == nil {
 		return nil
@@ -275,11 +275,11 @@ func CalcDelay(req *PacketData, resp *PacketData) *int64 {
 	if req.GetSequenceID() != resp.GetSequenceID() {
 		return nil
 	}
-	t4 := resp.GetDelayRespOriginTimestamp().Nano()
-	t3 := req.HwTstamp.UnixNano()
+	t4 := resp.GetDelayRespOriginTimestamp().Time()
+	t3 := req.HwTstamp
 	c4 := resp.GetCorrectionField()
 	c3 := req.GetCorrectionField()
-	curr_t4 := t4 - t3 - c4 - c3
+	curr_t4 := t4.Sub(t3) - c4 - c3
 	// fmt.Printf("T4: %d\n", curr_t4)
 	return &curr_t4
 }
@@ -287,9 +287,9 @@ func CalcDelay(req *PacketData, resp *PacketData) *int64 {
 type PacketStat struct {
 	msgtype ptp.MessageType
 	time    time.Duration
-	value   int64
-	latency int64
-	Twoway  *int64
+	value   time.Duration
+	latency time.Duration
+	Twoway  *time.Duration
 	// // serverTs        int64
 	// // clientTs        int64
 	// // correctionField int64
@@ -298,7 +298,7 @@ type PacketStat struct {
 	p3 *PacketData
 }
 
-func (ps *PacketStat) Value() int64 {
+func (ps *PacketStat) Value() time.Duration {
 	return ps.value
 }
 
@@ -315,9 +315,9 @@ func (ps *PacketStat) TimeToString() string {
 }
 
 type MaxMinMean struct {
-	Max  int64
-	Min  int64
-	Mean int64
+	Max  time.Duration
+	Min  time.Duration
+	Mean time.Duration
 }
 
 type Stats struct {
@@ -358,46 +358,46 @@ type WebStats struct {
 	PDelayLatencyChart WebChart
 }
 
-func (stats *Stats) AddSync(sync, fup *PacketData, t1 int64, normTs time.Duration) {
+func (stats *Stats) AddSync(sync, fup *PacketData, t1 time.Duration, normTs time.Duration) {
 	latency := GetSyncLatency(sync, fup)
 	ps := PacketStat{msgtype: ptp.MessageSync, p1: sync, p2: fup, time: normTs, value: t1, latency: latency}
 	stats.Syncs = append(stats.Syncs, ps)
 }
-func (stats *Stats) AddDelay(req, resp *PacketData, t4 int64, normTs time.Duration) {
+func (stats *Stats) AddDelay(req, resp *PacketData, t4 time.Duration, normTs time.Duration) {
 	latency := GetDelayLatency(req, resp)
 	ps := PacketStat{msgtype: ptp.MessageDelayReq, p1: req, p2: resp, time: normTs, value: t4, latency: latency}
 	stats.Delays = append(stats.Delays, ps)
 }
 
-func (stats *Stats) AddPDelay(req, resp, respFup *PacketData, pdelay int64, normTs time.Duration) {
+func (stats *Stats) AddPDelay(req, resp, respFup *PacketData, pdelay time.Duration, normTs time.Duration) {
 	latency := GetPDelayLatency(req, resp)
 	ps := PacketStat{msgtype: ptp.MessageDelayReq, p1: req, p2: resp, p3: respFup, time: normTs, value: pdelay, latency: latency}
 	stats.Delays = append(stats.Delays, ps)
 }
 
-func (stats *Stats) AddTwoway(twoway int64, normTs time.Duration) {
+func (stats *Stats) AddTwoway(twoway time.Duration, normTs time.Duration) {
 	ps := PacketStat{time: normTs, value: twoway}
 	stats.Twoways = append(stats.Twoways, ps)
 }
 
-func (stats *Stats) AddFwdAcc(fwdAcc int64, normTs time.Duration) {
+func (stats *Stats) AddFwdAcc(fwdAcc time.Duration, normTs time.Duration) {
 	ps := PacketStat{time: normTs, value: fwdAcc}
 	stats.FwdAcc = append(stats.FwdAcc, ps)
 }
 
-func GetSyncLatency(sync *PacketData, fup *PacketData) int64 {
+func GetSyncLatency(sync *PacketData, fup *PacketData) time.Duration {
 	if sync.IsTwostepFlagSet() {
-		return sync.HwTstamp.UnixNano() - fup.GetFupOriginTimestamp().Nano()
+		return sync.HwTstamp.Sub(fup.GetFupOriginTimestamp().Time())
 	}
-	return sync.HwTstamp.UnixNano() - sync.GetSyncOriginTimestamp().Nano()
+	return sync.HwTstamp.Sub(sync.GetSyncOriginTimestamp().Time())
 }
 
-func GetDelayLatency(req *PacketData, resp *PacketData) int64 {
-	return resp.GetDelayRespOriginTimestamp().Nano() - req.HwTstamp.UnixNano()
+func GetDelayLatency(req *PacketData, resp *PacketData) time.Duration {
+	return resp.GetDelayRespOriginTimestamp().Time().Sub(req.HwTstamp)
 }
 
-func GetPDelayLatency(req, resp *PacketData) int64 {
-	return resp.HwTstamp.UnixNano() - req.HwTstamp.UnixNano()
+func GetPDelayLatency(req, resp *PacketData) time.Duration {
+	return resp.HwTstamp.Sub(req.HwTstamp)
 }
 
 func outputValues(f *os.File, header string, list []PacketStat) {
@@ -446,16 +446,16 @@ func (port *Port) GetE2eTE() Stats {
 		}
 	})
 
-	curr_delay := int64(0)
-	curr_t1 := int64(0)
-	curr_t4 := int64(0)
+	curr_delay := time.Duration(0)
+	curr_t1 := time.Duration(0)
+	curr_t4 := time.Duration(0)
 	var last_sync *PacketData = nil
 	var last_fup *PacketData = nil
 	var last_delay_req *PacketData = nil
 	var last_delay_resp *PacketData = nil
-	total := int64(0)
-	total_t1 := int64(0)
-	total_t4 := int64(0)
+	total := time.Duration(0)
+	total_t1 := time.Duration(0)
+	total_t4 := time.Duration(0)
 	count := int64(0)
 	count_t1 := int64(0)
 	count_t4 := int64(0)
@@ -541,7 +541,7 @@ func (port *Port) GetE2eTE() Stats {
 	return stats
 }
 
-func CalcPDelay(req *PacketData, resp *PacketData, respFup *PacketData) *int64 {
+func CalcPDelay(req *PacketData, resp *PacketData, respFup *PacketData) *time.Duration {
 	if req == nil || resp == nil {
 		return nil
 	}
@@ -555,24 +555,24 @@ func CalcPDelay(req *PacketData, resp *PacketData, respFup *PacketData) *int64 {
 		return nil
 	}
 
-	t1 := req.HwTstamp.UnixNano()
+	t1 := req.HwTstamp
 	// t2 := resp.GetPDelayRespRequestReceiptTimestamp().Time().UnixNano()
 	// TODO: This seriously needs better handling. An empty field converted
 	// to Time() does not correspond to 1970. Golang interprets it as
 	// 0001-01-01 00:00:00. Patching facebook/time to add a .Nano() method.
 	// Facebook probably uses the Unix time for all calculations. I prefer
 	// integers.
-	t2 := resp.GetPDelayRespRequestReceiptTimestamp().Nano()
-	t3 := int64(0)
-	t4 := resp.HwTstamp.UnixNano()
+	t2 := resp.GetPDelayRespRequestReceiptTimestamp().Time()
+	t3 := time.Time{}
+	t4 := resp.HwTstamp
 	c1 := resp.GetCorrectionField()
-	c2 := int64(0)
+	c2 := time.Duration(0)
 	if resp.IsTwostepFlagSet() {
-		t3 = respFup.GetPDelayRespFupResponseOriginTimestamp().Nano()
+		t3 = respFup.GetPDelayRespFupResponseOriginTimestamp().Time()
 		c2 = respFup.GetCorrectionField()
 	}
 	// fmt.Printf("Pdelay: t1 %d | t2 %d | t3 %d | t4 %d | c1 %d | c2 %d\n", t1, t2, t3, t4, c1, c2)
-	pdelay := ((t4 - t1) - (t3 - t2) - c1 - c2) / 2
+	pdelay := ((t4.Sub(t1)) - (t3.Sub(t2)) - c1 - c2) / 2
 	return &pdelay
 }
 
@@ -602,16 +602,16 @@ func (port *Port) GetP2pTE() Stats {
 		filtered = append(filtered, pd)
 	}
 
-	curr_t1 := int64(0)
-	curr_pdelay := int64(0)
+	curr_t1 := time.Duration(0)
+	curr_pdelay := time.Duration(0)
 	var last_sync *PacketData = nil
 	var last_fup *PacketData = nil
 	var last_pdelay_req *PacketData = nil
 	var last_pdelay_resp *PacketData = nil
 	var last_pdelay_resp_fup *PacketData = nil
-	total_t1 := int64(0)
-	total_fwd_acc := int64(0)
-	total_pdelay := int64(0)
+	total_t1 := time.Duration(0)
+	total_fwd_acc := time.Duration(0)
+	total_pdelay := time.Duration(0)
 	count_t1 := int64(0)
 	count_fwd_acc := int64(0)
 	count_pdelay := int64(0)
@@ -698,12 +698,12 @@ func (port *Port) GetP2pTE() Stats {
 	return stats
 }
 
-func calcMaxMinMean(list []PacketStat) (int64, int64, int64) {
-	min := int64(math.MaxInt64)
-	max := int64(math.MinInt64)
-	avg := int64(0)
+func calcMaxMinMean(list []PacketStat) (time.Duration, time.Duration, time.Duration) {
+	min := time.Duration(math.MaxInt64)
+	max := time.Duration(math.MinInt64)
+	avg := time.Duration(0)
 	for i, ps := range list {
-		avg += (ps.value - avg) / (int64(i) + 1)
+		avg += (ps.value - avg) / (time.Duration(i) + 1)
 		if ps.value < min {
 			min = ps.value
 		}
@@ -714,12 +714,12 @@ func calcMaxMinMean(list []PacketStat) (int64, int64, int64) {
 	return max, min, avg
 }
 
-func calcMaxMinMeanLat(list []PacketStat) (int64, int64, int64) {
-	min := int64(math.MaxInt64)
-	max := int64(math.MinInt64)
-	avg := int64(0)
+func calcMaxMinMeanLat(list []PacketStat) (time.Duration, time.Duration, time.Duration) {
+	min := time.Duration(math.MaxInt64)
+	max := time.Duration(math.MinInt64)
+	avg := time.Duration(0)
 	for i, ps := range list {
-		avg += (ps.latency - avg) / (int64(i) + 1)
+		avg += (ps.latency - avg) / (time.Duration(i) + 1)
 		if ps.latency < min {
 			min = ps.latency
 		}
@@ -815,14 +815,14 @@ func (stats *Stats) calcP2pValues() {
 // 	}
 // }
 
-func getVal(ps PacketStat) int64 {
+func getVal(ps PacketStat) time.Duration {
 	return ps.value
 }
-func getLat(ps PacketStat) int64 {
+func getLat(ps PacketStat) time.Duration {
 	return ps.latency
 }
 
-func prepareWebChart(title string, mmm MaxMinMean, list []PacketStat, getF func(PacketStat) int64, color string) WebChart {
+func prepareWebChart(title string, mmm MaxMinMean, list []PacketStat, getF func(PacketStat) time.Duration, color string) WebChart {
 	labels := "["
 	values := "["
 	for i, ps := range list {
@@ -844,9 +844,9 @@ func prepareWebChart(title string, mmm MaxMinMean, list []PacketStat, getF func(
 		CssId:  id,
 		Labels: labels,
 		Values: values,
-		Max:    mmm.Max,
-		Min:    mmm.Min,
-		Mean:   mmm.Mean,
+		Max:    mmm.Max.Nanoseconds(),
+		Min:    mmm.Min.Nanoseconds(),
+		Mean:   mmm.Mean.Nanoseconds(),
 		Color:  color,
 	}
 }
