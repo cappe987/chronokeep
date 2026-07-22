@@ -1,6 +1,14 @@
 
 ## Examples
 
+Each subcommand has a `-h/--help` flag to view all possible arguments.
+
+```bash
+ckeep pkt -h
+```
+
+---
+
 ### Packet Mode
 
 Send a L2 Delay_Req packet on `veth1` using software timestamping (`-S`).

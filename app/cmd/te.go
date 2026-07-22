@@ -101,7 +101,7 @@ func ValidateTeOpts(teOpts *TeOpts, opts *CommonOpts) error {
 	}
 
 	if len(teOpts.Ports) != 2 {
-		return fmt.Errorf("Error: two ports are required\n")
+		return fmt.Errorf("Two ports are required\n")
 	}
 	teOpts.IntervalTime = time.Duration(teOpts.Interval) * time.Millisecond
 	// TODO: Validate port tstamp modes. facebook/time has some helpers.
