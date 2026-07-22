@@ -1,8 +1,7 @@
-#Domain = 0
-#Vlan = 10
 #Udp = true
 SwTstamp = true
 Interval = 100
+Export = "measurement.dat"
 
 [Ports.veth1]
 GM = true

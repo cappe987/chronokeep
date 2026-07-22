@@ -415,6 +415,9 @@ func outputLatency(f *os.File, header string, list []PacketStat) {
 }
 
 func (stats *Stats) GenerateFile(peertopeer bool, filename string) {
+	if filename == "" {
+		return
+	}
 	f, _ := os.Create(filename)
 	defer f.Close()
 	if peertopeer {

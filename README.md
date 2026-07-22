@@ -46,6 +46,9 @@ Send a L2 Delay_Req packet on `veth1` using software timestamping (`-S`).
 
 ## Webgui
 
+Not every feature and flag is available in the web. Though, many can be set via
+config file and are then used in the web too.
+
 ## Dependencies
 
 Build depends on `go`, `make`, `python3` and `pandoc` (optional).
@@ -77,8 +80,6 @@ python3 scripts/plot.py measurement.dat
 - Log levels
 - Add documentation
 - Add images to README
-- Configurable .dat export
-- Test more with UDP
 - Fix UDP multicast. With ListenMulticastUDP joins seem to happen but packets are not received.
 - Write tests. How?
 

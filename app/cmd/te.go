@@ -28,6 +28,7 @@ type TeOpts struct {
 	Capturing    bool
 	HasStats     bool
 	Running      bool
+	Export       string
 }
 
 func TeMode() {
@@ -38,6 +39,7 @@ func TeMode() {
 	opts.AddModeOpt(opts.Mode, &teOpts.Peertopeer, 'P', "p2p", "", "Use P2P mode")
 	// opts.AddModeOpt(mode, &teOpts.Count, 'c', "count", "<num>", "Number of packets to transmit. 0=infinite")
 	opts.AddModeOpt(opts.Mode, &teOpts.DelayRecord, 'D', "delay_record", "<seconds>", "Time to wait until recording starts. Default: 0 seconds")
+	opts.AddModeOpt(opts.Mode, &teOpts.Export, 'e', "export", "<filename>", "Export data to file")
 
 	if !opts.ParseFile(&teOpts) {
 		return
@@ -285,7 +287,7 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 			fmt.Printf("Mean Pdelay: %d\n", stats.PDelayM.Mean)
 			fmt.Printf("Mean FwdAcc: %d\n", stats.FwdAccM.Mean)
 		}
-		stats.GenerateFile(true, "measurement.dat")
+		stats.GenerateFile(false, teOpts.Export)
 		teOpts.Stats = stats
 		teOpts.HasStats = true
 		if app.Out != nil {
@@ -299,7 +301,7 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 			fmt.Printf("Mean 2Way: %d\n", stats.TwowayM.Mean)
 		}
 
-		stats.GenerateFile(false, "measurement.dat")
+		stats.GenerateFile(false, teOpts.Export)
 		teOpts.Stats = stats
 		teOpts.HasStats = true
 		if app.Out != nil {
