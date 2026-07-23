@@ -1,19 +1,19 @@
 
 {{ define "navbar-oob" }}
-<div id="navbar" hx-swap-oob="true">
+<div id="navbar" class="bg-tertiary" hx-swap-oob="true">
     {{ template "_navbar" . }}
 </div>
 {{ end }}
 
 {{ define "navbar" }}
-<div id="navbar" class="bg-primary">
+<div id="navbar" class="bg-tertiary">
     {{ template "_navbar" . }}
 </div>
 {{ end }}
 
 {{ define "_navbar" }}
   <form>
-      <button class="bg-tertiary-hover color-text {{ if .TeRunning}} dot {{ end }} "
+      <button class="color-text {{ if .TeRunning}} dot {{ end }} "
           name="page"
           value="te"
           hx-post="/serve-page"
@@ -23,7 +23,7 @@
               TE Mode
       </button>
       <hr style="color: var(--color-border); margin-left: 10px; margin-right: 10px;">
-      <button class="bg-tertiary-hover color-text"
+      <button class="color-text"
           name="page"
           value="packet"
           hx-post="/serve-page"
@@ -33,7 +33,7 @@
               Packet Mode
       </button>
       <hr style="color: var(--color-border); margin-left: 10px; margin-right: 10px;">
-      <button class="bg-tertiary-hover color-text"
+      <button class="color-text"
           name="page"
           value="help"
           hx-post="/serve-page"
@@ -43,7 +43,7 @@
               Help
       </button>
       <hr style="color: var(--color-border); margin-left: 10px; margin-right: 10px;">
-      <button class="bg-tertiary-hover color-text"
+      <button class="color-text"
           name="page"
           value="examples"
           hx-post="/serve-page"

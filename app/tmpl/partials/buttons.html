@@ -4,7 +4,7 @@
 	  id="start-capture-button"
 	  name="action"
 	  value="start-and-capture"
-	  class="bg-quat bg-quat-hover color-text rounded py-2 px-4"
+	  class="bg-quat color-text rounded py-2 px-4 bg-quat-hover"
 	  {{ if .TeRunning }}
 	  disabled
 	  {{ end }}
@@ -18,7 +18,7 @@
 	  id="start-button"
 	  name="action"
 	  value="start"
-	  class="bg-quat bg-quat-hover color-text rounded py-2 px-4"
+	  class="bg-quat color-text rounded py-2 px-4 {{ if not .TeRunning }} bg-quat-hover {{ end }}"
 	  {{ if .TeRunning }}
 	  disabled
 	  {{ end }}

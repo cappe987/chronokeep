@@ -97,6 +97,7 @@ Web:
   https://github.com/cappe987/ptpmonitor that uses expvar and the Linuxptp patch
   for `ptpmon` to transmit data from `ptp4l` to a TCP server. Display with
   chart.js?
+- Live updating of charts
 
 ## Credits
 

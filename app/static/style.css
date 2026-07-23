@@ -1,14 +1,28 @@
 
 :root {
-    --color-primary: #212830;
+    /*--color-primary: #212830;
     --color-secondary: #3d444d;
     --color-tertiary: #151b23;
-    --color-quaternary: #428f46;
+    --color-checkmark: #428f46;
     --color-text: #cdd9e5;
     --color-border: #656c76;
     --color-deny: #8a4e38;
-    --color-paragraph:  #9198a1;
+    --color-paragraph:  #9198a1;*/
     font-family: "Arial";
+
+    /* https://coolors.co/0466c8-0353a4-023e7d-002855-001845-001233-33415c-5c677d-7d8597-979dac */
+    /*--color-primary: #001233;*/
+    /*--color-primary: #12253a;*/
+    --color-primary: #162434;
+    --color-secondary: #33415C;
+    --color-tertiary: #000d29;
+    --color-checkmark: #428f46;
+    --color-button: #0353A4;
+    --color-button-hover: #0466C8;
+    --color-deny: #5C677D;
+    --color-border: #5C677D;
+    --color-text: #cdd9e5;
+    --color-paragraph:  #9198a1;
 }
 
 .bg-primary {
@@ -35,15 +49,17 @@
 }
 
 .bg-quat {
-    background: var(--color-quaternary);
+    background: var(--color-button);
 }
-.bg-quat-hover:hover, .bg-quat:disabled {
+.bg-quat:disabled {
     /* background: #4d1e0d; */
     background: var(--color-deny);
 }
-
+.bg-quat-hover:hover:enabled {
+    background: var(--color-button-hover);
+}
 .fg-quat {
-    color: var(--color-quaternary);
+    color: var(--color-button);
 }
 
 .color-text {
@@ -139,7 +155,7 @@ thead {
 tr:hover{
    /* background-color: rgba(255, 255, 0, 0.5) !important; */
    /* background-color: #558589 !important; */
-   background-color: var(--color-quaternary) !important;
+   background-color: var(--color-button) !important;
 }
 
 th, td {
@@ -152,12 +168,14 @@ th, td {
 }
 
 tbody tr:nth-child(odd) {
-  background-color: #444;
+  /*background-color: #444;*/
+  background-color: var(--color-secondary);
   color: #fff;
 }
 
 tbody tr:nth-child(even) {
-  background-color: #555;
+  /*background-color: #555;*/
+  background-color: var(--color-deny);
   color: #fff;
 }
 
@@ -194,6 +212,10 @@ body {
     min-height: 100vh;
     flex-basis: 10%;
     flex-shrink: 0;
+}
+
+#navbar > form > button:hover {
+    color: var(--color-button);
 }
 
 #navbar > form > button {
@@ -309,7 +331,7 @@ input::-webkit-inner-spin-button {
   width: 10px;
   height: 20px;
   /* border: solid black; */
-  border: solid var(--color-quaternary);
+  border: solid var(--color-checkmark);
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
 }
