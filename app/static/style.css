@@ -1,17 +1,13 @@
 
 :root {
-    /* --color-primary: rgb(29,30,32); */
-    /* --color-secondary: #397469; */
-    /* --color-tertiary: #20c9ab; */
-    /* --color-quaternary: #c94e20; */
-    /* --color-text: rgb(218, 218, 218) */
     --color-primary: #212830;
-    /* --color-secondary: #57606a; */
     --color-secondary: #3d444d;
     --color-tertiary: #151b23;
     --color-quaternary: #428f46;
     --color-text: #cdd9e5;
     --color-border: #656c76;
+    --color-deny: #8a4e38;
+    --color-paragraph:  #9198a1;
     font-family: "Arial";
 }
 
@@ -43,7 +39,7 @@
 }
 .bg-quat-hover:hover, .bg-quat:disabled {
     /* background: #4d1e0d; */
-    background: #8a4e38;
+    background: var(--color-deny);
 }
 
 .fg-quat {
@@ -91,7 +87,7 @@ h3 {
 #help-container > p {
     font-size: 1.2em;
     max-width: 40em;
-    color:  #9198a1;
+    color: var(--color-paragraph);
     margin-top: 10px;
     /*color:  var(--color-border);*/
 }
@@ -105,14 +101,14 @@ h3 {
 pre {
     /*color: var(--color-text);*/
     /*color:  var(--color-border);*/
-    color:  #9198a1;
+    color: var(--color-paragraph);
     font-size: 1.2em;
 }
 
 code {
     /*color: var(--color-text);*/
     /*color:  var(--color-border);*/
-    color:  #9198a1;
+    color:  var(--color-paragraph);
     font-size: 1em;
 }
 
