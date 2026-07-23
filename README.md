@@ -55,11 +55,11 @@ Build depends on `go`, `make`, `python3` and `pandoc` (optional).
 
 ## Build options
 
-- No web: `go build --tags noweb`
-- Stripped: `go build -ldflags "-s -w"`
-- ARM64: `GOARCH=arm64 go build`
-- ARMv7: `GOARCH=arm go build`
-- ARMv5: `GOARCH=arm GOARM=5 go build`
+- No web: `make noweb`
+- Stripped: `make ARGS='-ldflags "-s -w"'`
+- ARM64: `make GOARCH=arm64`
+- ARMv7: `make GOARCH=arm`
+- ARMv5: `make GOARCH=arm GOARM=5`
 
 No web server and stripping debug info results in a much smaller binary, if
 desired. 14 MB vs 2.8 MB at the time of writing.
