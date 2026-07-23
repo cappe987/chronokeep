@@ -15,7 +15,10 @@
     /*--color-primary: #12253a;*/
     --color-primary: #162434;
     --color-secondary: #33415C;
-    --color-tertiary: #000d29;
+    /*--color-tertiary: #000d29;*/
+    /*--color-tertiary: #121d34;*/
+    /*--color-tertiary: #121a2a;*/
+    --color-tertiary: #10182a;
     --color-checkmark: #428f46;
     --color-button: #0353A4;
     --color-button-hover: #0466C8;
