@@ -16,9 +16,9 @@
       <button class="color-text {{ if .TeRunning}} dot {{ end }} "
           name="page"
           value="te"
-          hx-post="/serve-page"
-          hx-target="#page-content"
+          hx-get="/"
           hx-push-url="/"
+          hx-target="#page-content"
           hx-swap="innerHTML">
               TE Mode
       </button>
@@ -26,9 +26,9 @@
       <button class="color-text"
           name="page"
           value="packet"
-          hx-post="/serve-page"
-          hx-target="#page-content"
+          hx-get="/packet.html"
           hx-push-url="/packet.html"
+          hx-target="#page-content"
           hx-swap="innerHTML">
               Packet Mode
       </button>
@@ -36,19 +36,18 @@
       <button class="color-text"
           name="page"
           value="help"
-          hx-post="/serve-page"
-          hx-target="#page-content"
+          hx-get="/help.html"
           hx-push-url="/help.html"
+          hx-target="#page-content"
           hx-swap="innerHTML">
               Help
       </button>
       <hr style="color: var(--color-border); margin-left: 10px; margin-right: 10px;">
       <button class="color-text"
           name="page"
-          value="examples"
-          hx-post="/serve-page"
-          hx-target="#page-content"
+          hx-get="/examples.html"
           hx-push-url="/examples.html"
+          hx-target="#page-content"
           hx-swap="innerHTML">
               Examples
       </button>

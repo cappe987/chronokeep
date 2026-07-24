@@ -14,7 +14,9 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	. "ckeep/app/cmd"
@@ -322,6 +324,10 @@ func start_app(wa *WebApp, capture bool) {
 	go RunTeMode(wa.TeOpts, wa.App)
 }
 
+func IsHxRequest(r *http.Request) bool {
+	return r.Header.Get("HX-Request") == "true"
+}
+
 func fill_page_data(wa *WebApp, td map[string]any, mode, title string) {
 	td["Mode"] = mode
 	td["ModeTitle"] = title
@@ -356,37 +362,15 @@ func packet_page(wa *WebApp, td map[string]any) {
 	fill_page_data(wa, td, "packet", "Packet Mode")
 }
 
-func serve_page(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		page := r.PostFormValue("page")
-		td := make(map[string]any)
-		switch page {
-		case "te":
-			te_page(wa, td)
-		case "help":
-			help_page(wa, td)
-		case "examples":
-			examples_page(wa, td)
-		case "packet":
-			packet_page(wa, td)
-		default:
-			return
-		}
-		td["DoOob"] = true
-		err := wa.Tmpl[page].Execute(w, td)
-		if err != nil {
-			fmt.Printf("Error executing index.html template: %s\n", err)
-		}
-	}
-}
-
 func serve_index(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		td := make(map[string]any)
-		switch html.EscapeString((r.URL.Path)) {
-		case "/":
+		url := html.EscapeString((r.URL.Path))
+		switch url {
+		case "/": // Default to TE page
+			url = "/te.html"
 			te_page(wa, td)
-		case "/index.html":
+		case "/te.html":
 			te_page(wa, td)
 		case "/packet.html":
 			packet_page(wa, td)
@@ -394,10 +378,23 @@ func serve_index(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 			help_page(wa, td)
 		case "/examples.html":
 			examples_page(wa, td)
+		default:
+			return
 		}
-		err := wa.Tmpl["index.html"].Execute(w, td)
-		if err != nil {
-			fmt.Printf("Error executing index.html template: %s\n", err)
+		url = url[1:]
+
+		if IsHxRequest(r) {
+			url = strings.TrimSuffix(url, filepath.Ext(url))
+			td["DoOob"] = true
+			err := wa.Tmpl[url].Execute(w, td)
+			if err != nil {
+				fmt.Printf("Error executing '%s' template: %s\n", url, err)
+			}
+		} else {
+			err := wa.Tmpl["index.html"].Execute(w, td)
+			if err != nil {
+				fmt.Printf("Error executing '%s' template: %s\n", url, err)
+			}
 		}
 	}
 }
@@ -439,7 +436,6 @@ func WebServer() {
 	http.Handle("/static/", handler)
 	http.HandleFunc("/ws", wsHandler(&webapp))
 	http.HandleFunc("/te-toggle", toggle(&webapp))
-	http.HandleFunc("/serve-page", serve_page(&webapp))
 	http.HandleFunc("/", serve_index(&webapp))
 
 	fmt.Printf("Serving on http://localhost:8080\n")
