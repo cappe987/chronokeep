@@ -7,5 +7,5 @@ ckeep
 *.pdf
 
 # This one is generated dynamically from markdown
-app/tmpl/partials/help.html
-app/tmpl/partials/examples.html
+app/tmpl/help.html
+app/tmpl/examples.html

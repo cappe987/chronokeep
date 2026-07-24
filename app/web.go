@@ -170,7 +170,7 @@ func send_buttons(td map[string]any, w http.ResponseWriter, wa *WebApp) {
 	td["Capturing"] = wa.TeOpts.Capturing
 	err := wa.Tmpl["buttons"].Execute(w, td)
 	if err != nil {
-		fmt.Printf("Error executing index.html template: %s\n", err)
+		fmt.Printf("Error executing buttons template: %s\n", err)
 	}
 }
 
@@ -391,7 +391,7 @@ func serve_index(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 				fmt.Printf("Error executing '%s' template: %s\n", url, err)
 			}
 		} else {
-			err := wa.Tmpl["index.html"].Execute(w, td)
+			err := wa.Tmpl["index"].Execute(w, td)
 			if err != nil {
 				fmt.Printf("Error executing '%s' template: %s\n", url, err)
 			}
