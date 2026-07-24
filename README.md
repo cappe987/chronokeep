@@ -80,13 +80,16 @@ python3 scripts/plot.py measurement.dat
 
 
 ## TODO
-- Submit PR for sys/unix to add HWTSTAMP_TX_ONESTEP_P2P and rx filters: https://github.com/golang/sys/tree/master/unix
+### Finish this before initial release 
+- Fix UDP multicast. With ListenMulticastUDP joins seem to happen but packets
+  are not received.
 - Write tests. How?
-- Fix UDP multicast. With ListenMulticastUDP joins seem to happen but packets are not received.
-- Log levels
+- Log levels. Add debug logs in many places.
+
+### Other TODO
+- Submit PR for sys/unix to add HWTSTAMP_TX_ONESTEP_P2P and rx filters: https://github.com/golang/sys/tree/master/unix
 
 Web:
-- Indicate when capture starts
 - Allow downloading data file for external graph generation
 - Pkt mode:
   - Allow crafting specific sequences
