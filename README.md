@@ -49,6 +49,10 @@ Send a L2 Delay_Req packet on `veth1` using software timestamping (`-S`).
 Not every feature and flag is available in the web. Though, many can be set via
 config file and are then used in the web too.
 
+![time error mode](doc/images/te-mode.png)
+
+![time error charts](doc/images/charts.png)
+
 ## Dependencies
 
 Build depends on `go`, `make`, `python3` and `pandoc` (optional).
@@ -77,8 +81,6 @@ python3 scripts/plot.py measurement.dat
 
 ## TODO
 - Submit PR for sys/unix to add HWTSTAMP_TX_ONESTEP_P2P and rx filters: https://github.com/golang/sys/tree/master/unix
-- Redesign webgui again? New color scheme? I need to get better at frontend.
-- Add images to README
 - Write tests. How?
 - Fix UDP multicast. With ListenMulticastUDP joins seem to happen but packets are not received.
 - Log levels
