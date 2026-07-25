@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	p1 = "veth1"
-	p2 = "veth2"
+	p1name = "veth1"
+	p2name = "veth2"
 )
 
 var opts = CommonOpts{Mode: "pkt"}
@@ -15,29 +15,35 @@ var app *App
 var txp Port
 var rxp Port
 
-func init() {
+func InitTesting() {
 	opts.InitDefaults()
 	opts.SwTstamp = true
 	app = NewApp(opts, false, true)
 }
 
-func initPorts() {
-	txp = Port{IfaceStr: p1}
-	rxp = Port{IfaceStr: p2}
-	txp.Silent = true
-	rxp.Silent = true
+func InitTestPorts() {
+	txp = Port{
+		IfaceStr:       p1name,
+		Silent:         true,
+		MockTimestamps: true,
+	}
+	rxp = Port{
+		IfaceStr:       p2name,
+		Silent:         true,
+		MockTimestamps: true,
+	}
 	txp.Init(app, 0)
 	rxp.Init(app, 0)
 }
 
-func deinitPorts() {
+func DeinitTestPorts() {
 	txp.Deinit()
 	rxp.Deinit()
 }
 
 func TestSinglePacket(t *testing.T) {
-	initPorts()
-	defer deinitPorts()
+	InitTestPorts()
+	defer DeinitTestPorts()
 	const seq = 99
 	const corr = 123
 	sync := txp.BuildSync(seq, corr)
@@ -71,8 +77,8 @@ func TestSinglePacket(t *testing.T) {
 	}
 }
 func TestSyncFup(t *testing.T) {
-	initPorts()
-	defer deinitPorts()
+	InitTestPorts()
+	defer DeinitTestPorts()
 
 	txSync, txFup, err := txp.TransmitSyncFup()
 	if err != nil {
@@ -107,8 +113,8 @@ func TestSyncFup(t *testing.T) {
 }
 
 func TestManyPackets(t *testing.T) {
-	initPorts()
-	defer deinitPorts()
+	InitTestPorts()
+	defer DeinitTestPorts()
 	// Too high number here fills up the socket queue. 222 is the limit for me.
 	const count = 100
 
@@ -145,8 +151,8 @@ func TestManyPackets(t *testing.T) {
 }
 
 func TestDelayReply(t *testing.T) {
-	initPorts()
-	defer deinitPorts()
+	InitTestPorts()
+	defer DeinitTestPorts()
 	txp.TransmitDelayReq()
 	rxReq, err := rxp.ReceiveOneEvent()
 	if err != nil {
@@ -170,8 +176,8 @@ func TestDelayReply(t *testing.T) {
 }
 
 func TestPDelayReply(t *testing.T) {
-	initPorts()
-	defer deinitPorts()
+	InitTestPorts()
+	defer DeinitTestPorts()
 	txReq, err := txp.TransmitPDelayReq()
 	if err != nil {
 		t.Fatalf("Error sending delayReq: %s", err)
