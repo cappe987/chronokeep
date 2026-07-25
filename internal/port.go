@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"sync"
 	"syscall"
 	"time"
 	"unsafe"
@@ -156,7 +155,7 @@ func (port *Port) receive(buf []byte, oob []byte, getTs bool) (*PacketData, erro
 func (port *Port) receive_get_ts(buf []byte, oob []byte) (*PacketData, error) {
 	pd, err := port.receive(buf, oob, true)
 	if port.MockTimestamps && pd != nil {
-		pd.HwTstamp = port.MockTimestamp()
+		pd.HwTstamp = MockTimestamp()
 	}
 	return pd, err
 }
@@ -375,6 +374,7 @@ func (port *Port) transmitPkt(pkt *ptp.Packet) error {
 	}
 
 	if port.Layer == LayerMac {
+		// TODO: Add real MAC here
 		hdr := []byte{0x01, 0x1b, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xaa, 0xaa, 0xaa}
 		ethertype := []byte{0x88, 0xf7}
 		p := *pkt
@@ -432,7 +432,7 @@ func (port *Port) transmit_get_ts(pkt *ptp.Packet, oob []byte, toob []byte) (*ti
 		return nil, nil, err
 	}
 	if port.MockTimestamps {
-		hwts = port.MockTimestamp()
+		hwts = MockTimestamp()
 	}
 	if port.opts.EgressLatency != 0 {
 		hwts = hwts.Add(time.Duration(port.opts.EgressLatency))
@@ -697,20 +697,4 @@ func (port *Port) ReplyToPDelayReq(pd *PacketData) (*PacketData, *PacketData, er
 	}
 	port.ShowPacket(respFup)
 	return resp, respFup, nil
-}
-
-// Base time is 10 000 seconds after unix
-const baseMicro = 10000 * 1000000
-
-var tsIdx int64 = 0
-var mutex sync.Mutex
-
-func (port *Port) MockTimestamp() time.Time {
-	mutex.Lock()
-	idx := tsIdx
-	tsIdx += 1
-	mutex.Unlock()
-
-	// Each timestamp happens 1 microsecond apart
-	return time.UnixMicro(baseMicro + (idx * 1))
 }

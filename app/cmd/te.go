@@ -212,8 +212,6 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 		delayRecordTimer.Stop()
 	}
 
-	// TODO: Bad file descriptor after seqid ~280. Seems to be an UDP problem
-
 	if !app.Cli {
 		log.Printf("Starting TE Mode")
 	}

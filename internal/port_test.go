@@ -5,40 +5,8 @@ import (
 	"time"
 )
 
-const (
-	p1name = "veth1"
-	p2name = "veth2"
-)
-
-var opts = CommonOpts{Mode: "pkt"}
-var app *App
-var txp Port
-var rxp Port
-
-func InitTesting() {
-	opts.InitDefaults()
-	opts.SwTstamp = true
-	app = NewApp(opts, false, true)
-}
-
-func InitTestPorts() {
-	txp = Port{
-		IfaceStr:       p1name,
-		Silent:         true,
-		MockTimestamps: true,
-	}
-	rxp = Port{
-		IfaceStr:       p2name,
-		Silent:         true,
-		MockTimestamps: true,
-	}
-	txp.Init(app, 0)
-	rxp.Init(app, 0)
-}
-
-func DeinitTestPorts() {
-	txp.Deinit()
-	rxp.Deinit()
+func init() {
+	InitTesting()
 }
 
 func TestSinglePacket(t *testing.T) {
@@ -46,8 +14,8 @@ func TestSinglePacket(t *testing.T) {
 	defer DeinitTestPorts()
 	const seq = 99
 	const corr = 123
-	sync := txp.BuildSync(seq, corr)
-	err := txp.Transmit(sync)
+	sync := Server.BuildSync(seq, corr)
+	err := Server.Transmit(sync)
 	if err != nil {
 		t.Fatalf("Error sending sync: %s", err)
 	}
@@ -59,7 +27,7 @@ func TestSinglePacket(t *testing.T) {
 		t.Errorf("Transmitted sync does not have TwoStepFlag set")
 	}
 
-	rxpd, err := rxp.ReceiveOneEvent()
+	rxpd, err := Client.ReceiveOneEvent()
 	if err != nil {
 		t.Fatalf("Error receiving sync: %s", err)
 	}
@@ -80,15 +48,15 @@ func TestSyncFup(t *testing.T) {
 	InitTestPorts()
 	defer DeinitTestPorts()
 
-	txSync, txFup, err := txp.TransmitSyncFup()
+	txSync, txFup, err := Server.TransmitSyncFup()
 	if err != nil {
 		t.Fatalf("Error sending sync/fup: %s", err)
 	}
-	rxSync, err := rxp.ReceiveOneEvent()
+	rxSync, err := Client.ReceiveOneEvent()
 	if err != nil {
 		t.Fatalf("Error receiving sync: %s", err)
 	}
-	rxFup, err := rxp.ReceiveOneGeneral()
+	rxFup, err := Client.ReceiveOneGeneral()
 	if err != nil {
 		t.Fatalf("Error receiving fup: %s", err)
 	}
@@ -119,12 +87,12 @@ func TestManyPackets(t *testing.T) {
 	const count = 100
 
 	for _ = range count {
-		txp.TransmitAnnounce()
+		Server.TransmitAnnounce()
 	}
 
 	var pkts []PacketData
 	for i := range count {
-		pd, err := rxp.ReceiveOneGeneral()
+		pd, err := Client.ReceiveOneGeneral()
 		if err != nil {
 			t.Fatalf("Error receiving packet id %d: %s", i, err)
 		}
@@ -137,13 +105,13 @@ func TestManyPackets(t *testing.T) {
 		t.Errorf("Expected %d packets. Got %d", count, len(pkts))
 	}
 
-	for i, pd := range txp.txRecord {
+	for i, pd := range Server.txRecord {
 		if pd.GetSequenceID() != uint16(i) {
 			t.Errorf("Wrong seqID in TX record. Expected %d. Got %d", i, pd.GetSequenceID())
 		}
 	}
 
-	for i, pd := range rxp.rxRecord {
+	for i, pd := range Client.rxRecord {
 		if pd.GetSequenceID() != uint16(i) {
 			t.Errorf("Wrong seqID in RX record. Expected %d. Got %d", i, pd.GetSequenceID())
 		}
@@ -153,17 +121,17 @@ func TestManyPackets(t *testing.T) {
 func TestDelayReply(t *testing.T) {
 	InitTestPorts()
 	defer DeinitTestPorts()
-	txp.TransmitDelayReq()
-	rxReq, err := rxp.ReceiveOneEvent()
+	Server.TransmitDelayReq()
+	rxReq, err := Client.ReceiveOneEvent()
 	if err != nil {
 		t.Fatalf("Error receiving delayReq: %s", err)
 	}
-	_, err = rxp.ReplyToDelayReq(rxReq)
+	_, err = Client.ReplyToDelayReq(rxReq)
 	if err != nil {
 		t.Fatalf("Error sending delayResp: %s", err)
 	}
 
-	rxResp, err := txp.ReceiveOneGeneral()
+	rxResp, err := Server.ReceiveOneGeneral()
 	if err != nil {
 		t.Fatalf("Error receiving delayResp: %s", err)
 	}
@@ -178,24 +146,24 @@ func TestDelayReply(t *testing.T) {
 func TestPDelayReply(t *testing.T) {
 	InitTestPorts()
 	defer DeinitTestPorts()
-	txReq, err := txp.TransmitPDelayReq()
+	txReq, err := Server.TransmitPDelayReq()
 	if err != nil {
 		t.Fatalf("Error sending delayReq: %s", err)
 	}
-	rxReq, err := rxp.ReceiveOneEvent()
+	rxReq, err := Client.ReceiveOneEvent()
 	if err != nil {
 		t.Fatalf("Error receiving delayReq: %s", err)
 	}
-	_, _, err = rxp.ReplyToPDelayReq(rxReq)
+	_, _, err = Client.ReplyToPDelayReq(rxReq)
 	if err != nil {
 		t.Fatalf("Error sending pdelayResp/pdelayRespFup: %s", err)
 	}
 
-	rxResp, err := txp.ReceiveOneEvent()
+	rxResp, err := Server.ReceiveOneEvent()
 	if err != nil {
 		t.Fatalf("Error receiving pdelayResp: %s", err)
 	}
-	rxRespFup, err := txp.ReceiveOneGeneral()
+	rxRespFup, err := Server.ReceiveOneGeneral()
 	if err != nil {
 		t.Fatalf("Error receiving pdelayRespFup: %s", err)
 	}
