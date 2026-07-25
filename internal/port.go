@@ -157,10 +157,16 @@ func (port *Port) receive_no_ts(buf []byte, oob []byte) (*PacketData, error) {
 	return port.receive(buf, oob, false)
 }
 
-func (port *Port) ReceiveOne() (*PacketData, error) {
+func (port *Port) ReceiveOne(isEvent bool) (*PacketData, error) {
 	buf := make([]byte, timestamp.PayloadSizeBytes)
 	oob := make([]byte, timestamp.ControlSizeBytes)
-	pd, err := port.receive_get_ts(buf, oob)
+	var pd *PacketData
+	var err error
+	if isEvent {
+		pd, err = port.receive_get_ts(buf, oob)
+	} else {
+		pd, err = port.receive_no_ts(buf, oob)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -427,8 +433,8 @@ func (port *Port) transmit_no_ts(pkt *ptp.Packet, oob []byte, toob []byte) (*tim
 	return &hwts, &swts, nil
 }
 
-// TODO: Handle event vs general packets. Now everything expects timestamp
-func (port *Port) Transmit(pd *PacketData) *PacketData {
+// TODO: Return error
+func (port *Port) Transmit(pd *PacketData) (*PacketData, error) {
 	oob := make([]byte, timestamp.ControlSizeBytes)
 	toob := make([]byte, timestamp.ControlSizeBytes)
 	var hwts *time.Time
@@ -440,15 +446,15 @@ func (port *Port) Transmit(pd *PacketData) *PacketData {
 		hwts, swts, err = port.transmit_no_ts(&pd.Packet, oob, toob)
 	}
 	if err != nil {
-		fmt.Printf("Error %s\n", err)
-		return nil
+		// fmt.Printf("Error %s\n", err)
+		return nil, err
 	}
 	// fmt.Printf("Timestamp %d\n", hwts.UnixNano())
 	pd.HwTstamp = *hwts
 	pd.SwTstamp = *swts
 	pd.Iface = port.IfaceStr
 	port.recordTx(*pd)
-	return pd
+	return pd, nil
 }
 
 // func (port *Port) TxMode(input, output chan PacketData, quit chan int) {

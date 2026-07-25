@@ -57,6 +57,12 @@ config file and are then used in the web too.
 
 Build depends on `go`, `make`, `python3` and `pandoc` (optional).
 
+## Testing
+
+```bash
+make test
+```
+
 ## Build options
 
 - No web: `make noweb`
@@ -84,7 +90,7 @@ python3 scripts/plot.py measurement.dat
 ### Finish this before initial release 
 - Test multicast UDP on HW. Veth ports in same namespace breaks multicast. TE
   should support netns?
-- Write tests. How?
+- Write tests.
 - Log levels. Add debug logs in many places.
 
 ### Other TODO
