@@ -167,7 +167,6 @@ func PktMode() {
 	for running {
 		select {
 		case <-sigs:
-			quit <- 0
 			running = false
 		case _ = <-rxCh:
 		case <-ticker.C:
@@ -183,7 +182,7 @@ func PktMode() {
 			}
 		}
 	}
-	// TODO: Requires HW to test
+	close(quit)
 	port.Deinit()
 	if !app.Cli {
 		log.Printf("Exiting Packet Mode")

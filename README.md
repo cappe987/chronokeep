@@ -93,8 +93,6 @@ python3 scripts/plot.py measurement.dat
 - Write tests.
 - Log levels. Add debug logs in many places.
 - Use real MAC in transmitPkt
-- Add `defer signal.Stop(sigs)` to all modes.
-- Always close channels on exit for all modes.
 
 ### Other TODO
 - Submit PR for sys/unix to add HWTSTAMP_TX_ONESTEP_P2P and rx filters: https://github.com/golang/sys/tree/master/unix

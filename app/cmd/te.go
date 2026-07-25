@@ -221,10 +221,7 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 	for running {
 		select {
 		case <-sigs:
-			serverQuit <- 0
-			clientQuit <- 0
 			running = false
-			signal.Stop(sigs)
 			// TODO: Temporary while developing
 			// app.Out <- []byte("exit")
 		case pd := <-serverRx:
@@ -270,15 +267,15 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 			str := string(msg)
 			switch str {
 			case "exit":
-				serverQuit <- 0
-				clientQuit <- 0
 				running = false
-				signal.Stop(sigs)
 			case "record":
 				client.EnableRecording()
 			}
 		}
 	}
+	signal.Stop(sigs)
+	close(serverQuit)
+	close(clientQuit)
 	server.Deinit()
 	client.Deinit()
 
