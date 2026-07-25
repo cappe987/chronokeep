@@ -82,7 +82,7 @@ python3 scripts/plot.py measurement.dat
 ## TODO
 ### Finish this before initial release 
 - Test multicast UDP on HW. Veth ports in same namespace breaks multicast. TE
-  should support netns? Need to somehow handle testing.
+  should support netns? Probably skip testing for TE UDP multicast.
 - Write tests. How?
 - Log levels. Add debug logs in many places.
 
@@ -104,6 +104,11 @@ Web:
   for `ptpmon` to transmit data from `ptp4l` to a TCP server. Display with
   chart.js?
 - Live updating of charts
+
+To handle netns in TE it should probably run both RX and TX on its own thread.
+But that requires refactoring so the main thread can send TX actions to the
+namespace thread. Or simply break out the server port to its own
+thread/goroutine. This is probably easiest. Use https://github.com/vishvananda/netns
 
 ## Credits
 
