@@ -157,7 +157,7 @@ func (port *Port) receive_no_ts(buf []byte, oob []byte) (*PacketData, error) {
 	return port.receive(buf, oob, false)
 }
 
-func (port *Port) ReceiveOne(isEvent bool) (*PacketData, error) {
+func (port *Port) receiveOne(isEvent bool) (*PacketData, error) {
 	buf := make([]byte, timestamp.PayloadSizeBytes)
 	oob := make([]byte, timestamp.ControlSizeBytes)
 	var pd *PacketData
@@ -171,6 +171,14 @@ func (port *Port) ReceiveOne(isEvent bool) (*PacketData, error) {
 		return nil, err
 	}
 	return pd, nil
+}
+
+func (port *Port) ReceiveOneEvent() (*PacketData, error) {
+	return port.receiveOne(true)
+}
+
+func (port *Port) ReceiveOneGeneral() (*PacketData, error) {
+	return port.receiveOne(false)
 }
 
 func (port *Port) rxEvent(ch chan PacketData, quit chan int) {

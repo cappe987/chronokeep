@@ -96,6 +96,7 @@ python3 scripts/plot.py measurement.dat
 ### Other TODO
 - Submit PR for sys/unix to add HWTSTAMP_TX_ONESTEP_P2P and rx filters: https://github.com/golang/sys/tree/master/unix
 - Improve IP configuration. CLI vs config file.
+- Mock timestamps when testing stats?
 
 Web:
 - Allow downloading data file for external graph generation
