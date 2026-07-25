@@ -71,8 +71,9 @@ desired. 14 MB vs 2.8 MB at the time of writing.
 
 ## Generate PDF
 
-A `measurement.dat` file is generated when Time Error capture is stopped.
-Running the plotting script on it will create the file `output.pdf`.
+A data file is generated when Time Error capture is stopped if enabled with `-e
+<filename>` (CLI) or `Export = <filename>` (config file). Running the plotting
+script on it will create the file `output.pdf`.
 
 ```bash
 python3 scripts/plot.py measurement.dat
@@ -82,7 +83,7 @@ python3 scripts/plot.py measurement.dat
 ## TODO
 ### Finish this before initial release 
 - Test multicast UDP on HW. Veth ports in same namespace breaks multicast. TE
-  should support netns? Probably skip testing for TE UDP multicast.
+  should support netns?
 - Write tests. How?
 - Log levels. Add debug logs in many places.
 
