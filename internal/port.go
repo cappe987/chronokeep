@@ -362,6 +362,12 @@ func (p *Port) openSocket(isEventSocket bool) error {
 	return nil
 }
 
+func isPdelay(msgtype ptp.MessageType) bool {
+	return msgtype == ptp.MessagePDelayReq ||
+		msgtype == ptp.MessagePDelayResp ||
+		msgtype == ptp.MessagePDelayRespFollowUp
+}
+
 func (port *Port) transmitPkt(pkt *ptp.Packet) error {
 	// buf := make([]byte, timestamp.PayloadSizeBytes)
 
@@ -370,18 +376,18 @@ func (port *Port) transmitPkt(pkt *ptp.Packet) error {
 	bytes = bytes[:len(bytes)-2]
 	// n = n - 2 // Trim the unused TLV
 	if err != nil {
-		log.Fatalf("Failed to generate the sync packet: %v", err)
+		log.Fatalf("Failed to generate the packet: %s", err)
 	}
 
 	if port.Layer == LayerMac {
-		// TODO: Add real MAC here
-		hdr := []byte{0x01, 0x1b, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xaa, 0xaa, 0xaa}
+		hdr := []byte{0x01, 0x1b, 0x19, 0x00, 0x00, 0x00}
 		ethertype := []byte{0x88, 0xf7}
 		p := *pkt
 		msgtype := p.MessageType()
-		if msgtype == ptp.MessagePDelayReq || msgtype == ptp.MessagePDelayResp || msgtype == ptp.MessagePDelayRespFollowUp {
-			hdr = []byte{0x01, 0x80, 0xC2, 0x00, 0x00, 0x0E, 0x00, 0x00, 0x00, 0xaa, 0xaa, 0xaa}
+		if isPdelay(msgtype) {
+			hdr = []byte{0x01, 0x80, 0xC2, 0x00, 0x00, 0x0E}
 		}
+		hdr = append(hdr, port.Mac...)
 		if port.opts.Vlan != nil {
 			pcp := uint16(0)
 			pcp = (uint16(port.opts.Prio) & 0x7) << 13
@@ -393,9 +399,7 @@ func (port *Port) transmitPkt(pkt *ptp.Packet) error {
 			hdr = append(hdr, tag...)
 		}
 		hdr = append(hdr, ethertype...)
-		// packet := append(hdr, buf[:n]...)
 		packet := append(hdr, bytes...)
-		// fmt.Println(len(packet), n)
 		var addr syscall.SockaddrLinklayer
 		addr.Protocol = syscall.ETH_P_1588
 		addr.Ifindex = port.Interface.Index
@@ -413,7 +417,6 @@ func (port *Port) transmitPkt(pkt *ptp.Packet) error {
 			sock = port.gfd
 		}
 		eclisa := timestamp.IPToSockaddr(port.DestIP, udp_port)
-		// err = unix.Sendto(port.efd, buf[:n], 0, eclisa)
 		err = unix.Sendto(sock, bytes, 0, eclisa)
 	} else {
 		log.Fatal("transmit: not implemented")
