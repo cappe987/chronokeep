@@ -579,6 +579,13 @@ func (port *Port) Init(app *App, portnum uint16) error {
 
 func (port *Port) Deinit() {
 	timestamp.DisableTimestamps(port.efd, port.Interface)
+	if port.Layer == LayerMac {
+		syscall.Close(port.efd)
+		syscall.Close(port.gfd)
+	} else {
+		port.econn.Close()
+		port.gconn.Close()
+	}
 }
 
 func (port *Port) GetVersion() uint8 {
