@@ -490,10 +490,12 @@ func makeClockIdentity(iface *net.Interface) uint64 {
 func (port *Port) Init(app *App, portnum uint16) error {
 	if app.Opts.Udp {
 		ip := net.ParseIP(app.Opts.Ip)
-		dest := net.ParseIP(app.Opts.DestIp)
+		if app.Opts.DestIp != "" {
+			dest := net.ParseIP(app.Opts.DestIp)
+			port.DestIP = dest
+		}
 		port.Layer = LayerUDPv4
 		port.IP = ip
-		port.DestIP = dest
 	} else {
 		port.Layer = LayerMac
 	}

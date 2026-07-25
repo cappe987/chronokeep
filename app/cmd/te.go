@@ -19,6 +19,7 @@ type TeOpts struct {
 	// Count       uint32
 	Peertopeer  bool
 	DelayRecord uint32
+	Unicast     bool
 
 	// Internal fields
 	IntervalTime time.Duration
@@ -40,6 +41,7 @@ func TeMode() {
 	// opts.AddModeOpt(mode, &teOpts.Count, 'c', "count", "<num>", "Number of packets to transmit. 0=infinite")
 	opts.AddModeOpt(opts.Mode, &teOpts.DelayRecord, 'D', "delay_record", "<seconds>", "Time to wait until recording starts. Default: 0 seconds")
 	opts.AddModeOpt(opts.Mode, &teOpts.Export, 'e', "export", "<filename>", "Export data to file")
+	opts.AddModeOpt(opts.Mode, &teOpts.Unicast, 'U', "unicast", "", "Run in L4 unicast mode")
 
 	if !opts.ParseFile(&teOpts) {
 		return
@@ -140,6 +142,11 @@ func ValidateTeOpts(teOpts *TeOpts, opts *CommonOpts) error {
 		IP:       ip2,
 		DestIP:   ip1,
 		PortOpts: p2,
+	}
+	if teOpts.Unicast {
+		opts.DestIp = ""
+	} else { // This overrides the Port DestIP on Init()
+		opts.DestIp = "224.0.1.129"
 	}
 	teOpts.server = server
 	teOpts.client = client

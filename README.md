@@ -81,14 +81,14 @@ python3 scripts/plot.py measurement.dat
 
 ## TODO
 ### Finish this before initial release 
-- Fix UDP multicast. With ListenMulticastUDP joins seem to happen but packets
-  are not received.
-- Test multicast UDP on HW. Veth ports in same namespace breaks multicast. TE should support netns?
+- Test multicast UDP on HW. Veth ports in same namespace breaks multicast. TE
+  should support netns? Need to somehow handle testing.
 - Write tests. How?
 - Log levels. Add debug logs in many places.
 
 ### Other TODO
 - Submit PR for sys/unix to add HWTSTAMP_TX_ONESTEP_P2P and rx filters: https://github.com/golang/sys/tree/master/unix
+- Improve IP configuration. CLI vs config file.
 
 Web:
 - Allow downloading data file for external graph generation
