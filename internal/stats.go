@@ -559,12 +559,6 @@ func CalcPDelay(req *PacketData, resp *PacketData, respFup *PacketData) *time.Du
 	}
 
 	t1 := req.HwTstamp
-	// t2 := resp.GetPDelayRespRequestReceiptTimestamp().Time().UnixNano()
-	// TODO: This seriously needs better handling. An empty field converted
-	// to Time() does not correspond to 1970. Golang interprets it as
-	// 0001-01-01 00:00:00. Patching facebook/time to add a .Nano() method.
-	// Facebook probably uses the Unix time for all calculations. I prefer
-	// integers.
 	t2 := resp.GetPDelayRespRequestReceiptTimestamp().Time()
 	t3 := time.Time{}
 	t4 := resp.HwTstamp
@@ -574,7 +568,8 @@ func CalcPDelay(req *PacketData, resp *PacketData, respFup *PacketData) *time.Du
 		t3 = respFup.GetPDelayRespFupResponseOriginTimestamp().Time()
 		c2 = respFup.GetCorrectionField()
 	}
-	// fmt.Printf("t1 %d | t2 %d | t3 %d | t4 %d\n", t1.UnixNano(), t2.UnixNano(), t3.UnixNano(), t4.UnixNano())
+	// fmt.Printf("t1 %d | t2 %d | t3 %d | t4 %d | c1 %d | c2 %d\n",
+	// 	t1.UnixNano(), t2.UnixNano(), t3.UnixNano(), t4.UnixNano(), c1, c2)
 	pdelay := ((t4.Sub(t1)) - (t3.Sub(t2)) - c1 - c2) / 2
 	return &pdelay
 }
