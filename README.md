@@ -83,6 +83,7 @@ python3 scripts/plot.py measurement.dat
 ### Finish this before initial release 
 - Fix UDP multicast. With ListenMulticastUDP joins seem to happen but packets
   are not received.
+- Test multicast UDP on HW. Veth ports in same namespace breaks multicast. TE should support netns?
 - Write tests. How?
 - Log levels. Add debug logs in many places.
 

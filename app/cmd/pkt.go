@@ -46,8 +46,7 @@ func PktMode() {
 	pktOpts.Vlan = -1
 	pktOpts.Prio = -1
 	noWait := false
-	opts.Iface = "dummy"
-	opts.Ip = "dummy"
+	opts.InitDefaults()
 
 	opts.DefineCommonFlags()
 	opts.AddModeOpt(mode, &pktOpts.Interval, 'I', "interval", "<ms>", "TX packet interval (ms)")
@@ -170,8 +169,7 @@ func PktMode() {
 		case <-sigs:
 			quit <- 0
 			running = false
-		case pd := <-rxCh:
-			pd.Print()
+		case _ = <-rxCh:
 		case <-ticker.C:
 			txPackets(&port, &pktOpts)
 			if infinite {

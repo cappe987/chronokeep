@@ -35,8 +35,7 @@ func DelayMode() {
 	delayOpts.Interval = uint32(1000)
 	delayOpts.Vlan = -1
 	delayOpts.Prio = -1
-	opts.Iface = "dummy"
-	opts.Ip = "dummy"
+	opts.InitDefaults()
 
 	opts.DefineCommonFlags()
 	opts.AddModeOpt(mode, &delayOpts.Interval, 'I', "interval", "<ms>", "TX packet interval (ms)")

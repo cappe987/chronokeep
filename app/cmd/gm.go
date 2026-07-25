@@ -24,6 +24,7 @@ func GmMode() {
 	var opts = CommonOpts{Mode: "gm"}
 	var gmOpts = gmOpts{}
 	interval_ms := uint32(1000)
+	opts.InitDefaults()
 
 	opts.DefineCommonFlags()
 	opts.RecordPackets = false

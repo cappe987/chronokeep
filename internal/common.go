@@ -104,7 +104,6 @@ func (opts *CommonOpts) AddModeOpt(mode string, v interface{}, short rune, long 
 }
 
 func (opts *CommonOpts) InitDefaults() {
-	// TODO: IP multicast not working yet
 	opts.DestIp = "224.0.1.129" // TODO: 224.0.0.107 for pdelays
 	opts.Mac = "01:1b:19:00:00:00"
 	opts.RecordPackets = true

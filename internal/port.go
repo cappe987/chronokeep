@@ -310,21 +310,24 @@ func (p *Port) openSocket(isEventSocket bool) error {
 
 		// fmt.Printf("Opened L2 socket on %s\n", p.IfaceStr)
 	} else if p.Layer == LayerUDPv4 {
-		// TODO: Multicast is not working. net.ListenMulticastUDP probably
 		var udp_port int
+		var conn *net.UDPConn
+		var err error
 		if isEventSocket {
 			udp_port = event_port
 		} else {
 			udp_port = general_port
 		}
-		conn, err := net.ListenUDP("udp", &net.UDPAddr{IP: p.IP, Port: udp_port})
-		// addr := &net.UDPAddr{IP: net.ParseIP("224.0.1.129"), Port: udp_port}
-		// conn, err := net.ListenMulticastUDP("udp4", p.Interface, addr)
+		if p.DestIP.IsMulticast() {
+			addr := &net.UDPAddr{IP: p.DestIP, Port: udp_port}
+			conn, err = net.ListenMulticastUDP("udp4", p.Interface, addr)
+		} else {
+			addr := &net.UDPAddr{IP: p.IP, Port: udp_port}
+			conn, err = net.ListenUDP("udp", addr)
+		}
 		if err != nil {
 			log.Fatalf("Listening error: %s", err)
 		}
-		// defer conn.Close()
-		// get connection file descriptor
 		fd, err := timestamp.ConnFd(conn)
 		if isEventSocket {
 			p.efd = fd
@@ -379,9 +382,18 @@ func (port *Port) transmitPkt(pkt *ptp.Packet) error {
 
 		err = syscall.Sendto(port.efd, packet, 0, &addr)
 	} else if port.Layer == LayerUDPv4 {
-		eclisa := timestamp.IPToSockaddr(port.DestIP, event_port)
+		var udp_port int
+		var sock int
+		if IsEventPacket(pkt) {
+			udp_port = event_port
+			sock = port.efd
+		} else {
+			udp_port = general_port
+			sock = port.gfd
+		}
+		eclisa := timestamp.IPToSockaddr(port.DestIP, udp_port)
 		// err = unix.Sendto(port.efd, buf[:n], 0, eclisa)
-		err = unix.Sendto(port.efd, bytes, 0, eclisa)
+		err = unix.Sendto(sock, bytes, 0, eclisa)
 	} else {
 		log.Fatal("transmit: not implemented")
 	}

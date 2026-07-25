@@ -74,6 +74,17 @@ func (pd *PacketData) IsPDelay() bool {
 	return msgtype == ptp.MessagePDelayReq || msgtype == ptp.MessagePDelayResp || msgtype == ptp.MessagePDelayRespFollowUp
 }
 
+func IsEventPacket(packet *ptp.Packet) bool {
+	p := *packet
+	msgtype := p.MessageType()
+	switch msgtype {
+	case ptp.MessageSync, ptp.MessageDelayReq, ptp.MessagePDelayReq, ptp.MessagePDelayResp:
+		return true
+	default:
+		return false
+	}
+}
+
 func (pd *PacketData) IsInformationPacket() bool {
 	msgtype := pd.Packet.MessageType()
 	switch msgtype {
