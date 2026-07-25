@@ -191,12 +191,17 @@ func client(app *App, do *DelayOpts, port *Port) {
 			}
 		case <-ticker.C:
 			var req *PacketData
+			var err error
 			if do.Peertopeer {
-				req = port.TransmitPDelayReq()
+				req, err = port.TransmitPDelayReq()
 			} else {
-				req = port.TransmitDelayReq()
+				req, err = port.TransmitDelayReq()
 			}
-			reqs = append(reqs, *req)
+			if err != nil {
+				fmt.Printf("Error: %s\n", err)
+			} else {
+				reqs = append(reqs, *req)
+			}
 		}
 	}
 	port.Deinit()

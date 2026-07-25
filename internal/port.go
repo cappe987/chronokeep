@@ -442,7 +442,7 @@ func (port *Port) transmit_no_ts(pkt *ptp.Packet, oob []byte, toob []byte) (*tim
 }
 
 // TODO: Return error
-func (port *Port) Transmit(pd *PacketData) (*PacketData, error) {
+func (port *Port) Transmit(pd *PacketData) error {
 	oob := make([]byte, timestamp.ControlSizeBytes)
 	toob := make([]byte, timestamp.ControlSizeBytes)
 	var hwts *time.Time
@@ -455,14 +455,14 @@ func (port *Port) Transmit(pd *PacketData) (*PacketData, error) {
 	}
 	if err != nil {
 		// fmt.Printf("Error %s\n", err)
-		return nil, err
+		return err
 	}
 	// fmt.Printf("Timestamp %d\n", hwts.UnixNano())
 	pd.HwTstamp = *hwts
 	pd.SwTstamp = *swts
 	pd.Iface = port.IfaceStr
 	port.recordTx(*pd)
-	return pd, nil
+	return nil
 }
 
 // func (port *Port) TxMode(input, output chan PacketData, quit chan int) {
@@ -597,63 +597,87 @@ func (port *Port) ShowPacket(pd *PacketData) {
 	}
 }
 
-func (port *Port) TransmitSyncFup() (*PacketData, *PacketData) {
+func (port *Port) TransmitSyncFup() (*PacketData, *PacketData, error) {
 	var sync *PacketData
 	if port.opts.Onestep {
 		sync = port.BuildSync(port.syncSeq, port.opts.EgressLatency)
 	} else {
 		sync = port.BuildSync(port.syncSeq, 0)
 	}
-	port.Transmit(sync)
+	err := port.Transmit(sync)
+	if err != nil {
+		return nil, nil, err
+	}
 	port.ShowPacket(sync)
 	port.syncSeq += 1
 	if !port.opts.Onestep {
 		fup := port.MakeFollowUp(sync)
-		port.Transmit(fup)
+		err := port.Transmit(fup)
+		if err != nil {
+			return nil, nil, err
+		}
 		port.ShowPacket(fup)
-		return sync, fup
+		return sync, fup, nil
 	}
-	return sync, nil
+	return sync, nil, nil
 }
 
-func (port *Port) TransmitAnnounce() *PacketData {
+func (port *Port) TransmitAnnounce() (*PacketData, error) {
 	anno := port.BuildAnnounce(port.annoSeq)
-	port.Transmit(anno)
+	err := port.Transmit(anno)
+	if err != nil {
+		return nil, err
+	}
 	port.ShowPacket(anno)
 	port.annoSeq += 1
-	return anno
+	return anno, nil
 }
 
-func (port *Port) TransmitPDelayReq() *PacketData {
+func (port *Port) TransmitPDelayReq() (*PacketData, error) {
 	pdelayReq := port.BuildPDelayReq(port.delaySeq)
-	port.Transmit(pdelayReq)
+	err := port.Transmit(pdelayReq)
+	if err != nil {
+		return nil, err
+	}
 	port.ShowPacket(pdelayReq)
 	port.delaySeq += 1
-	return pdelayReq
+	return pdelayReq, nil
 }
 
-func (port *Port) TransmitDelayReq() *PacketData {
+func (port *Port) TransmitDelayReq() (*PacketData, error) {
 	delayReq := port.BuildDelayReq(port.delaySeq)
-	port.Transmit(delayReq)
+	err := port.Transmit(delayReq)
+	if err != nil {
+		return nil, err
+	}
 	port.ShowPacket(delayReq)
 	port.delaySeq += 1
-	return delayReq
+	return delayReq, nil
 }
 
-func (port *Port) ReplyToDelayReq(pd *PacketData) *PacketData {
+func (port *Port) ReplyToDelayReq(pd *PacketData) (*PacketData, error) {
 	resp := port.MakeResponseDelay(pd)
-	port.Transmit(resp)
+	err := port.Transmit(resp)
+	if err != nil {
+		return nil, err
+	}
 	port.ShowPacket(resp)
-	return resp
+	return resp, nil
 }
 
-func (port *Port) ReplyToPDelayReq(pd *PacketData) (*PacketData, *PacketData) {
+func (port *Port) ReplyToPDelayReq(pd *PacketData) (*PacketData, *PacketData, error) {
 	resp := port.MakeResponsePDelay(pd)
-	port.Transmit(resp)
+	err := port.Transmit(resp)
+	if err != nil {
+		return nil, nil, err
+	}
 	port.ShowPacket(resp)
 	// TODO: Handle p2p1step? Remember to add ingr/egr latency to correctionField
 	respFup := port.MakeFollowUpPDelay(resp)
-	port.Transmit(respFup)
+	err = port.Transmit(respFup)
+	if err != nil {
+		return nil, nil, err
+	}
 	port.ShowPacket(respFup)
-	return resp, respFup
+	return resp, respFup, nil
 }

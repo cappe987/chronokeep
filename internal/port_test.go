@@ -41,15 +41,15 @@ func TestSinglePacket(t *testing.T) {
 	const seq = 99
 	const corr = 123
 	sync := txp.BuildSync(seq, corr)
-	txpd, err := txp.Transmit(sync)
+	err := txp.Transmit(sync)
 	if err != nil {
 		t.Fatalf("Error sending sync: %s", err)
 	}
 
-	if !txpd.IsTx {
+	if !sync.IsTx {
 		t.Errorf("Transmitted sync does not have IsTx set")
 	}
-	if !txpd.IsTwostepFlagSet() {
+	if !sync.IsTwostepFlagSet() {
 		t.Errorf("Transmitted sync does not have TwoStepFlag set")
 	}
 
@@ -74,7 +74,10 @@ func TestSyncFup(t *testing.T) {
 	initPorts()
 	defer deinitPorts()
 
-	txSync, txFup := txp.TransmitSyncFup()
+	txSync, txFup, err := txp.TransmitSyncFup()
+	if err != nil {
+		t.Fatalf("Error sending sync/fup: %s", err)
+	}
 	rxSync, err := rxp.ReceiveOneEvent()
 	if err != nil {
 		t.Fatalf("Error receiving sync: %s", err)
@@ -149,9 +152,9 @@ func TestDelayReply(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error receiving delayReq: %s", err)
 	}
-	txResp := rxp.ReplyToDelayReq(rxReq)
-	if txResp == nil {
-		t.Fatalf("Error sending delayResp")
+	_, err = rxp.ReplyToDelayReq(rxReq)
+	if err != nil {
+		t.Fatalf("Error sending delayResp: %s", err)
 	}
 
 	rxResp, err := txp.ReceiveOneGeneral()
@@ -169,14 +172,17 @@ func TestDelayReply(t *testing.T) {
 func TestPDelayReply(t *testing.T) {
 	initPorts()
 	defer deinitPorts()
-	txReq := txp.TransmitPDelayReq()
+	txReq, err := txp.TransmitPDelayReq()
+	if err != nil {
+		t.Fatalf("Error sending delayReq: %s", err)
+	}
 	rxReq, err := rxp.ReceiveOneEvent()
 	if err != nil {
 		t.Fatalf("Error receiving delayReq: %s", err)
 	}
-	txResp, txRespFup := rxp.ReplyToPDelayReq(rxReq)
-	if txResp == nil || txRespFup == nil {
-		t.Fatalf("Error sending pdelayResp/pdelayRespFup")
+	_, _, err = rxp.ReplyToPDelayReq(rxReq)
+	if err != nil {
+		t.Fatalf("Error sending pdelayResp/pdelayRespFup: %s", err)
 	}
 
 	rxResp, err := txp.ReceiveOneEvent()
