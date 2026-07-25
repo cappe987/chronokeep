@@ -574,7 +574,7 @@ func CalcPDelay(req *PacketData, resp *PacketData, respFup *PacketData) *time.Du
 		t3 = respFup.GetPDelayRespFupResponseOriginTimestamp().Time()
 		c2 = respFup.GetCorrectionField()
 	}
-	// fmt.Printf("Pdelay: t1 %d | t2 %d | t3 %d | t4 %d | c1 %d | c2 %d\n", t1, t2, t3, t4, c1, c2)
+	// fmt.Printf("t1 %d | t2 %d | t3 %d | t4 %d\n", t1.UnixNano(), t2.UnixNano(), t3.UnixNano(), t4.UnixNano())
 	pdelay := ((t4.Sub(t1)) - (t3.Sub(t2)) - c1 - c2) / 2
 	return &pdelay
 }

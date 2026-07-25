@@ -4,7 +4,6 @@ package cmd
 
 import (
 	. "ckeep/internal"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -14,9 +13,9 @@ import (
 
 type DelayOpts struct {
 	// Configuration file
-	Ports    map[string]PortOpts
-	Interval uint32
-	// Count    uint32
+	Ports      map[string]PortOpts
+	Interval   uint32
+	Count      uint32
 	Seq        uint16
 	Vlan       int
 	Prio       int
@@ -28,22 +27,27 @@ type DelayOpts struct {
 	IntervalTime time.Duration
 }
 
+func (do *DelayOpts) InitDefaults() {
+	do.Interval = uint32(1000)
+	do.Vlan = -1
+	do.Prio = -1
+}
+
 func DelayMode() {
 	mode := "delay"
 	var opts = CommonOpts{Mode: mode}
 	var delayOpts = DelayOpts{}
-	delayOpts.Interval = uint32(1000)
-	delayOpts.Vlan = -1
-	delayOpts.Prio = -1
+	delayOpts.InitDefaults()
 	opts.InitDefaults()
 
 	opts.DefineCommonFlags()
 	opts.AddModeOpt(mode, &delayOpts.Interval, 'I', "interval", "<ms>", "TX packet interval (ms)")
-	opts.AddModeOpt(mode, &delayOpts.Client, 'c', "client", "", "Run client")
+	opts.AddModeOpt(mode, &delayOpts.Client, 'C', "client", "", "Run client")
 	opts.AddModeOpt(mode, &delayOpts.Server, 's', "server", "", "Run server")
 	opts.AddModeOpt(mode, &delayOpts.Vlan, 'V', "vlan", "<VID>", "VLAN ID")
 	opts.AddModeOpt(mode, &delayOpts.Prio, 'p', "prio", "<PRIO>", "VLAN Prio")
 	opts.AddModeOpt(mode, &delayOpts.Peertopeer, 'P', "peertopeer", "", "P2P mode")
+	opts.AddModeOpt(mode, &delayOpts.Count, 'c', "count", "<num>", "Number of measurements to perform. Only for client.")
 
 	if !opts.ParseFile(&delayOpts) {
 		return
@@ -69,7 +73,7 @@ func DelayMode() {
 		pname = opts.Iface
 	}
 	if pname == "" {
-		fmt.Printf("No port selected\n")
+		log.Printf("No port selected\n")
 		return
 	}
 
@@ -104,17 +108,21 @@ func DelayMode() {
 	}
 
 	if delayOpts.Client {
-		client(app, &delayOpts, &port)
+		shutdown := make(chan int)
+		client(app, &delayOpts, &port, shutdown)
 	} else if delayOpts.Server {
-		server(app, &delayOpts, &port)
+		shutdown := make(chan int)
+		server(app, &delayOpts, &port, shutdown)
 	} else {
-		fmt.Printf("Please select -c/--client or -s/--server\n")
+		log.Printf("Please select -c/--client or -s/--server\n")
 	}
+	port.Deinit()
 }
 
-func client(app *App, do *DelayOpts, port *Port) {
+func client(app *App, do *DelayOpts, port *Port, shutdown chan int) {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Stop(sigs)
 	rxCh := make(chan PacketData, 100)
 	quit := make(chan int)
 	var ticker *time.Ticker
@@ -125,23 +133,25 @@ func client(app *App, do *DelayOpts, port *Port) {
 
 	go port.RxMode(rxCh, quit)
 	ticker = time.NewTicker(do.IntervalTime)
+	count := uint32(0)
 
 	if app.Cli {
-		fmt.Printf("Transmitting...\n")
+		log.Printf("Transmitting...\n")
 	} else {
 		log.Printf("Starting Delay Mode: client")
 	}
 	for running {
 		select {
+		case <-shutdown:
+			running = false
 		case <-sigs:
-			quit <- 0
 			running = false
 		case pd := <-rxCh:
 			var resp *PacketData
 			var respFup *PacketData
 			req := getPkt(reqs, pd.GetSequenceID())
 			if req == nil {
-				fmt.Printf("No matching Req for Resp")
+				log.Printf("No matching Req for Resp")
 				continue
 			}
 			if pd.IsPDelayResp() {
@@ -164,17 +174,19 @@ func client(app *App, do *DelayOpts, port *Port) {
 				resp = &pd
 			}
 			// Calculate
+			if count >= do.Count {
+				running = false
+			}
 			if do.Peertopeer {
 				ns := CalcPDelay(req, resp, respFup)
 				if ns == nil {
-					fmt.Printf("Failed to calculate pdelay\n")
+					log.Printf("Failed to calculate pdelay\n")
 					continue
 				}
 				if !app.Cli {
 					continue
 				}
-				fmt.Printf("PDelay seq %d: %d\n", req.GetSequenceID(), *ns)
-
+				log.Printf("PDelay seq %d: %d\n", req.GetSequenceID(), *ns)
 			} else {
 				if !app.Cli {
 					continue
@@ -186,28 +198,33 @@ func client(app *App, do *DelayOpts, port *Port) {
 				t3_ns := t3.Nanosecond()
 				t3_s := t3.Unix()
 				cf := resp.GetCorrectionField()
-				fmt.Printf("Seq %d | ReqTS %d.%09d | RespTs %d.%09d | Cf %d\n",
+				log.Printf("Seq %d | ReqTS %d.%09d | RespTs %d.%09d | Cf %d\n",
 					req.GetSequenceID(), t3_s, t3_ns, t4_s, t4_ns, cf)
 			}
 		case <-ticker.C:
 			var req *PacketData
 			var err error
+			if count >= do.Count {
+				ticker.Stop()
+				continue
+			}
+			count += 1
 			if do.Peertopeer {
 				req, err = port.TransmitPDelayReq()
 			} else {
 				req, err = port.TransmitDelayReq()
 			}
 			if err != nil {
-				fmt.Printf("Error: %s\n", err)
+				log.Printf("Error: %s\n", err)
 			} else {
 				reqs = append(reqs, *req)
 			}
 		}
 	}
-	port.Deinit()
 	if !app.Cli {
 		log.Printf("Exiting Delay Mode: client")
 	}
+	close(quit)
 }
 
 func getPkt(pkts []PacketData, seq uint16) *PacketData {
@@ -222,23 +239,25 @@ func getPkt(pkts []PacketData, seq uint16) *PacketData {
 	return nil
 }
 
-func server(app *App, do *DelayOpts, port *Port) {
+func server(app *App, do *DelayOpts, port *Port, shutdown chan int) {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Stop(sigs)
 	rxCh := make(chan PacketData, 100)
 	quit := make(chan int)
 	running := true
 
 	if app.Cli {
-		fmt.Printf("Listening...\n")
+		log.Printf("Listening...\n")
 	} else {
 		log.Printf("Starting Delay Mode: server")
 	}
 	go port.RxMode(rxCh, quit)
 	for running {
 		select {
+		case <-shutdown:
+			running = false
 		case <-sigs:
-			quit <- 0
 			running = false
 		case pd := <-rxCh:
 			if !do.Peertopeer && pd.IsDelayReq() {
@@ -249,8 +268,8 @@ func server(app *App, do *DelayOpts, port *Port) {
 			}
 		}
 	}
-	port.Deinit()
 	if !app.Cli {
 		log.Printf("Exiting Delay Mode: server")
 	}
+	close(quit)
 }
