@@ -98,10 +98,6 @@ func (port *Port) receive(buf []byte, oob []byte, getTs bool) (*PacketData, erro
 		if err != nil {
 			return nil, err
 		}
-		if port.opts.IngressLatency != 0 && hwts.UnixNano() != 0 {
-			hwts = hwts.Add(time.Duration(-port.opts.IngressLatency))
-			swts = swts.Add(time.Duration(-port.opts.IngressLatency))
-		}
 		data := &PacketData{
 			Packet:   p,
 			HwTstamp: hwts,
@@ -129,10 +125,6 @@ func (port *Port) receive(buf []byte, oob []byte, getTs bool) (*PacketData, erro
 		if err != nil {
 			return nil, err
 		}
-		if port.opts.IngressLatency != 0 {
-			hwts = hwts.Add(time.Duration(-port.opts.IngressLatency))
-			swts = swts.Add(time.Duration(-port.opts.IngressLatency))
-		}
 		data := &PacketData{
 			Packet:   p,
 			HwTstamp: hwts,
@@ -156,6 +148,10 @@ func (port *Port) receive_get_ts(buf []byte, oob []byte) (*PacketData, error) {
 	pd, err := port.receive(buf, oob, true)
 	if port.MockTimestamps && pd != nil {
 		pd.HwTstamp = MockTimestamp()
+	}
+	if port.opts.IngressLatency != 0 && pd.HwTstamp.UnixNano() != 0 {
+		pd.HwTstamp = pd.HwTstamp.Add(time.Duration(-port.opts.IngressLatency))
+		pd.SwTstamp = pd.SwTstamp.Add(time.Duration(-port.opts.IngressLatency))
 	}
 	return pd, err
 }
