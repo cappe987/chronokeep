@@ -301,9 +301,19 @@ func (port *Port) BuildSync(seq uint16, corr int64) *PacketData {
 }
 
 // Build blank FollowUp
-func (port *Port) BuildFollowUp(seq uint16) (*PacketData, error) {
+func (port *Port) BuildFollowUp(seq uint16) *PacketData {
+	fupHdr := port.buildHeader(ptp.MessageFollowUp, seq, false)
 
-	return nil, fmt.Errorf("Not implemented")
+	fupPkt := ptp.FollowUp{
+		Header:       fupHdr,
+		FollowUpBody: ptp.FollowUpBody{},
+	}
+
+	fup := PacketData{
+		Packet: &fupPkt,
+		IsTx:   true,
+	}
+	return &fup
 }
 
 func (port *Port) BuildPDelayReq(seq uint16) *PacketData {
