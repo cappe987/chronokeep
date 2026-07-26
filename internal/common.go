@@ -9,9 +9,7 @@ import (
 	"os"
 	"sort"
 	"strings"
-	"sync"
 	"syscall"
-	"time"
 
 	"github.com/BurntSushi/toml"
 	ptp "github.com/cappe987/facebook-time/ptp/protocol"
@@ -377,26 +375,4 @@ func (opts *CommonOpts) ValidateTstampMode(ifname string) error {
 		// TODO: Validate p2p1step once that is added as an option
 	}
 	return nil
-}
-
-// Base time is 10 000 seconds after unix
-const baseMicro = 10000 * 1000000
-
-var tsIdx int64 = 0
-var mutex sync.Mutex
-
-func ResetMockTimestamp() {
-	mutex.Lock()
-	tsIdx = 0
-	mutex.Unlock()
-}
-
-func MockTimestamp() time.Time {
-	mutex.Lock()
-	idx := tsIdx
-	tsIdx += 1
-	mutex.Unlock()
-
-	// Each timestamp happens 1 microsecond apart
-	return time.UnixMicro(baseMicro + (idx * 1))
 }

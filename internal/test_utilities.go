@@ -1,5 +1,10 @@
 package internal
 
+import (
+	"sync"
+	"time"
+)
+
 const (
 	p1name = "veth1"
 	p2name = "veth2"
@@ -47,4 +52,27 @@ func (port *Port) SetTestEgressLatency(lat int64) {
 func DeinitTestPorts() {
 	Server.Deinit()
 	Client.Deinit()
+}
+
+// Base time is 1 second after unix
+const baseMicro = 1000000
+const baseNs = baseMicro * 1000
+
+var tsIdx int64 = 0
+var mutex sync.Mutex
+
+func ResetMockTimestamp() {
+	mutex.Lock()
+	tsIdx = 0
+	mutex.Unlock()
+}
+
+func MockTimestamp() time.Time {
+	mutex.Lock()
+	idx := tsIdx
+	tsIdx += 1
+	mutex.Unlock()
+
+	// Each timestamp happens 1 microsecond apart
+	return time.UnixMicro(baseMicro + (idx * 1))
 }

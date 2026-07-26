@@ -67,8 +67,8 @@ func TestDelay(t *testing.T) {
 	InitTestPorts()
 	defer DeinitTestPorts()
 
-	const expectReqTs = "10000.000000000"
-	const expectRespTs = "10000.000001000"
+	const expectReqTs = "1.000000000"
+	const expectRespTs = "1.000001000"
 	delayOpts := getDelayOpts()
 	line := runDelayMode(t, delayOpts)
 	// Output: 2026/07/25 19:10:36 Seq 0 | ReqTS 10000.000000000 | RespTs 10000.000001000 | Cf 0
