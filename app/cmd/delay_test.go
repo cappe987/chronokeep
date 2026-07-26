@@ -86,7 +86,11 @@ func TestPDelay(t *testing.T) {
 	InitTestPorts()
 	defer DeinitTestPorts()
 
-	const expectPdelay = "1000"
+	Client.SetTestIngressLatency(150)
+	Client.SetTestEgressLatency(125)
+	Server.SetTestIngressLatency(250)
+	Server.SetTestEgressLatency(195)
+	const expectPdelay = "777"
 	delayOpts := getDelayOpts()
 	delayOpts.Peertopeer = true
 
