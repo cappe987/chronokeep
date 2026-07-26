@@ -67,12 +67,27 @@ func ResetMockTimestamp() {
 	mutex.Unlock()
 }
 
+func mock(idx int64) time.Time {
+	// Each timestamp happens 1 microsecond apart
+	return time.UnixMicro(baseMicro + (idx * 1))
+}
+
 func MockTimestamp() time.Time {
 	mutex.Lock()
 	idx := tsIdx
 	tsIdx += 1
 	mutex.Unlock()
 
-	// Each timestamp happens 1 microsecond apart
-	return time.UnixMicro(baseMicro + (idx * 1))
+	return mock(idx)
+}
+
+func MockTimestamps(n int) []time.Time {
+	var arr []time.Time
+	mutex.Lock()
+	for _ = range n {
+		arr = append(arr, mock(tsIdx))
+		tsIdx += 1
+	}
+	mutex.Unlock()
+	return arr
 }

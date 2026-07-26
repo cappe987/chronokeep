@@ -42,28 +42,6 @@ func TestPDelayCalc(t *testing.T) {
 	}
 }
 
-type tsGen struct {
-	ts  []time.Time
-	idx int
-}
-
-func genTstamps(num int64) tsGen {
-	var arr []time.Time
-	for i := range num {
-		arr = append(arr, time.UnixMicro(baseMicro+i))
-	}
-	return tsGen{ts: arr, idx: 0}
-}
-
-func (g *tsGen) getTs(n int) []time.Time {
-	var arr []time.Time
-	for _ = range n {
-		arr = append(arr, g.ts[g.idx])
-		g.idx += 1
-	}
-	return arr
-}
-
 func GenSyncFup(seq uint16, ts []time.Time, corr int64) []PacketData {
 	sync := Server.BuildSync(seq, 0)
 	sync.HwTstamp = ts[0]
@@ -111,15 +89,14 @@ type stest struct {
 func TestE2eCalc(t *testing.T) {
 	InitTestPorts()
 	defer DeinitTestPorts()
-	tgen := genTstamps(100)
 	var pkts []PacketData
 
-	pkts = append(pkts, GenDelayExchange(0, tgen.getTs(2), 200)...)
-	pkts = append(pkts, GenSyncFup(0, tgen.getTs(2), 300)...)
-	pkts = append(pkts, GenDelayExchange(1, tgen.getTs(2), 150)...)
-	pkts = append(pkts, GenSyncFup(1, tgen.getTs(2), 250)...)
-	pkts = append(pkts, GenDelayExchange(2, tgen.getTs(2), 200)...)
-	pkts = append(pkts, GenSyncFup(2, tgen.getTs(2), 350)...)
+	pkts = append(pkts, GenDelayExchange(0, MockTimestamps(2), 200)...)
+	pkts = append(pkts, GenSyncFup(0, MockTimestamps(2), 300)...)
+	pkts = append(pkts, GenDelayExchange(1, MockTimestamps(2), 150)...)
+	pkts = append(pkts, GenSyncFup(1, MockTimestamps(2), 250)...)
+	pkts = append(pkts, GenDelayExchange(2, MockTimestamps(2), 200)...)
+	pkts = append(pkts, GenSyncFup(2, MockTimestamps(2), 350)...)
 	// txRecord and rxRecord are concatenated when calculating stats
 	Client.rxRecord = pkts
 
@@ -146,15 +123,14 @@ func TestE2eCalc(t *testing.T) {
 func TestP2pCalc(t *testing.T) {
 	InitTestPorts()
 	defer DeinitTestPorts()
-	tgen := genTstamps(100)
 	var pkts []PacketData
 
-	pkts = append(pkts, GenPDelayExchange(0, tgen.getTs(4), 200)...)
-	pkts = append(pkts, GenSyncFup(0, tgen.getTs(2), 300)...)
-	pkts = append(pkts, GenPDelayExchange(1, tgen.getTs(4), 150)...)
-	pkts = append(pkts, GenSyncFup(1, tgen.getTs(2), 250)...)
-	pkts = append(pkts, GenPDelayExchange(2, tgen.getTs(4), 200)...)
-	pkts = append(pkts, GenSyncFup(2, tgen.getTs(2), 350)...)
+	pkts = append(pkts, GenPDelayExchange(0, MockTimestamps(4), 200)...)
+	pkts = append(pkts, GenSyncFup(0, MockTimestamps(2), 300)...)
+	pkts = append(pkts, GenPDelayExchange(1, MockTimestamps(4), 150)...)
+	pkts = append(pkts, GenSyncFup(1, MockTimestamps(2), 250)...)
+	pkts = append(pkts, GenPDelayExchange(2, MockTimestamps(4), 200)...)
+	pkts = append(pkts, GenSyncFup(2, MockTimestamps(2), 350)...)
 	// txRecord and rxRecord are concatenated when calculating stats
 	Client.rxRecord = pkts
 

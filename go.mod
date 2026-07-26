@@ -3,6 +3,7 @@ module ckeep
 go 1.26.0
 
 // replace github.com/cappe987/facebook-time => /home/casan/hub/time
+// replace golang.org/x/sys v0.45.0 => /home/casan/hub/lib/sys
 
 require (
 	github.com/BurntSushi/toml v1.6.0
