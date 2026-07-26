@@ -96,9 +96,6 @@ python3 scripts/plot.py measurement.dat
 ### Other TODO
 - Submit PR for sys/unix to add HWTSTAMP_TX_ONESTEP_P2P and rx filters: https://github.com/golang/sys/tree/master/unix
 - Improve IP configuration. CLI vs config file.
-- Mock timestamps when testing stats? Insert some function nextTstamp() that
-  always picks a deterministic timestamp whenever receiving an event packet or
-  setting OriginTS.
 
 Web:
 - Allow downloading data file for external graph generation
@@ -127,3 +124,6 @@ Logo uses the font `Gayathri`. Logo design by me.
 The project uses a [fork](https://github.com/cappe987/facebook-time) of
 [facebook/time](https://github.com/facebook/time) for onestep support and
 .Nano() function for timestamps.
+
+The frontend libraries under `app/static/` are distributed under their
+respective licenses. I do not take credit for them.
