@@ -1,8 +1,11 @@
 package internal
 
 import (
+	"sync"
 	"testing"
 	"time"
+
+	ptp "github.com/cappe987/facebook-time/ptp/protocol"
 )
 
 func init() {
@@ -184,4 +187,51 @@ func TestPDelayReply(t *testing.T) {
 	if t4.IsZero() {
 		t.Errorf("Expected RX Resp tstamp")
 	}
+}
+
+func TestRxChannels(t *testing.T) {
+	InitTestPorts()
+	defer DeinitTestPorts()
+
+	rxEv := make(chan PacketData)
+	rxGen := make(chan PacketData)
+	rxQuit := make(chan int)
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		Client.rxEvent(rxEv, rxQuit)
+		wg.Done()
+	}()
+	go func() {
+		Client.rxGeneral(rxGen, rxQuit)
+		wg.Done()
+	}()
+
+	Server.TransmitSyncFup()
+
+	val, ok := <-rxEv
+	if !ok {
+		t.Fatalf("Expected message on event channel")
+	}
+	if val.Packet.MessageType() != ptp.MessageSync {
+		t.Fatalf("Expected sync on event channel. Got %s", val.Packet.MessageType())
+	}
+	if len(rxEv) != 0 {
+		t.Fatalf("Expected no more messages on event channel")
+	}
+
+	val, ok = <-rxGen
+	if !ok {
+		t.Fatalf("Expected message on general channel")
+	}
+	if val.Packet.MessageType() != ptp.MessageFollowUp {
+		t.Fatalf("Expected follow_up on general channel. Got %s", val.Packet.MessageType())
+	}
+	if len(rxGen) != 0 {
+		t.Fatalf("Expected no more messages on general channel")
+	}
+
+	close(rxQuit)
+	wg.Wait()
 }
