@@ -235,3 +235,23 @@ func TestRxChannels(t *testing.T) {
 	close(rxQuit)
 	wg.Wait()
 }
+
+func TestLatencyCorrection(t *testing.T) {
+	InitTestPorts()
+	defer DeinitTestPorts()
+	sync := Server.BuildSync(0, 0)
+
+	Server.opts.EgressLatency = 200
+	Client.opts.IngressLatency = 150
+	Server.Transmit(sync)
+	pd, _ := Client.ReceiveOneEvent()
+	// Sync TX expects to add 200 ns to the timestamp
+	if sync.HwTstamp.UnixNano() != baseNs+Server.opts.EgressLatency {
+		t.Errorf("EgressLatency not applied correctly. Got TS %d", sync.HwTstamp.UnixNano())
+	}
+	// Sync TX receives first timestamp so the RX is +1000
+	// Sync RX is expected to be +1000 - ingressLatency
+	if pd.HwTstamp.UnixNano() != baseNs+1000-Client.opts.IngressLatency {
+		t.Errorf("IngressLatency not applied correctly. Got TS %d", pd.HwTstamp.UnixNano())
+	}
+}
