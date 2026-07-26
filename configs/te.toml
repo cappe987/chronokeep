@@ -1,4 +1,5 @@
 #Udp = true
+#Unicast = true
 SwTstamp = true
 Interval = 100
 Export = "measurement.dat"
