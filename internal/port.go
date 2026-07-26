@@ -425,6 +425,12 @@ func (port *Port) transmitPkt(pkt *ptp.Packet) error {
 }
 
 func (port *Port) transmit_get_ts(pkt *ptp.Packet, oob []byte, toob []byte) (*time.Time, *time.Time, error) {
+	var mock time.Time
+	if port.MockTimestamps {
+		// Mock timestamp created before transmit. Otherwise we could end up in
+		// a situation where RX of a packet is taken before TX.
+		mock = MockTimestamp()
+	}
 	err := port.transmitPkt(pkt)
 	swts := time.Now()
 	if err != nil {
@@ -435,7 +441,7 @@ func (port *Port) transmit_get_ts(pkt *ptp.Packet, oob []byte, toob []byte) (*ti
 		return nil, nil, err
 	}
 	if port.MockTimestamps {
-		hwts = MockTimestamp()
+		hwts = mock
 	}
 	if port.opts.EgressLatency != 0 {
 		hwts = hwts.Add(time.Duration(port.opts.EgressLatency))
