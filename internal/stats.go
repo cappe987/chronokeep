@@ -263,7 +263,7 @@ func calcSyfup(sync *PacketData, fup *PacketData) *time.Duration {
 	c1 := sync.GetCorrectionField()
 	c2 := fup.GetCorrectionField()
 	curr_t1 := t1.Sub(t2) + c2 + c1
-	// fmt.Printf("T1: %d\n", curr_t1)
+	// fmt.Printf("t1 %d | t2 %d | c1 %d | c2 %d\n", t1.UnixNano(), t2.UnixNano(), c1, c2)
 	return &curr_t1
 }
 
@@ -574,7 +574,6 @@ func CalcPDelay(req *PacketData, resp *PacketData, respFup *PacketData) *time.Du
 	return &pdelay
 }
 
-// TODO: Clean this up and return data more structured
 func (port *Port) GetP2pTE() Stats {
 	var pkts []PacketData
 	pkts = append(port.rxRecord, port.txRecord...)
