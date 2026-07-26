@@ -222,11 +222,7 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 		select {
 		case <-sigs:
 			running = false
-			// TODO: Temporary while developing
-			// app.Out <- []byte("exit")
 		case pd := <-serverRx:
-			// fmt.Printf("Server rx\n")
-			// pd.Print()
 			if !teOpts.Peertopeer && pd.IsDelayReq() {
 				server.ReplyToDelayReq(&pd)
 			}
@@ -234,23 +230,16 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 				server.ReplyToPDelayReq(&pd)
 			}
 		case pd := <-clientRx:
-			// fmt.Printf("Client rx\n")
-			// client.ShowPacket(pd)
 			if teOpts.Peertopeer && pd.IsPDelayReq() {
 				client.ReplyToPDelayReq(&pd)
 			}
 		case <-serverTicker.C:
-			// TODO: Add websocket to transmit
 			server.TransmitAnnounce()
 			server.TransmitSyncFup()
 			if teOpts.Peertopeer {
 				server.TransmitPDelayReq()
 			}
-			// XXX: Something is going on with RX timestamps. Dagger bug?
-			// Issue seems to be resolved if we run Deinit()
-			// properly to disable timestamping.
 		case <-clientTicker.C:
-			// TODO: Add websocket to transmit
 			if teOpts.Peertopeer {
 				client.TransmitPDelayReq()
 			} else {
