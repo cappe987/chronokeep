@@ -5,7 +5,6 @@ package cmd
 import (
 	. "ckeep/internal"
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -155,7 +154,7 @@ func ValidateTeOpts(teOpts *TeOpts, opts *CommonOpts) error {
 
 func error_exit(teOpts *TeOpts, app *App) {
 	teOpts.HasStats = false
-	log.Printf("Failed to start TE Mode")
+	LogError("Failed to start TE Mode")
 	if app.Out != nil {
 		app.Out <- []byte("exited")
 	}

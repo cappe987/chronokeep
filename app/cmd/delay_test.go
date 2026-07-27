@@ -43,16 +43,15 @@ func runDelayMode(t *testing.T, delayOpts DelayOpts) string {
 	squit := make(chan int)
 	var wg sync.WaitGroup
 
+	var serverOut bytes.Buffer
+	var clientOut bytes.Buffer
 	wg.Go(func() {
-		captureOutput(func() {
-			server(AppServer, &delayOpts, &Server, squit)
-		})
+		server(AppServer, &delayOpts, &Server, &serverOut, squit)
 	})
 	go timeoutClient(cquit)
 	time.Sleep(time.Duration(10) * time.Millisecond)
-	out := captureOutput(func() {
-		client(AppClient, &delayOpts, &Client, cquit)
-	})
+	client(AppClient, &delayOpts, &Client, &clientOut, cquit)
+	out := clientOut.String()
 	squit <- 0
 	wg.Wait()
 	// Remote trailing newline so we don't get an empty string
@@ -71,12 +70,12 @@ func TestDelay(t *testing.T) {
 	const expectRespTs = "1.000001000"
 	delayOpts := getDelayOpts()
 	line := runDelayMode(t, delayOpts)
-	// Output: 2026/07/25 19:10:36 Seq 0 | ReqTS 10000.000000000 | RespTs 10000.000001000 | Cf 0
+	// Output: Seq 0 | ReqTS 10000.000000000 | RespTs 10000.000001000 | Cf 0
 	words := strings.Split(line, " ")
-	if expectReqTs != words[6] {
+	if expectReqTs != words[4] {
 		t.Errorf("Expected ReqTS %s. Got %s", expectReqTs, words[6])
 	}
-	if expectRespTs != words[9] {
+	if expectRespTs != words[7] {
 		t.Errorf("Expected RespTS %s. Got %s", expectRespTs, words[9])
 	}
 
@@ -95,7 +94,7 @@ func TestPDelay(t *testing.T) {
 	delayOpts.Peertopeer = true
 
 	line := runDelayMode(t, delayOpts)
-	// Output: 2026/07/25 19:10:53 PDelay seq 0: 1000
+	// Output: PDelay seq 0: 1000
 	words := strings.Split(line, " ")
 	pdelay := words[len(words)-1]
 	if pdelay != expectPdelay {

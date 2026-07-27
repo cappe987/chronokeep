@@ -90,7 +90,9 @@ python3 scripts/plot.py measurement.dat
 ## TODO
 ### Finish this before initial release 
 - Write tests.
-- Log levels. Add debug logs in many places.
+- Log levels. Add debug/trace logs in many places.
+- Add wg to RxMode so it shuts down properly
+- Handle shutdown/io.Writer through App struct
 
 ### Other TODO
 - Test multicast UDP on HW. Veth ports in same namespace breaks multicast. TE

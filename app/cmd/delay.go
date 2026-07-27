@@ -5,6 +5,7 @@ package cmd
 import (
 	. "ckeep/internal"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/signal"
@@ -110,17 +111,17 @@ func DelayMode() {
 
 	if delayOpts.Client {
 		shutdown := make(chan int)
-		client(app, &delayOpts, &port, shutdown)
+		client(app, &delayOpts, &port, os.Stdout, shutdown)
 	} else if delayOpts.Server {
 		shutdown := make(chan int)
-		server(app, &delayOpts, &port, shutdown)
+		server(app, &delayOpts, &port, os.Stdout, shutdown)
 	} else {
 		LogError("Please select -c/--client or -s/--server\n")
 	}
 	port.Deinit()
 }
 
-func client(app *App, do *DelayOpts, port *Port, shutdown chan int) {
+func client(app *App, do *DelayOpts, port *Port, w io.Writer, shutdown chan int) {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	defer signal.Stop(sigs)
@@ -137,7 +138,7 @@ func client(app *App, do *DelayOpts, port *Port, shutdown chan int) {
 	count := uint32(0)
 
 	if app.Cli {
-		log.Printf("Transmitting...\n")
+		fmt.Fprintf(w, "Transmitting...\n")
 	} else {
 		LogNotice("Starting Delay Mode: client on %s", port.IfaceStr)
 	}
@@ -185,7 +186,7 @@ func client(app *App, do *DelayOpts, port *Port, shutdown chan int) {
 					continue
 				}
 				if app.Cli {
-					fmt.Printf("PDelay seq %d: %d\n", req.GetSequenceID(), *ns)
+					fmt.Fprintf(w, "PDelay seq %d: %d\n", req.GetSequenceID(), *ns)
 				} else {
 					LogDebug("PDelay seq %d: %d\n", req.GetSequenceID(), *ns)
 				}
@@ -203,7 +204,7 @@ func client(app *App, do *DelayOpts, port *Port, shutdown chan int) {
 				str := fmt.Sprintf("Seq %d | ReqTS %d.%09d | RespTs %d.%09d | Cf %d\n",
 					req.GetSequenceID(), t3_s, t3_ns, t4_s, t4_ns, cf)
 				if app.Cli {
-					fmt.Print(str)
+					fmt.Fprint(w, str)
 				} else {
 					LogDebug("%s", str)
 				}
@@ -246,7 +247,7 @@ func getPkt(pkts []PacketData, seq uint16) *PacketData {
 	return nil
 }
 
-func server(app *App, do *DelayOpts, port *Port, shutdown chan int) {
+func server(app *App, do *DelayOpts, port *Port, w io.Writer, shutdown chan int) {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	defer signal.Stop(sigs)
@@ -255,7 +256,7 @@ func server(app *App, do *DelayOpts, port *Port, shutdown chan int) {
 	running := true
 
 	if app.Cli {
-		log.Printf("Listening...\n")
+		fmt.Fprintf(w, "Listening...\n")
 	} else {
 		LogNotice("Starting Delay Mode: server on %s", port.IfaceStr)
 	}
