@@ -4,6 +4,7 @@ package internal
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -65,29 +66,43 @@ type PortOpts struct {
 }
 
 type App struct {
-	In    chan []byte     // To App
-	Out   chan []byte     // From App
-	WsOut chan PacketData // Websocket data from App to client
-	Opts  CommonOpts
-	Cli   bool
+	In     chan []byte     // To App
+	Out    chan []byte     // From App
+	WsOut  chan PacketData // Websocket data from App to client
+	Opts   CommonOpts
+	Cli    bool
+	W      io.Writer
+	QuitCh chan int
 }
 
 func NewApp(opts CommonOpts, init_channels bool, cli bool) *App {
 	// teOpts, opts := InitWebTeOpts()
 	if init_channels {
 		return &App{
-			In:    make(chan []byte, 100),
-			Out:   make(chan []byte, 100),
-			WsOut: make(chan PacketData, 100),
-			Opts:  opts,
-			Cli:   cli,
+			In:     make(chan []byte, 100),
+			Out:    make(chan []byte, 100),
+			WsOut:  make(chan PacketData, 100),
+			Opts:   opts,
+			Cli:    cli,
+			W:      os.Stdout,
+			QuitCh: make(chan int),
 		}
 	} else {
 		return &App{
-			Opts: opts,
-			Cli:  cli,
+			Opts:   opts,
+			Cli:    cli,
+			W:      os.Stdout,
+			QuitCh: make(chan int),
 		}
 	}
+}
+
+func (app *App) SetOutput(w io.Writer) {
+	app.W = w
+}
+
+func (app *App) Quit() {
+	close(app.QuitCh)
 }
 
 func (opts *CommonOpts) AddOpt(v interface{}, short rune, long string, usage string, help string) Opt {

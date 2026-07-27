@@ -91,7 +91,7 @@ python3 scripts/plot.py measurement.dat
 ### Finish this before initial release 
 - Write tests.
 - Log levels. Add debug/trace logs in many places.
-- Handle shutdown/io.Writer through App struct
+- Use App writer/quit for pkt/te modes
 
 ### Other TODO
 - Test multicast UDP on HW. Veth ports in same namespace breaks multicast. TE

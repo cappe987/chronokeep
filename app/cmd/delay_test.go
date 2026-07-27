@@ -39,20 +39,20 @@ func timeoutClient(quit chan int) {
 }
 
 func runDelayMode(t *testing.T, delayOpts DelayOpts) string {
-	cquit := make(chan int)
-	squit := make(chan int)
 	var wg sync.WaitGroup
 
 	var serverOut bytes.Buffer
 	var clientOut bytes.Buffer
+	AppClient.SetOutput(&clientOut)
+	AppServer.SetOutput(&serverOut)
 	wg.Go(func() {
-		server(AppServer, &delayOpts, &Server, &serverOut, squit)
+		server(AppServer, &delayOpts, &Server)
 	})
-	go timeoutClient(cquit)
+	go timeoutClient(AppClient.QuitCh)
 	time.Sleep(time.Duration(10) * time.Millisecond)
-	client(AppClient, &delayOpts, &Client, &clientOut, cquit)
+	client(AppClient, &delayOpts, &Client)
 	out := clientOut.String()
-	close(squit)
+	AppServer.Quit()
 	wg.Wait()
 	// Remote trailing newline so we don't get an empty string
 	lines := strings.Split(out[:len(out)-1], "\n")
