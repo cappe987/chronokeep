@@ -91,7 +91,6 @@ python3 scripts/plot.py measurement.dat
 ### Finish this before initial release 
 - Write tests.
 - Log levels. Add debug/trace logs in many places.
-- Add wg to RxMode so it shuts down properly
 - Handle shutdown/io.Writer through App struct
 
 ### Other TODO

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"sync"
 	"syscall"
 	"time"
 	"unsafe"
@@ -52,8 +53,21 @@ type Port struct {
 	App           *App
 	Silent        bool
 	Mac           []byte
+	rxWg          sync.WaitGroup
+	quit          chan int
+	initialized   bool
 
 	MockTimestamps bool
+}
+
+func (port *Port) WaitExit() {
+	port.rxWg.Wait()
+}
+
+func (port *Port) Quit() {
+	close(port.quit)
+	port.WaitExit()
+	port.Deinit()
 }
 
 func (port *Port) EnableRecording() {
@@ -146,7 +160,10 @@ func (port *Port) receive(buf []byte, oob []byte, getTs bool) (*PacketData, erro
 
 func (port *Port) receive_get_ts(buf []byte, oob []byte) (*PacketData, error) {
 	pd, err := port.receive(buf, oob, true)
-	if port.MockTimestamps && pd != nil {
+	if err != nil || pd == nil {
+		return pd, err
+	}
+	if port.MockTimestamps {
 		pd.HwTstamp = MockTimestamp()
 	}
 	if port.opts.IngressLatency != 0 && pd.HwTstamp.UnixNano() != 0 {
@@ -183,14 +200,14 @@ func (port *Port) ReceiveOneGeneral() (*PacketData, error) {
 	return port.receiveOne(false)
 }
 
-func (port *Port) rxEvent(ch chan PacketData, quit chan int) {
+func (port *Port) rxEvent(ch chan PacketData) {
 	buf := make([]byte, timestamp.PayloadSizeBytes)
 	oob := make([]byte, timestamp.ControlSizeBytes)
-	for {
+	running := true
+	for running {
 		select {
-		case _ = <-quit:
-			close(ch)
-			return
+		case _ = <-port.quit:
+			running = false
 		default:
 		}
 		pd, err := port.receive_get_ts(buf, oob)
@@ -199,16 +216,18 @@ func (port *Port) rxEvent(ch chan PacketData, quit chan int) {
 		}
 		ch <- *pd
 	}
+	close(ch)
+	port.rxWg.Done()
 }
 
-func (port *Port) rxGeneral(ch chan PacketData, quit chan int) {
+func (port *Port) rxGeneral(ch chan PacketData) {
 	buf := make([]byte, timestamp.PayloadSizeBytes)
 	oob := make([]byte, timestamp.ControlSizeBytes)
-	for {
+	running := true
+	for running {
 		select {
-		case _ = <-quit:
-			close(ch)
-			return
+		case _ = <-port.quit:
+			running = false
 		default:
 		}
 		pd, err := port.receive_no_ts(buf, oob)
@@ -217,19 +236,22 @@ func (port *Port) rxGeneral(ch chan PacketData, quit chan int) {
 		}
 		ch <- *pd
 	}
+	close(ch)
+	port.rxWg.Done()
 }
 
 // Receive packets from each channel, record it, and send on the common channel
-func (port *Port) RxMode(ch chan PacketData, quit chan int) {
+func (port *Port) RxMode(ch chan PacketData) {
 	eventCh := make(chan PacketData, 100)
 	genCh := make(chan PacketData, 100)
-	go port.rxEvent(eventCh, quit)
-	go port.rxGeneral(genCh, quit)
-	for {
+	port.rxWg.Add(3)
+	running := true
+	go port.rxEvent(eventCh)
+	go port.rxGeneral(genCh)
+	for running {
 		select {
-		case _ = <-quit:
-			close(ch)
-			return
+		case _ = <-port.quit:
+			running = false
 		case pd := <-eventCh:
 			port.recordRx(pd)
 			port.ShowPacket(&pd)
@@ -240,6 +262,8 @@ func (port *Port) RxMode(ch chan PacketData, quit chan int) {
 			ch <- pd
 		}
 	}
+	close(ch)
+	port.rxWg.Done()
 }
 
 // https://riyazali.net/berkeley-packet-filter-in-golang
@@ -537,6 +561,9 @@ func enableTimestamps(ts string, connFd int, iface *net.Interface, transp timest
 }
 
 func (port *Port) Init(app *App, portnum uint16) error {
+	if port.initialized {
+		return fmt.Errorf("Init on already initialized port")
+	}
 	if app.Opts.Udp {
 		ip := net.ParseIP(app.Opts.Ip)
 		if app.Opts.DestIp != "" {
@@ -611,10 +638,17 @@ func (port *Port) Init(app *App, portnum uint16) error {
 	}
 	unix.SetsockoptTimeval(port.efd, unix.SOL_SOCKET, unix.SO_RCVTIMEO, &tmo)
 	unix.SetsockoptTimeval(port.gfd, unix.SOL_SOCKET, unix.SO_RCVTIMEO, &tmo)
+
+	port.quit = make(chan int)
+	port.initialized = true
 	return nil
 }
 
 func (port *Port) Deinit() {
+	if !port.initialized {
+		LogDebug("Deinit on non-initialized port")
+		return
+	}
 	timestamp.DisableTimestamps(port.efd, port.Interface)
 	if port.Layer == LayerMac {
 		syscall.Close(port.efd)
@@ -623,6 +657,7 @@ func (port *Port) Deinit() {
 		port.econn.Close()
 		port.gconn.Close()
 	}
+	port.initialized = false
 }
 
 func (port *Port) GetVersion() uint8 {

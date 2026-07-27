@@ -117,7 +117,7 @@ func wsHandler(wa *WebApp) http.HandlerFunc {
 			InsecureSkipVerify: true, // allow all origins (dev only!)
 		})
 		if err != nil {
-			LogError("accept error:", err)
+			LogError("accept error: %s", err)
 			return
 		}
 		defer conn.Close(websocket.StatusInternalError, "connection closed")

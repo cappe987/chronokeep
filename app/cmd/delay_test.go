@@ -52,7 +52,7 @@ func runDelayMode(t *testing.T, delayOpts DelayOpts) string {
 	time.Sleep(time.Duration(10) * time.Millisecond)
 	client(AppClient, &delayOpts, &Client, &clientOut, cquit)
 	out := clientOut.String()
-	squit <- 0
+	close(squit)
 	wg.Wait()
 	// Remote trailing newline so we don't get an empty string
 	lines := strings.Split(out[:len(out)-1], "\n")

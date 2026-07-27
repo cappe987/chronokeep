@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"sync"
 	"testing"
 	"time"
 
@@ -195,17 +194,13 @@ func TestRxChannels(t *testing.T) {
 
 	rxEv := make(chan PacketData)
 	rxGen := make(chan PacketData)
-	rxQuit := make(chan int)
-	var wg sync.WaitGroup
-	wg.Add(2)
+	Client.rxWg.Add(2)
 
 	go func() {
-		Client.rxEvent(rxEv, rxQuit)
-		wg.Done()
+		Client.rxEvent(rxEv)
 	}()
 	go func() {
-		Client.rxGeneral(rxGen, rxQuit)
-		wg.Done()
+		Client.rxGeneral(rxGen)
 	}()
 
 	Server.TransmitSyncFup()
@@ -232,8 +227,7 @@ func TestRxChannels(t *testing.T) {
 		t.Fatalf("Expected no more messages on general channel")
 	}
 
-	close(rxQuit)
-	wg.Wait()
+	Client.Quit()
 }
 
 func TestLatencyCorrection(t *testing.T) {

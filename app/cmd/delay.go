@@ -126,14 +126,13 @@ func client(app *App, do *DelayOpts, port *Port, w io.Writer, shutdown chan int)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	defer signal.Stop(sigs)
 	rxCh := make(chan PacketData, 100)
-	quit := make(chan int)
 	var ticker *time.Ticker
 	running := true
 	reqs := make([]PacketData, 0, 100)
 	resps := make([]PacketData, 0, 100)
 	respFups := make([]PacketData, 0, 100)
 
-	go port.RxMode(rxCh, quit)
+	go port.RxMode(rxCh)
 	ticker = time.NewTicker(do.IntervalTime)
 	count := uint32(0)
 
@@ -232,7 +231,7 @@ func client(app *App, do *DelayOpts, port *Port, w io.Writer, shutdown chan int)
 	if !app.Cli {
 		LogNotice("Exiting Delay Mode: client on %s", port.IfaceStr)
 	}
-	close(quit)
+	port.Quit()
 }
 
 func getPkt(pkts []PacketData, seq uint16) *PacketData {
@@ -252,7 +251,6 @@ func server(app *App, do *DelayOpts, port *Port, w io.Writer, shutdown chan int)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	defer signal.Stop(sigs)
 	rxCh := make(chan PacketData, 100)
-	quit := make(chan int)
 	running := true
 
 	if app.Cli {
@@ -260,7 +258,7 @@ func server(app *App, do *DelayOpts, port *Port, w io.Writer, shutdown chan int)
 	} else {
 		LogNotice("Starting Delay Mode: server on %s", port.IfaceStr)
 	}
-	go port.RxMode(rxCh, quit)
+	go port.RxMode(rxCh)
 	for running {
 		select {
 		case <-shutdown:
@@ -279,5 +277,5 @@ func server(app *App, do *DelayOpts, port *Port, w io.Writer, shutdown chan int)
 	if !app.Cli {
 		LogNotice("Exiting Delay Mode: server on %s", port.IfaceStr)
 	}
-	close(quit)
+	port.Quit()
 }

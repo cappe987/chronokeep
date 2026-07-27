@@ -195,8 +195,6 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 	if app.Cli {
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	}
-	serverQuit := make(chan int)
-	clientQuit := make(chan int)
 	serverRx := make(chan PacketData, 100)
 	clientRx := make(chan PacketData, 100)
 	serverTicker := time.NewTicker(teOpts.IntervalTime)
@@ -215,8 +213,8 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 		LogNotice("Starting TE Mode on ports (%s, %s)", server.IfaceStr, client.IfaceStr)
 	}
 	teOpts.Running = true
-	go server.RxMode(serverRx, serverQuit)
-	go client.RxMode(clientRx, clientQuit)
+	go server.RxMode(serverRx)
+	go client.RxMode(clientRx)
 	for running {
 		select {
 		case <-sigs:
@@ -262,10 +260,12 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 		}
 	}
 	signal.Stop(sigs)
-	close(serverQuit)
-	close(clientQuit)
-	server.Deinit()
-	client.Deinit()
+	server.Quit()
+	client.Quit()
+	// close(serverQuit)
+	// close(clientQuit)
+	// server.Deinit()
+	// client.Deinit()
 
 	if app.Cli {
 		fmt.Printf("\n")

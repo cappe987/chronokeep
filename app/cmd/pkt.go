@@ -132,7 +132,6 @@ func PktMode() {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	rxCh := make(chan PacketData, 100)
-	quit := make(chan int)
 	var ticker *time.Ticker
 	txCount := uint32(1)
 	infinite := false
@@ -143,7 +142,7 @@ func PktMode() {
 		return
 	}
 
-	go port.RxMode(rxCh, quit)
+	go port.RxMode(rxCh)
 	if pktOpts.RxMode {
 		// Create a ticker and stop it just so the channel exists.
 		// It will never be used in RX mode.
@@ -182,8 +181,7 @@ func PktMode() {
 			}
 		}
 	}
-	close(quit)
-	port.Deinit()
+	port.Quit()
 	if !app.Cli {
 		LogNotice("Exiting Packet Mode on %s", port.IfaceStr)
 	}

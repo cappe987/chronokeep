@@ -57,7 +57,6 @@ func GmMode() {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	rxCh := make(chan PacketData, 100)
-	quit := make(chan int)
 	var ticker *time.Ticker
 	running := true
 	seq := uint16(0)
@@ -68,11 +67,10 @@ func GmMode() {
 	if !app.Cli {
 		LogNotice("Starting GM Mode on %s", port.IfaceStr)
 	}
-	go port.RxMode(rxCh, quit)
+	go port.RxMode(rxCh)
 	for running {
 		select {
 		case <-sigs:
-			quit <- 0
 			running = false
 		case pd := <-rxCh:
 			port.ShowPacket(&pd)
@@ -81,11 +79,10 @@ func GmMode() {
 			gmTxPackets(&port, &seq, gmOpts.Peertopeer)
 		}
 	}
-	// TODO: Requires HW to test
-	port.Deinit()
 	if !app.Cli {
 		LogNotice("Exiting GM Mode on %s", port.IfaceStr)
 	}
+	port.Quit()
 }
 
 func replyToDelay(port *Port, pd *PacketData, pdelayMode bool) {
