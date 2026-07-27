@@ -18,7 +18,7 @@ type PacketData struct {
 	Iface    string
 }
 
-func (pd *PacketData) Print() {
+func (pd *PacketData) ToString() string {
 	msgtype := pd.Packet.MessageType()
 	hdr := pd.GetHeader()
 	rx_ns := pd.HwTstamp.UnixNano() % 1000000000
@@ -34,7 +34,7 @@ func (pd *PacketData) Print() {
 	} else {
 		dir = fmt.Sprintf("<- %10s", msgtype)
 	}
-	fmt.Printf("%s | %s | Seq %d | Dom %d | hwts %d.%09d | Corr %d\n", iface, dir, seq, domain, rx_s, rx_ns, corr)
+	return fmt.Sprintf("%s | %s | Seq %d | Dom %d | hwts %d.%09d | Corr %d\n", iface, dir, seq, domain, rx_s, rx_ns, corr)
 }
 
 func (pd *PacketData) NormalizeSwtstamp(base time.Time) time.Duration {
@@ -187,7 +187,7 @@ func (pd *PacketData) GetHeader() *ptp.Header {
 		pkt := pd.Packet.(*ptp.Management)
 		return &pkt.Header
 	default:
-		fmt.Printf("Invalid message type\n")
+		LogError("Invalid message type\n")
 		return nil
 	}
 }
@@ -214,7 +214,7 @@ func getSize(msgtype ptp.MessageType) uint16 {
 	// case ptp.MessageManagement:
 	// size = binary.Size(ptp.ManagementBody{})
 	default:
-		fmt.Printf("Invalid message type: %s\n", msgtype)
+		LogError("Invalid message type: %s\n", msgtype)
 		size = 0
 	}
 	return uint16(size)

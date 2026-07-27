@@ -36,6 +36,7 @@ type CommonOpts struct {
 	Help           bool
 	SwTstamp       bool
 	Onestep        bool
+	Loglevel       string
 
 	// Internal fields
 	OptList   []Opt
@@ -123,11 +124,13 @@ func (opts *CommonOpts) DefineCommonFlags() {
 	opts.AddOpt(&opts.IngressLatency, 0, "ilat", "<ns>", "Ingress latency (ns)")
 	opts.AddOpt(&opts.EgressLatency, 0, "elat", "<ns>", "Egress latency (ns)")
 	opts.AddOpt(&opts.dummyFile, 'f', "file", "<path>", "Config file (CLI args override file settings)")
+	opts.AddOpt(&opts.Loglevel, 'l', "loglevel", "<level>", "fatal|error|warn|notice|info|debug|trace")
 	opts.AddOpt(&opts.Help, 'h', "help", "", "Show this help menu")
 }
 
-func (opts *CommonOpts) DefineCommonFlagsFileOnly() {
+func (opts *CommonOpts) DefineCommonLimited() {
 	opts.AddOpt(&opts.dummyFile, 'f', "file", "<path>", "Config file")
+	opts.AddOpt(&opts.Loglevel, 'l', "loglevel", "<level>", "fatal|error|warn|notice|info|debug|trace")
 	opts.AddOpt(&opts.Help, 'h', "help", "", "Show this help menu")
 }
 
@@ -190,7 +193,15 @@ func (opts *CommonOpts) Validate() error {
 	if opts.Onestep && opts.SwTstamp {
 		return fmt.Errorf("Cannot use SwTstamp and Onestep at the same time")
 	}
+	opts.SetLogLevel()
 	return nil
+}
+
+func (opts *CommonOpts) SetLogLevel() {
+	if opts.Loglevel != "" {
+		setLogLevel(opts.Loglevel)
+		LogDebug("Setting loglevel to: %s", opts.Loglevel)
+	}
 }
 
 func (opts *CommonOpts) Parse() bool {
@@ -211,6 +222,7 @@ func (opts *CommonOpts) Parse() bool {
 	}
 	return true
 }
+
 func (opts *CommonOpts) ParseFile(modeOpts interface{}) bool {
 	foundFile := false
 	file := ""

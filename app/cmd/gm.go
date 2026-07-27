@@ -4,7 +4,6 @@ package cmd
 
 import (
 	. "ckeep/internal"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -40,7 +39,7 @@ func GmMode() {
 
 	// TODO: Add PortOpts to gmOpts struct. Unify port parsing with pkt.go
 	if opts.Iface == "" {
-		fmt.Printf("No port selected\n")
+		LogError("No port selected")
 		return
 	}
 
@@ -51,7 +50,8 @@ func GmMode() {
 	app := NewApp(opts, false, true)
 	err := port.Init(app, 1)
 	if err != nil {
-		log.Fatalf("Failed initializing port: %s", err)
+		LogError("Failed initializing port: %s", err)
+		return
 	}
 
 	sigs := make(chan os.Signal, 1)
@@ -66,7 +66,7 @@ func GmMode() {
 	gmTxPackets(&port, &seq, gmOpts.Peertopeer)
 
 	if !app.Cli {
-		log.Printf("Starting GM Mode")
+		LogNotice("Starting GM Mode on %s", port.IfaceStr)
 	}
 	go port.RxMode(rxCh, quit)
 	for running {
@@ -75,7 +75,7 @@ func GmMode() {
 			quit <- 0
 			running = false
 		case pd := <-rxCh:
-			pd.Print()
+			port.ShowPacket(&pd)
 			replyToDelay(&port, &pd, gmOpts.Peertopeer)
 		case <-ticker.C:
 			gmTxPackets(&port, &seq, gmOpts.Peertopeer)
@@ -84,7 +84,7 @@ func GmMode() {
 	// TODO: Requires HW to test
 	port.Deinit()
 	if !app.Cli {
-		log.Printf("Exiting GM Mode")
+		LogNotice("Exiting GM Mode on %s", port.IfaceStr)
 	}
 }
 
@@ -92,14 +92,14 @@ func replyToDelay(port *Port, pd *PacketData, pdelayMode bool) {
 	if !pdelayMode && pd.IsDelayReq() {
 		resp := port.MakeResponseDelay(pd)
 		port.Transmit(resp)
-		resp.Print()
+		port.ShowPacket(resp)
 	} else if pdelayMode && pd.IsPDelayReq() {
 		resp := port.MakeResponsePDelay(pd)
 		port.Transmit(resp)
-		resp.Print()
+		port.ShowPacket(resp)
 		respFup := port.MakeFollowUpPDelay(resp)
 		port.Transmit(respFup)
-		respFup.Print()
+		port.ShowPacket(respFup)
 	}
 }
 
@@ -107,22 +107,22 @@ func gmTxPackets(port *Port, seq *uint16, pdelayMode bool) {
 
 	anno := port.BuildAnnounce(*seq)
 	port.Transmit(anno)
-	anno.Print()
+	port.ShowPacket(anno)
 
 	sync, err := port.BuildPacket(ptp.MessageSync, *seq)
 	if err != nil {
 		log.Fatalf("Failed building packet: %s", err)
 	}
 	port.Transmit(sync)
-	sync.Print()
+	port.ShowPacket(sync)
 	fup := port.MakeFollowUp(sync)
 	port.Transmit(fup)
-	fup.Print()
+	port.ShowPacket(fup)
 
 	if pdelayMode {
 		pdelayReq := port.BuildPDelayReq(*seq)
 		port.Transmit(pdelayReq)
-		pdelayReq.Print()
+		port.ShowPacket(pdelayReq)
 	}
 
 	*seq += uint16(1)

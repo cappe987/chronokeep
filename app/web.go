@@ -402,34 +402,35 @@ func serve_index(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 func WebServer() {
 	mode := "web"
 	opts := CommonOpts{Mode: mode}
-	opts.DefineCommonFlagsFileOnly()
+	opts.DefineCommonLimited()
 	err := getopt.Getopt(nil)
 	if err != nil {
 		opts.Usage()
-		fmt.Printf("Error: %s\n", err)
+		LogError("%s\n", err)
 		return
 	}
+	opts.SetLogLevel()
 	if opts.Help {
 		opts.Usage()
 		return
 	}
 	teOpts, opts := InitTeOpts()
 	if !opts.ParseFile(&teOpts) {
-		fmt.Printf("Failed parsing file\n")
+		LogError("Failed parsing file\n")
 		return
 	}
 	app := NewApp(opts, true, false)
 	webapp := WebApp{App: app, TeOpts: &teOpts}
 	tmpl, err := BuildTemplates()
 	if err != nil {
-		fmt.Printf("Error parsing templates: %s\n", err)
+		LogError("Parsing templates: %s\n", err)
 		return
 	}
 	webapp.Tmpl = tmpl
 
 	static_content, err := fs.Sub(content, "static")
 	if err != nil {
-		fmt.Printf("Error loading static content: %s\n", err)
+		LogError("Loading static content: %s\n", err)
 		return
 	}
 	handler := http.StripPrefix("/static/", http.FileServer(http.FS(static_content)))
@@ -438,6 +439,6 @@ func WebServer() {
 	http.HandleFunc("/te-toggle", toggle(&webapp))
 	http.HandleFunc("/", serve_index(&webapp))
 
-	fmt.Printf("Serving on http://localhost:8080\n")
+	LogNotice("Serving on http://localhost:%d", 8080)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

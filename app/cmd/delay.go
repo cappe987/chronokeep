@@ -4,6 +4,7 @@ package cmd
 
 import (
 	. "ckeep/internal"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -73,7 +74,7 @@ func DelayMode() {
 		pname = opts.Iface
 	}
 	if pname == "" {
-		log.Printf("No port selected\n")
+		LogError("No port selected\n")
 		return
 	}
 
@@ -114,7 +115,7 @@ func DelayMode() {
 		shutdown := make(chan int)
 		server(app, &delayOpts, &port, shutdown)
 	} else {
-		log.Printf("Please select -c/--client or -s/--server\n")
+		LogError("Please select -c/--client or -s/--server\n")
 	}
 	port.Deinit()
 }
@@ -138,7 +139,7 @@ func client(app *App, do *DelayOpts, port *Port, shutdown chan int) {
 	if app.Cli {
 		log.Printf("Transmitting...\n")
 	} else {
-		log.Printf("Starting Delay Mode: client")
+		LogNotice("Starting Delay Mode: client on %s", port.IfaceStr)
 	}
 	for running {
 		select {
@@ -151,7 +152,7 @@ func client(app *App, do *DelayOpts, port *Port, shutdown chan int) {
 			var respFup *PacketData
 			req := getPkt(reqs, pd.GetSequenceID())
 			if req == nil {
-				log.Printf("No matching Req for Resp")
+				LogWarn("No matching Req for Resp")
 				continue
 			}
 			if pd.IsPDelayResp() {
@@ -180,13 +181,14 @@ func client(app *App, do *DelayOpts, port *Port, shutdown chan int) {
 			if do.Peertopeer {
 				ns := CalcPDelay(req, resp, respFup)
 				if ns == nil {
-					log.Printf("Failed to calculate pdelay\n")
+					LogWarn("Failed to calculate pdelay\n")
 					continue
 				}
-				if !app.Cli {
-					continue
+				if app.Cli {
+					fmt.Printf("PDelay seq %d: %d\n", req.GetSequenceID(), *ns)
+				} else {
+					LogDebug("PDelay seq %d: %d\n", req.GetSequenceID(), *ns)
 				}
-				log.Printf("PDelay seq %d: %d\n", req.GetSequenceID(), *ns)
 			} else {
 				if !app.Cli {
 					continue
@@ -198,8 +200,13 @@ func client(app *App, do *DelayOpts, port *Port, shutdown chan int) {
 				t3_ns := t3.Nanosecond()
 				t3_s := t3.Unix()
 				cf := resp.GetCorrectionField()
-				log.Printf("Seq %d | ReqTS %d.%09d | RespTs %d.%09d | Cf %d\n",
+				str := fmt.Sprintf("Seq %d | ReqTS %d.%09d | RespTs %d.%09d | Cf %d\n",
 					req.GetSequenceID(), t3_s, t3_ns, t4_s, t4_ns, cf)
+				if app.Cli {
+					fmt.Print(str)
+				} else {
+					LogDebug("%s", str)
+				}
 			}
 		case <-ticker.C:
 			var req *PacketData
@@ -215,14 +222,14 @@ func client(app *App, do *DelayOpts, port *Port, shutdown chan int) {
 				req, err = port.TransmitDelayReq()
 			}
 			if err != nil {
-				log.Printf("Error: %s\n", err)
+				LogError("%s", err)
 			} else {
 				reqs = append(reqs, *req)
 			}
 		}
 	}
 	if !app.Cli {
-		log.Printf("Exiting Delay Mode: client")
+		LogNotice("Exiting Delay Mode: client on %s", port.IfaceStr)
 	}
 	close(quit)
 }
@@ -250,7 +257,7 @@ func server(app *App, do *DelayOpts, port *Port, shutdown chan int) {
 	if app.Cli {
 		log.Printf("Listening...\n")
 	} else {
-		log.Printf("Starting Delay Mode: server")
+		LogNotice("Starting Delay Mode: server on %s", port.IfaceStr)
 	}
 	go port.RxMode(rxCh, quit)
 	for running {
@@ -269,7 +276,7 @@ func server(app *App, do *DelayOpts, port *Port, shutdown chan int) {
 		}
 	}
 	if !app.Cli {
-		log.Printf("Exiting Delay Mode: server")
+		LogNotice("Exiting Delay Mode: server on %s", port.IfaceStr)
 	}
 	close(quit)
 }

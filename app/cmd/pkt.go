@@ -4,7 +4,6 @@ package cmd
 
 import (
 	. "ckeep/internal"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -91,13 +90,13 @@ func PktMode() {
 		pname = opts.Iface
 	}
 	if pname == "" {
-		fmt.Printf("No port selected\n")
+		LogError("No port selected\n")
 		return
 	}
 
 	err := opts.ValidateTstampMode(pname)
 	if err != nil {
-		fmt.Printf("Error: %s\n", err)
+		LogError("%s\n", err)
 		return
 	}
 
@@ -126,7 +125,8 @@ func PktMode() {
 
 	err = port.Init(app, 1)
 	if err != nil {
-		log.Fatalf("Failed initializing port: %s", err)
+		LogError("Failed initializing port: %s", err)
+		return
 	}
 
 	sigs := make(chan os.Signal, 1)
@@ -162,7 +162,7 @@ func PktMode() {
 	}
 
 	if !app.Cli {
-		log.Printf("Starting Packet Mode")
+		LogNotice("Starting Packet Mode on %s", port.IfaceStr)
 	}
 	for running {
 		select {
@@ -185,7 +185,7 @@ func PktMode() {
 	close(quit)
 	port.Deinit()
 	if !app.Cli {
-		log.Printf("Exiting Packet Mode")
+		LogNotice("Exiting Packet Mode on %s", port.IfaceStr)
 	}
 }
 
@@ -218,7 +218,7 @@ func txSinglePacket(port *Port, pktOpts *PktOpts, msgtype ptp.MessageType) {
 		log.Fatalf("Failed building packet: %s", err)
 	}
 	port.Transmit(pd)
-	pd.Print()
+	port.ShowPacket(pd)
 }
 
 func txPackets(port *Port, pktOpts *PktOpts) {

@@ -213,7 +213,7 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 	}
 
 	if !app.Cli {
-		log.Printf("Starting TE Mode")
+		LogNotice("Starting TE Mode on ports (%s, %s)", server.IfaceStr, client.IfaceStr)
 	}
 	teOpts.Running = true
 	go server.RxMode(serverRx, serverQuit)
@@ -248,8 +248,8 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 		case <-delayRecordTimer.C:
 			str1 := "========================"
 			str2 := " Starting recording "
-			str3 := "========================\n"
-			fmt.Print(str1 + str2 + str3)
+			str3 := "========================"
+			LogDebug("%s%s%s", str1, str2, str3)
 			server.RecordPackets = true
 			client.RecordPackets = true
 		case msg := <-app.In:
@@ -300,6 +300,6 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 		}
 	}
 	if !app.Cli {
-		log.Printf("Exiting TE Mode")
+		LogNotice("Exiting TE Mode on ports (%s, %s)", server.IfaceStr, client.IfaceStr)
 	}
 }

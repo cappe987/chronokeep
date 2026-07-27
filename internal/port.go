@@ -556,7 +556,6 @@ func (port *Port) Init(app *App, portnum uint16) error {
 	port.Interface = netif
 	port.Mac = netif.HardwareAddr
 	if err != nil {
-		fmt.Printf("Failed fetching interface\n")
 		return err
 	}
 	cid := makeClockIdentity(port.Interface)
@@ -592,18 +591,17 @@ func (port *Port) Init(app *App, portnum uint16) error {
 		layer = timestamp.PtpTransportL4
 	}
 	if err := enableTimestamps(tstamp, port.efd, netif, layer); err != nil {
-		fmt.Printf("Failed enabling timestamps: %s\n", err)
 		return err
 	}
 
 	err = unix.SetNonblock(port.efd, false)
 	if err != nil {
-		fmt.Printf("Failed to set socket to blocking\n")
+		LogError("Failed to set socket to blocking")
 		return err
 	}
 	err = unix.SetNonblock(port.gfd, false)
 	if err != nil {
-		fmt.Printf("Failed to set socket to blocking\n")
+		LogError("Failed to set socket to blocking")
 		return err
 	}
 
@@ -635,8 +633,11 @@ func (port *Port) ShowPacket(pd *PacketData) {
 	if port.Silent {
 		return
 	}
+	s := pd.ToString()
 	if port.App.Cli {
-		pd.Print()
+		fmt.Print(s)
+	} else {
+		LogDebug("%s", s)
 	}
 	if port.App.WsOut != nil {
 		port.App.WsOut <- *pd
