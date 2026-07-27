@@ -516,6 +516,26 @@ func makeClockIdentity(iface *net.Interface) uint64 {
 	return cid
 }
 
+func enableTimestamps(ts string, connFd int, iface *net.Interface, transp timestamp.PtpTransport) error {
+	switch ts {
+	case "onestep":
+		if err := timestamp.EnableHWTimestampsOnestep(connFd, iface, transp); err != nil {
+			return fmt.Errorf("failed enabling onestep: %s", err)
+		}
+	case "twostep":
+		if err := timestamp.EnableHWTimestamps(connFd, iface, transp); err != nil {
+			return fmt.Errorf("failed to enable twostep: %s", err)
+		}
+	case "software":
+		if err := timestamp.EnableSWTimestamps(connFd); err != nil {
+			return fmt.Errorf("failed to enable software timestamping: %s", err)
+		}
+	default:
+		log.Fatalf("Invalid tstamp type: %s", ts)
+	}
+	return nil
+}
+
 func (port *Port) Init(app *App, portnum uint16) error {
 	if app.Opts.Udp {
 		ip := net.ParseIP(app.Opts.Ip)
@@ -561,13 +581,17 @@ func (port *Port) Init(app *App, portnum uint16) error {
 	if err != nil {
 		return err
 	}
-	tstamp := timestamp.HW
+	tstamp := "twostep"
 	if app.Opts.SwTstamp {
-		tstamp = timestamp.SW
+		tstamp = "software"
 	} else if app.Opts.Onestep {
-		tstamp = timestamp.HWONESTEP
+		tstamp = "onestep"
 	}
-	if err := timestamp.EnableTimestamps(tstamp, port.efd, netif); err != nil {
+	layer := timestamp.PtpTransportL2
+	if app.Opts.Udp {
+		layer = timestamp.PtpTransportL4
+	}
+	if err := enableTimestamps(tstamp, port.efd, netif, layer); err != nil {
 		fmt.Printf("Failed enabling timestamps: %s\n", err)
 		return err
 	}

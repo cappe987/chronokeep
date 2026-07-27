@@ -18,6 +18,7 @@ Note: the accuracy of measurements depends on the test platform being
 known to be good. Otherwise there is no way to know if the problems are with the
 DUT.
 
+**Note: UDP is largely untested on real hardware**
 
 ## Getting Started
 
@@ -88,12 +89,12 @@ python3 scripts/plot.py measurement.dat
 
 ## TODO
 ### Finish this before initial release 
-- Test multicast UDP on HW. Veth ports in same namespace breaks multicast. TE
-  should support netns?
 - Write tests.
 - Log levels. Add debug logs in many places.
 
 ### Other TODO
+- Test multicast UDP on HW. Veth ports in same namespace breaks multicast. TE
+  should support netns?
 - Submit PR for sys/unix to add HWTSTAMP_TX_ONESTEP_P2P and rx filters: https://github.com/golang/sys/tree/master/unix
 - Improve IP configuration. CLI vs config file.
 
