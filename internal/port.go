@@ -32,7 +32,7 @@ const (
 )
 
 type Port struct {
-	IfaceStr      string
+	Name          string
 	IP            net.IP
 	DestIP        net.IP
 	Interface     *net.Interface
@@ -71,7 +71,7 @@ func (port *Port) Quit() {
 }
 
 func (port *Port) EnableRecording() {
-	LogInfo("Enabling recording on %s", port.IfaceStr)
+	LogInfo("Enabling recording on %s", port.Name)
 	port.opts.RecordPackets = true
 	port.RecordPackets = true
 }
@@ -118,7 +118,7 @@ func (port *Port) receive(buf []byte, oob []byte, getTs bool) (*PacketData, erro
 			HwTstamp: hwts,
 			SwTstamp: swts,
 			IsTx:     false,
-			Iface:    port.IfaceStr,
+			Iface:    port.Name,
 		}
 		hdr := data.GetHeader()
 		if hdr.DomainNumber != port.opts.Domain {
@@ -127,7 +127,7 @@ func (port *Port) receive(buf []byte, oob []byte, getTs bool) (*PacketData, erro
 		if data.PidEquals(port.portIdentity) {
 			return nil, fmt.Errorf("Packet sent by self")
 		}
-		LogTrace("Received on %s: %v", port.IfaceStr, buf)
+		LogTrace("Received on %s: %v", port.Name, buf)
 		// port.recordRx(*data)
 		return data, nil
 	case LayerUDPv4:
@@ -146,14 +146,14 @@ func (port *Port) receive(buf []byte, oob []byte, getTs bool) (*PacketData, erro
 			HwTstamp: hwts,
 			SwTstamp: swts,
 			IsTx:     false,
-			Iface:    port.IfaceStr,
+			Iface:    port.Name,
 		}
 		hdr := data.GetHeader()
 		if hdr.DomainNumber != port.opts.Domain {
 			return nil, fmt.Errorf("Wrong domain, got %d", hdr.DomainNumber)
 		}
 		// port.recordRx(*data)
-		LogTrace("Received on %s: %v", port.IfaceStr, buf)
+		LogTrace("Received on %s: %v", port.Name, buf)
 		return data, nil
 	default:
 		log.Fatal("receive: not implemented")
@@ -207,7 +207,7 @@ func (port *Port) rxEvent(ch chan PacketData) {
 	buf := make([]byte, timestamp.PayloadSizeBytes)
 	oob := make([]byte, timestamp.ControlSizeBytes)
 	running := true
-	LogDebug("Starting RxEvent on %s", port.IfaceStr)
+	LogDebug("Starting RxEvent on %s", port.Name)
 	for running {
 		select {
 		case _ = <-port.quit:
@@ -222,14 +222,14 @@ func (port *Port) rxEvent(ch chan PacketData) {
 	}
 	close(ch)
 	port.rxWg.Done()
-	LogDebug("Exiting RxEvent on %s", port.IfaceStr)
+	LogDebug("Exiting RxEvent on %s", port.Name)
 }
 
 func (port *Port) rxGeneral(ch chan PacketData) {
 	buf := make([]byte, timestamp.PayloadSizeBytes)
 	oob := make([]byte, timestamp.ControlSizeBytes)
 	running := true
-	LogDebug("Starting RxGeneral on %s", port.IfaceStr)
+	LogDebug("Starting RxGeneral on %s", port.Name)
 	for running {
 		select {
 		case _ = <-port.quit:
@@ -244,7 +244,7 @@ func (port *Port) rxGeneral(ch chan PacketData) {
 	}
 	close(ch)
 	port.rxWg.Done()
-	LogDebug("Exiting RxGeneral on %s", port.IfaceStr)
+	LogDebug("Exiting RxGeneral on %s", port.Name)
 }
 
 // Receive packets from each channel, record it, and send on the common channel
@@ -253,7 +253,7 @@ func (port *Port) RxMode(ch chan PacketData) {
 	genCh := make(chan PacketData, 100)
 	port.rxWg.Add(3)
 	running := true
-	LogDebug("Starting RxMode on %s", port.IfaceStr)
+	LogDebug("Starting RxMode on %s", port.Name)
 	go port.rxEvent(eventCh)
 	go port.rxGeneral(genCh)
 	for running {
@@ -272,7 +272,7 @@ func (port *Port) RxMode(ch chan PacketData) {
 	}
 	close(ch)
 	port.rxWg.Done()
-	LogDebug("Exiting RxMode on %s", port.IfaceStr)
+	LogDebug("Exiting RxMode on %s", port.Name)
 }
 
 // https://riyazali.net/berkeley-packet-filter-in-golang
@@ -338,7 +338,7 @@ func htons(i uint16) uint16 {
 
 func (p *Port) openSocket(isEventSocket bool) error {
 	if p.Layer == LayerMac {
-		LogDebug("Opening L2 socket for port %s", p.IfaceStr)
+		LogDebug("Opening L2 socket for port %s", p.Name)
 		fd, err := syscall.Socket(syscall.AF_PACKET, syscall.SOCK_RAW, syscall.ETH_P_ALL)
 		if err != nil {
 			return err
@@ -355,12 +355,12 @@ func (p *Port) openSocket(isEventSocket bool) error {
 			Ifindex:  p.Interface.Index,
 		}
 		if err := syscall.Bind(fd, sll); err != nil {
-			log.Fatalf("bind to %s failed: %v", p.IfaceStr, err)
+			log.Fatalf("bind to %s failed: %v", p.Name, err)
 		}
 
 		// fmt.Printf("Opened L2 socket on %s\n", p.IfaceStr)
 	} else if p.Layer == LayerUDPv4 {
-		LogDebug("Opening L4 socket for port %s", p.IfaceStr)
+		LogDebug("Opening L4 socket for port %s", p.Name)
 		var udp_port int
 		var conn *net.UDPConn
 		var err error
@@ -436,7 +436,7 @@ func (port *Port) transmitPkt(pkt *ptp.Packet) error {
 		addr.Ifindex = port.Interface.Index
 		addr.Hatype = syscall.ARPHRD_ETHER
 
-		LogTrace("Transmitting on %s: %v", port.IfaceStr, packet)
+		LogTrace("Transmitting on %s: %v", port.Name, packet)
 		err = syscall.Sendto(port.efd, packet, 0, &addr)
 	} else if port.Layer == LayerUDPv4 {
 		var udp_port int
@@ -449,7 +449,7 @@ func (port *Port) transmitPkt(pkt *ptp.Packet) error {
 			sock = port.gfd
 		}
 		eclisa := timestamp.IPToSockaddr(port.DestIP, udp_port)
-		LogTrace("Transmitting on %s: %v", port.IfaceStr, bytes)
+		LogTrace("Transmitting on %s: %v", port.Name, bytes)
 		err = unix.Sendto(sock, bytes, 0, eclisa)
 	} else {
 		log.Fatal("transmit: not implemented")
@@ -476,7 +476,7 @@ func (port *Port) transmit_get_ts(pkt *ptp.Packet, oob []byte, toob []byte) (*ti
 	if port.MockTimestamps {
 		hwts = mock
 	}
-	LogTrace("TxTs on %s: %d", port.IfaceStr, hwts.UnixNano())
+	LogTrace("TxTs on %s: %d", port.Name, hwts.UnixNano())
 	if port.opts.EgressLatency != 0 {
 		hwts = hwts.Add(time.Duration(port.opts.EgressLatency))
 		swts = swts.Add(time.Duration(port.opts.EgressLatency))
@@ -513,7 +513,7 @@ func (port *Port) Transmit(pd *PacketData) error {
 	// fmt.Printf("Timestamp %d\n", hwts.UnixNano())
 	pd.HwTstamp = *hwts
 	pd.SwTstamp = *swts
-	pd.Iface = port.IfaceStr
+	pd.Iface = port.Name
 	port.recordTx(*pd)
 	return nil
 }
@@ -576,7 +576,7 @@ func enableTimestamps(ts string, connFd int, iface *net.Interface, transp timest
 }
 
 func (port *Port) Init(app *App, portnum uint16) error {
-	LogDebug("Initialising port %s", port.IfaceStr)
+	LogDebug("Initialising port %s", port.Name)
 	if port.initialized {
 		return fmt.Errorf("Init on already initialised port")
 	}
@@ -592,10 +592,10 @@ func (port *Port) Init(app *App, portnum uint16) error {
 		port.Layer = LayerMac
 	}
 	if app.Opts.Iface != "" && app.Opts.Iface != "dummy" {
-		port.IfaceStr = app.Opts.Iface
+		port.Name = app.Opts.Iface
 	}
 	port.RecordPackets = app.Opts.RecordPackets
-	netif, err := net.InterfaceByName(port.IfaceStr)
+	netif, err := net.InterfaceByName(port.Name)
 	port.Interface = netif
 	port.Mac = netif.HardwareAddr
 	if err != nil {
@@ -657,12 +657,12 @@ func (port *Port) Init(app *App, portnum uint16) error {
 
 	port.quit = make(chan int)
 	port.initialized = true
-	LogDebug("Initialising port %s complete", port.IfaceStr)
+	LogDebug("Initialising port %s complete", port.Name)
 	return nil
 }
 
 func (port *Port) Deinit() {
-	LogDebug("Deinitialising port %s", port.IfaceStr)
+	LogDebug("Deinitialising port %s", port.Name)
 	if !port.initialized {
 		LogDebug("Deinit on non-initialized port")
 		return

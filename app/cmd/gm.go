@@ -65,7 +65,7 @@ func GmMode() {
 	gmTxPackets(&port, &seq, gmOpts.Peertopeer)
 
 	if !app.Cli {
-		LogNotice("Starting GM Mode on %s", port.IfaceStr)
+		LogNotice("Starting GM Mode on %s", port.Name)
 	}
 	go port.RxMode(rxCh)
 	for running {
@@ -80,7 +80,7 @@ func GmMode() {
 		}
 	}
 	if !app.Cli {
-		LogNotice("Exiting GM Mode on %s", port.IfaceStr)
+		LogNotice("Exiting GM Mode on %s", port.Name)
 	}
 	port.Quit()
 }

@@ -131,13 +131,13 @@ func ValidateTeOpts(teOpts *TeOpts, opts *CommonOpts) error {
 	ip2 := net.ParseIP(p2.IP)
 
 	server := &Port{
-		IfaceStr: p1name,
+		Name:     p1name,
 		IP:       ip1,
 		DestIP:   ip2,
 		PortOpts: p1,
 	}
 	client := &Port{
-		IfaceStr: p2name,
+		Name:     p2name,
 		IP:       ip2,
 		DestIP:   ip1,
 		PortOpts: p2,
@@ -210,7 +210,7 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 	}
 
 	if !app.Cli {
-		LogNotice("Starting TE Mode on ports (%s, %s)", server.IfaceStr, client.IfaceStr)
+		LogNotice("Starting TE Mode on ports (%s, %s)", server.Name, client.Name)
 	}
 	teOpts.Running = true
 	go server.RxMode(serverRx)
@@ -299,6 +299,6 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 		}
 	}
 	if !app.Cli {
-		LogNotice("Exiting TE Mode on ports (%s, %s)", server.IfaceStr, client.IfaceStr)
+		LogNotice("Exiting TE Mode on ports (%s, %s)", server.Name, client.Name)
 	}
 }

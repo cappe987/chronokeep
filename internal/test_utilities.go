@@ -26,13 +26,13 @@ func InitTestPorts() {
 	AppClient = NewApp(opts, false, true)
 	ResetMockTimestamp()
 	Server = Port{
-		IfaceStr:       p1name,
+		Name:           p1name,
 		Silent:         true,
 		MockTimestamps: true,
 		RecordPackets:  false,
 	}
 	Client = Port{
-		IfaceStr:       p2name,
+		Name:           p2name,
 		Silent:         true,
 		MockTimestamps: true,
 		RecordPackets:  false,

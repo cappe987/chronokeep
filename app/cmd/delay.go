@@ -79,7 +79,7 @@ func DelayMode() {
 	}
 
 	port := Port{
-		IfaceStr: pname,
+		Name: pname,
 		// TODO: Fix IP parsing from file
 		// IP:       ip2,
 		// DestIP:   ip1,
@@ -136,7 +136,7 @@ func client(app *App, do *DelayOpts, port *Port) {
 	if app.Cli {
 		fmt.Fprintf(app.W, "Transmitting...\n")
 	} else {
-		LogNotice("Starting Delay Mode: client on %s", port.IfaceStr)
+		LogNotice("Starting Delay Mode: client on %s", port.Name)
 	}
 	for running {
 		select {
@@ -226,7 +226,7 @@ func client(app *App, do *DelayOpts, port *Port) {
 		}
 	}
 	if !app.Cli {
-		LogNotice("Exiting Delay Mode: client on %s", port.IfaceStr)
+		LogNotice("Exiting Delay Mode: client on %s", port.Name)
 	}
 	port.Quit()
 }
@@ -253,7 +253,7 @@ func server(app *App, do *DelayOpts, port *Port) {
 	if app.Cli {
 		fmt.Fprintf(app.W, "Listening...\n")
 	} else {
-		LogNotice("Starting Delay Mode: server on %s", port.IfaceStr)
+		LogNotice("Starting Delay Mode: server on %s", port.Name)
 	}
 	go port.RxMode(rxCh)
 	for running {
@@ -272,7 +272,7 @@ func server(app *App, do *DelayOpts, port *Port) {
 		}
 	}
 	if !app.Cli {
-		LogNotice("Exiting Delay Mode: server on %s", port.IfaceStr)
+		LogNotice("Exiting Delay Mode: server on %s", port.Name)
 	}
 	port.Quit()
 }

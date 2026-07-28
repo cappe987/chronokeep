@@ -101,7 +101,7 @@ func PktMode() {
 	}
 
 	port := Port{
-		IfaceStr: pname,
+		Name: pname,
 		// TODO: Fix IP parsing from file
 		// IP:       ip2,
 		// DestIP:   ip1,
@@ -161,7 +161,7 @@ func PktMode() {
 	}
 
 	if !app.Cli {
-		LogNotice("Starting Packet Mode on %s", port.IfaceStr)
+		LogNotice("Starting Packet Mode on %s", port.Name)
 	}
 	for running {
 		select {
@@ -183,7 +183,7 @@ func PktMode() {
 	}
 	port.Quit()
 	if !app.Cli {
-		LogNotice("Exiting Packet Mode on %s", port.IfaceStr)
+		LogNotice("Exiting Packet Mode on %s", port.Name)
 	}
 }
 
