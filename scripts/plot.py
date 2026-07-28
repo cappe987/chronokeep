@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2026 Casper Andersson <casper.casan@gmail.com>
-from matplotlib.backends.backend_pdf import PdfPages
+import sys
+
 import matplotlib.pyplot as plt
 import numpy as np
-import sys
+from matplotlib.backends.backend_pdf import PdfPages
+
 
 def make_page(info, t, s) -> plt.Figure:
     AX_GRAPH = 0
@@ -22,8 +24,8 @@ def make_page(info, t, s) -> plt.Figure:
     # when it's not needed.
     def formatter(x, pos):
         if x.is_integer():
-            return "{:,.0f}".format(x).replace(",", " ")
-        return "{:}".format(x)
+            return f"{x:,.0f}".replace(",", " ")
+        return f"{x}"
     ax[AX_GRAPH].yaxis.set_major_formatter(formatter)
 
     ax[AX_GRAPH].plot(t, s, color=info['color']) #, label="Time Error")
@@ -44,7 +46,7 @@ def make_page(info, t, s) -> plt.Figure:
         [f"{np.max(s) - np.min(s):.2f} ns"],
         [f"{np.std(s):.2f} ns"],
         [f"{np.size(s)}"]]
-    rows_bold = list(map(lambda s: "$\\bf{" + s + "}$", rows))
+    rows_bold = ["$\\bf{" + s + "}$" for s in rows]
     table = ax[AX_TABLE].table(cellText=table_vals,
                         colWidths=[.3] * 4,
                         rowLabels=rows_bold,
@@ -52,7 +54,7 @@ def make_page(info, t, s) -> plt.Figure:
     table.scale(1.5, 1)
     table.set_fontsize(10)
     # Set cell height
-    for r in range(0, len(table_vals)):
+    for r in range(len(table_vals)):
         for c in range(-1, len(table_vals[0])):
             cell = table[r, c]
             cell.set_height(0.1)
@@ -74,17 +76,14 @@ texts = {
 }
 
 
-data = open(sys.argv[1], 'r').read().split('\n\n')
-# data = open('measurement2.dat', 'r').read().split('\n\n')
-
-# print(data)
+with open(sys.argv[1], 'r') as f:
+    data = f.read().split('\n\n')
 
 pdf = PdfPages("output.pdf")
 for x in data:
     lines = x.split('\n')
     measure = lines[0].strip()
     measure_data =  [a.split() for a in lines[1:] if a != '']
-    # print(measure)
     arr = np.array(measure_data, dtype=np.float32)
     time=arr[:, 0]
     values=arr[:, 1]
