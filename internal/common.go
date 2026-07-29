@@ -327,7 +327,7 @@ func StringToMessageType(str string) ptp.MessageType {
 	case "management":
 		return ptp.MessageManagement
 	}
-	log.Fatalf("Invalid message type: %s", str)
+	LogFatal("Invalid message type: %s", str)
 	panic("Invalid message type")
 }
 
@@ -365,6 +365,7 @@ func getTstampCaps(ifname string) (uint32, uint32, error) {
 	if err != nil {
 		return 0, 0, fmt.Errorf("failed to run ioctl SIOCETHTOOL to see what is supported on %s: (%w)", ifname, err)
 	}
+	LogDebug("Port %s | tx_types 0x%x | rx_filters 0x%x", ifname, hw.Tx_types, hw.Rx_filters)
 
 	// var rxFilter, txFilter int32
 	// if hw.Tx_types&(1<<unix.HWTSTAMP_TX_ON) > 0 {
@@ -389,17 +390,19 @@ func getTstampCaps(ifname string) (uint32, uint32, error) {
 const TMP_HWTSTAMP_TX_ONESTEP_P2P = 0x3
 
 func (opts *CommonOpts) ValidateTstampMode(ifname string) error {
-	if !opts.SwTstamp {
-		_, tx, err := getTstampCaps(ifname)
-		if err != nil {
-			return err
-		}
-		if !opts.Onestep && tx&(1<<unix.HWTSTAMP_TX_ON) == 0 {
-			return fmt.Errorf("Twostep timestamping not supported on %s", ifname)
-		} else if opts.Onestep && tx&(1<<unix.HWTSTAMP_TX_ONESTEP_SYNC) == 0 {
-			return fmt.Errorf("Onestep timestamping not supported on %s", ifname)
-		}
-		// TODO: Validate p2p1step once that is added as an option
+	if opts.SwTstamp {
+		LogDebug("Using software timestamping. Skipping tsinfo validation")
+		return nil
 	}
+	_, tx, err := getTstampCaps(ifname)
+	if err != nil {
+		return err
+	}
+	if !opts.Onestep && tx&(1<<unix.HWTSTAMP_TX_ON) == 0 {
+		return fmt.Errorf("Twostep timestamping not supported on %s", ifname)
+	} else if opts.Onestep && tx&(1<<unix.HWTSTAMP_TX_ONESTEP_SYNC) == 0 {
+		return fmt.Errorf("Onestep timestamping not supported on %s", ifname)
+	}
+	// TODO: Validate p2p1step once that is added as an option
 	return nil
 }

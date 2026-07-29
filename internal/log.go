@@ -34,7 +34,7 @@ func setLogLevel(level string) {
 	case "fatal":
 		loglevel = 0
 	default:
-		log.Fatalf("Invalid loglevel")
+		LogFatal("Invalid loglevel")
 	}
 }
 
@@ -55,14 +55,6 @@ func init() {
 	warnLevel = log.New(logWriter{lvl: "WARNING"}, "", 0)
 	errorLevel = log.New(logWriter{lvl: "ERROR"}, "", 0)
 	fatalLevel = log.New(logWriter{lvl: "FATAL"}, "", 0)
-
-	// traceLevel.SetPrefix(time.Now().Format("2006-01-02 15:04:05") + " TRACE: ")
-	// debugLevel.SetPrefix(time.Now().Format("2006-01-02 15:04:05") + " DEBUG: ")
-	// infoLevel.SetPrefix(time.Now().Format("2006-01-02 15:04:05") + " INFO: ")
-	// noticeLevel.SetPrefix(time.Now().Format("2006-01-02 15:04:05") + " NOTICE: ")
-	// warnLevel.SetPrefix(time.Now().Format("2006-01-02 15:04:05") + " WARN: ")
-	// errorLevel.SetPrefix(time.Now().Format("2006-01-02 15:04:05") + " ERROR: ")
-	// fatalLevel.SetPrefix(time.Now().Format("2006-01-02 15:04:05") + " FATAL: ")
 }
 
 func LogTrace(s string, args ...any) {

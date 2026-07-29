@@ -37,6 +37,7 @@ func calcSyfup(sync *PacketData, fup *PacketData) *time.Duration {
 	c1 := sync.GetCorrectionField()
 	c2 := fup.GetCorrectionField()
 	curr_t1 := t1.Sub(t2) + c2 + c1
+	LogTrace("CalcSyfup: t1 %d | t2 %d | c1 %d | c2 %d = %d", t1.UnixNano(), t2.UnixNano(), c1, c2, curr_t1)
 	// fmt.Printf("t1 %d | t2 %d | c1 %d | c2 %d\n", t1.UnixNano(), t2.UnixNano(), c1, c2)
 	return &curr_t1
 }
@@ -54,6 +55,7 @@ func CalcDelay(req *PacketData, resp *PacketData) *time.Duration {
 	c4 := resp.GetCorrectionField()
 	c3 := req.GetCorrectionField()
 	curr_t4 := t4.Sub(t3) - c4 - c3
+	LogTrace("CalcDelay: t4 %d | t3 %d | c4 %d | c3 %d = %d", t4.UnixNano(), t3.UnixNano(), c4, c3, curr_t4)
 	// fmt.Printf("T4: %d\n", curr_t4)
 	return &curr_t4
 }
@@ -342,9 +344,10 @@ func CalcPDelay(req *PacketData, resp *PacketData, respFup *PacketData) *time.Du
 		t3 = respFup.GetPDelayRespFupResponseOriginTimestamp().Time()
 		c2 = respFup.GetCorrectionField()
 	}
-	// fmt.Printf("t1 %d | t2 %d | t3 %d | t4 %d | c1 %d | c2 %d\n",
 	// 	t1.UnixNano(), t2.UnixNano(), t3.UnixNano(), t4.UnixNano(), c1, c2)
 	pdelay := ((t4.Sub(t1)) - (t3.Sub(t2)) - c1 - c2) / 2
+	LogTrace("CalcPDelay: t1 %d | t2 %d | t3 %d | t4 %d | c1 %d | c2 %d | pdelay %d\n",
+		t1.UnixNano(), t2.UnixNano(), t3.UnixNano(), t4.UnixNano(), c1, c2, pdelay)
 	return &pdelay
 }
 
@@ -609,7 +612,7 @@ func prepareWebChart(title string, mmm MaxMinMean, list []PacketStat, getF func(
 	}
 	labels += "]"
 	values += "]"
-	id := strings.Replace(strings.ToLower(title), " ", "-", -1)
+	id := strings.ReplaceAll(strings.ToLower(title), " ", "-")
 	return WebChart{
 		Title:  title,
 		CssId:  id,
@@ -626,6 +629,7 @@ const chartBlue = "#36a2eb"
 const chartOrange = "#ff9f40"
 
 func (stats *Stats) GetWebStats(p2p bool) WebStats {
+	LogDebug("Fetching stats for web charts")
 	return WebStats{
 		Peertopeer:  p2p,
 		T1Chart:     prepareWebChart("T1 TE", stats.T1M, stats.Syncs, getVal, chartBlue),

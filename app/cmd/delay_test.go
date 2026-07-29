@@ -3,8 +3,6 @@ package cmd
 import (
 	"bytes"
 	. "ckeep/internal"
-	"log"
-	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -13,14 +11,6 @@ import (
 
 func init() {
 	InitTesting()
-}
-
-func captureOutput(f func()) string {
-	var buf bytes.Buffer
-	log.SetOutput(&buf)
-	f()
-	log.SetOutput(os.Stderr)
-	return buf.String()
 }
 
 func getDelayOpts() DelayOpts {

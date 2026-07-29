@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"html/template"
 	"slices"
+
+	. "ckeep/internal"
 )
 
 //go:embed tmpl/*
@@ -50,6 +52,7 @@ func (t *Tmpl) getFiles() []string {
 	for _, dep := range deplist {
 		filenames = append(filenames, fmt.Sprintf("tmpl/%s.html", dep))
 	}
+	LogDebug("Init template '%s' with dependencies %v", t.name, filenames)
 	filenames = append(filenames, fmt.Sprintf("tmpl/%s.html", t.name))
 	return filenames
 }
