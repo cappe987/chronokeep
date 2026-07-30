@@ -21,13 +21,6 @@ func getDelayOpts() DelayOpts {
 	return delayOpts
 }
 
-// Close client if too long has passed.
-// Maybe the server didn't reply and it got stuck waiting.
-func timeoutClient(quit chan int) {
-	time.Sleep(time.Duration(200) * time.Millisecond)
-	close(quit)
-}
-
 func runDelayMode(t *testing.T, delayOpts DelayOpts) string {
 	var wg sync.WaitGroup
 
@@ -38,14 +31,14 @@ func runDelayMode(t *testing.T, delayOpts DelayOpts) string {
 	wg.Go(func() {
 		server(AppServer, &delayOpts, &Server)
 	})
-	go timeoutClient(AppClient.QuitCh)
+	go TimeoutApp(AppClient.QuitCh)
 	time.Sleep(time.Duration(10) * time.Millisecond)
 	client(AppClient, &delayOpts, &Client)
 	out := clientOut.String()
 	AppServer.Quit()
 	wg.Wait()
 	// Remote trailing newline so we don't get an empty string
-	lines := strings.Split(out[:len(out)-1], "\n")
+	lines := ParseLines(out)
 	if len(lines) != 2 {
 		t.Fatalf("Expected two lines of output. Got %s", out)
 	}

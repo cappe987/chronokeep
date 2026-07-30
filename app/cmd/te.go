@@ -213,8 +213,8 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 		LogNotice("Starting TE Mode on ports (%s, %s)", server.Name, client.Name)
 	}
 	teOpts.Running = true
-	go server.RxMode(serverRx)
-	go client.RxMode(clientRx)
+	server.StartRxMode(serverRx)
+	client.StartRxMode(clientRx)
 	for running {
 		select {
 		case <-sigs:

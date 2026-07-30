@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"strings"
 	"sync"
 	"time"
 )
@@ -90,4 +91,15 @@ func MockTimestamps(n int) []time.Time {
 	}
 	mutex.Unlock()
 	return arr
+}
+
+// Close client if too long has passed.
+// Maybe the server didn't reply and it got stuck waiting.
+func TimeoutApp(quit chan int) {
+	time.Sleep(time.Duration(200) * time.Millisecond)
+	close(quit)
+}
+
+func ParseLines(out string) []string {
+	return strings.Split(out[:len(out)-1], "\n")
 }

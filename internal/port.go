@@ -247,11 +247,18 @@ func (port *Port) rxGeneral(ch chan PacketData) {
 	LogDebug("Exiting RxGeneral on %s", port.Name)
 }
 
+func (port *Port) StartRxMode(ch chan PacketData) {
+	// Add to WG before goroutine. Otherwise it could end up exiting the main
+	// loop before WG was set, causing it to not wait for it to finish. Which
+	// caused issues for testing.
+	port.rxWg.Add(3)
+	go port.rxMode(ch)
+}
+
 // Receive packets from each channel, record it, and send on the common channel
-func (port *Port) RxMode(ch chan PacketData) {
+func (port *Port) rxMode(ch chan PacketData) {
 	eventCh := make(chan PacketData, 100)
 	genCh := make(chan PacketData, 100)
-	port.rxWg.Add(3)
 	running := true
 	LogDebug("Starting RxMode on %s", port.Name)
 	go port.rxEvent(eventCh)
@@ -688,7 +695,7 @@ func (port *Port) ShowPacket(pd *PacketData) {
 	}
 	s := pd.ToString()
 	if port.App.Cli {
-		fmt.Print(s)
+		fmt.Fprint(port.App.W, s)
 	} else {
 		LogDebug("%s", s)
 	}

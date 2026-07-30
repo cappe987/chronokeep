@@ -4,7 +4,6 @@ package cmd
 
 import (
 	. "ckeep/internal"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -36,14 +35,18 @@ type PktOpts struct {
 	// header_offset     uint
 }
 
-func PktMode() {
-	mode := "pkt"
-	var opts = CommonOpts{Mode: mode}
-	var pktOpts = PktOpts{}
+func (pktOpts *PktOpts) InitDefaults() {
 	pktOpts.Count = 1
 	pktOpts.Interval = uint32(1000)
 	pktOpts.Vlan = -1
 	pktOpts.Prio = -1
+}
+
+func PktMode() {
+	mode := "pkt"
+	var opts = CommonOpts{Mode: mode}
+	var pktOpts = PktOpts{}
+	pktOpts.InitDefaults()
 	noWait := false
 	opts.InitDefaults()
 
@@ -129,20 +132,24 @@ func PktMode() {
 		return
 	}
 
+	if noWait {
+		noWaitMode(app, &port, &pktOpts)
+	} else {
+		normalMode(app, &port, &pktOpts)
+	}
+}
+
+func normalMode(app *App, port *Port, pktOpts *PktOpts) {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Stop(sigs)
 	rxCh := make(chan PacketData, 100)
 	var ticker *time.Ticker
 	txCount := uint32(1)
 	infinite := false
 	running := true
 
-	if noWait {
-		noWaitMode(&port, &pktOpts, sigs)
-		return
-	}
-
-	go port.RxMode(rxCh)
+	port.StartRxMode(rxCh)
 	if pktOpts.RxMode {
 		// Create a ticker and stop it just so the channel exists.
 		// It will never be used in RX mode.
@@ -157,7 +164,7 @@ func PktMode() {
 				infinite = true
 			}
 		}
-		txPackets(&port, &pktOpts)
+		txPackets(port, pktOpts)
 	}
 
 	if !app.Cli {
@@ -165,11 +172,13 @@ func PktMode() {
 	}
 	for running {
 		select {
+		case <-app.QuitCh:
+			running = false
 		case <-sigs:
 			running = false
 		case _ = <-rxCh:
 		case <-ticker.C:
-			txPackets(&port, &pktOpts)
+			txPackets(port, pktOpts)
 			if infinite {
 				continue
 			}
@@ -187,13 +196,18 @@ func PktMode() {
 	}
 }
 
-func noWaitMode(port *Port, pktOpts *PktOpts, sigs chan os.Signal) {
+func noWaitMode(app *App, port *Port, pktOpts *PktOpts) {
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Stop(sigs)
 	txCount := uint32(1)
 	running := true
 	infinite := (pktOpts.Count == 0)
 	txPackets(port, pktOpts)
 	for running {
 		select {
+		case <-app.QuitCh:
+			running = false
 		case <-sigs:
 			running = false
 		default:
@@ -207,13 +221,14 @@ func noWaitMode(port *Port, pktOpts *PktOpts, sigs chan os.Signal) {
 			}
 		}
 	}
-
+	port.Quit()
 }
 
 func txSinglePacket(port *Port, pktOpts *PktOpts, msgtype ptp.MessageType) {
 	pd, err := port.BuildPacket(msgtype, pktOpts.Seq)
 	if err != nil {
-		log.Fatalf("Failed building packet: %s", err)
+		LogWarn("Failed building packet: %s", err)
+		return
 	}
 	port.Transmit(pd)
 	port.ShowPacket(pd)

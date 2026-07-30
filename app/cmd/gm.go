@@ -67,7 +67,7 @@ func GmMode() {
 	if !app.Cli {
 		LogNotice("Starting GM Mode on %s", port.Name)
 	}
-	go port.RxMode(rxCh)
+	port.StartRxMode(rxCh)
 	for running {
 		select {
 		case <-sigs:

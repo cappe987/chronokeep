@@ -129,7 +129,7 @@ func client(app *App, do *DelayOpts, port *Port) {
 	resps := make([]PacketData, 0, 100)
 	respFups := make([]PacketData, 0, 100)
 
-	go port.RxMode(rxCh)
+	port.StartRxMode(rxCh)
 	ticker = time.NewTicker(do.IntervalTime)
 	count := uint32(0)
 
@@ -255,7 +255,7 @@ func server(app *App, do *DelayOpts, port *Port) {
 	} else {
 		LogNotice("Starting Delay Mode: server on %s", port.Name)
 	}
-	go port.RxMode(rxCh)
+	port.StartRxMode(rxCh)
 	for running {
 		select {
 		case <-app.QuitCh:
