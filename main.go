@@ -37,19 +37,21 @@ func main() {
 	// args := os.Args[2:]
 	// fmt.Printf("Mode: %s\n", arg)
 	// fmt.Printf("Args: %v\n", os.Args)
-	if arg == "pkt" {
+
+	switch arg {
+	case "pkt":
 		cmd.PktMode()
-	} else if arg == "gm" {
+	case "gm":
 		cmd.GmMode()
-	} else if arg == "delay" {
+	case "delay":
 		cmd.DelayMode()
-	} else if arg == "te" {
+	case "te":
 		cmd.TeMode()
-	} else if arg == "web" {
+	case "web":
 		app.WebServer()
-	} else if arg == "-v" || arg == "--version" || arg == "version" {
+	case "-v", "--version", "version":
 		fmt.Println("ChronoKeep - v0.1")
-	} else {
+	default:
 		Usage()
 	}
 }
