@@ -88,20 +88,20 @@ python3 scripts/plot.py measurement.dat
 
 
 ## TODO
-- Test multicast UDP on HW. Veth ports in same namespace breaks multicast. TE
-  should support netns?
-- Submit PR for sys/unix to add HWTSTAMP_TX_ONESTEP_P2P and rx filters: https://github.com/golang/sys/tree/master/unix
 - Improve IP configuration. CLI vs config file.
-
-Web:
-- Allow downloading data file for external graph generation
+- PEROUT/EXTTS modes
 - Pkt mode:
-  - Allow crafting specific sequences
+  - Allow crafting specific sequences in web or config file
   - Setting whether it should auto-reply to (P)Delays
-  - Config file that supports similar behavior
 - Wiretime mode?
   - A port of my wiretime project. Can theoretically be done in TE mode but it's
     nicer to have a dedicated mode.
+- Submit PR for sys/unix to add HWTSTAMP_TX_ONESTEP_P2P and rx filters: https://github.com/golang/sys/tree/master/unix
+- Test multicast UDP on HW. Veth ports in same namespace breaks multicast. TE
+  should support netns?
+
+Web:
+- Allow downloading data file for external graph generation
 - Ptpmonitor mode, like my old private PoC
   https://github.com/cappe987/ptpmonitor that uses expvar and the Linuxptp patch
   for `ptpmon` to transmit data from `ptp4l` to a TCP server. Display with
