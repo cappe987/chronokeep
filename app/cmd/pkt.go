@@ -66,8 +66,6 @@ func PktMode() {
 	}
 
 	////////////////////////////////////////////////////
-
-	// TODO: Allow setting interval 0 to skip using ticker
 	if pktOpts.Interval == 0 {
 		noWait = true
 	} else {
