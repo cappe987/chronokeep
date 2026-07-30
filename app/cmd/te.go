@@ -217,6 +217,8 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 	client.StartRxMode(clientRx)
 	for running {
 		select {
+		case <-app.QuitCh:
+			running = false
 		case <-sigs:
 			running = false
 		case pd := <-serverRx:
@@ -267,7 +269,7 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 	// server.Deinit()
 	// client.Deinit()
 
-	if app.Cli {
+	if app.Cli && !server.Silent {
 		fmt.Printf("\n")
 	}
 	if teOpts.Peertopeer {

@@ -22,10 +22,14 @@ func InitTesting() {
 	opts.SwTstamp = true
 }
 
-func InitTestPorts() {
+func CreateApps() {
 	AppServer = NewApp(opts, false, true)
 	AppClient = NewApp(opts, false, true)
 	ResetMockTimestamp()
+}
+
+func CreateTestPorts() {
+	CreateApps()
 	Server = Port{
 		Name:           p1name,
 		Silent:         true,
@@ -38,6 +42,10 @@ func InitTestPorts() {
 		MockTimestamps: true,
 		RecordPackets:  false,
 	}
+}
+
+func InitTestPorts() {
+	CreateTestPorts()
 	Server.Init(AppServer, 0)
 	Client.Init(AppClient, 0)
 }
