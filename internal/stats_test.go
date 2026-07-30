@@ -17,7 +17,7 @@ func setCorrectionField(hdr *ptp.Header, corr int64) {
 	hdr.CorrectionField = ptp.Correction(corr << 16)
 }
 
-func TestPDelayCalc(t *testing.T) {
+func TestStatsPDelayCalc(t *testing.T) {
 	InitTestPorts()
 	defer DeinitTestPorts()
 	const baseMicro = 10000 * 1000000
@@ -88,7 +88,7 @@ type stest struct {
 	got    int64
 }
 
-func TestE2eCalc(t *testing.T) {
+func TestStatsE2eCalc(t *testing.T) {
 	InitTestPorts()
 	defer DeinitTestPorts()
 	var pkts []PacketData
@@ -122,7 +122,7 @@ func TestE2eCalc(t *testing.T) {
 	}
 }
 
-func TestP2pCalc(t *testing.T) {
+func TestStatsP2pCalc(t *testing.T) {
 	InitTestPorts()
 	defer DeinitTestPorts()
 	var pkts []PacketData

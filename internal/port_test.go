@@ -13,7 +13,7 @@ func init() {
 	InitTesting()
 }
 
-func TestSinglePacket(t *testing.T) {
+func TestPortSinglePacket(t *testing.T) {
 	InitTestPorts()
 	defer DeinitTestPorts()
 	const seq = 99
@@ -48,7 +48,7 @@ func TestSinglePacket(t *testing.T) {
 		t.Errorf("Wrong domain received. Expected %d. Got %d", sync.GetHeader().DomainNumber, rxpd.GetHeader().DomainNumber)
 	}
 }
-func TestSyncFup(t *testing.T) {
+func TestPortSyncFup(t *testing.T) {
 	InitTestPorts()
 	defer DeinitTestPorts()
 
@@ -84,7 +84,7 @@ func TestSyncFup(t *testing.T) {
 	}
 }
 
-func TestManyPackets(t *testing.T) {
+func TestPortManyPackets(t *testing.T) {
 	InitTestPorts()
 	defer DeinitTestPorts()
 	// Too high number here fills up the socket queue. 222 is the limit for me.
@@ -122,7 +122,7 @@ func TestManyPackets(t *testing.T) {
 	}
 }
 
-func TestDelayReply(t *testing.T) {
+func TestPortDelayReply(t *testing.T) {
 	InitTestPorts()
 	defer DeinitTestPorts()
 	Server.TransmitDelayReq()
@@ -147,7 +147,7 @@ func TestDelayReply(t *testing.T) {
 	}
 }
 
-func TestPDelayReply(t *testing.T) {
+func TestPortPDelayReply(t *testing.T) {
 	InitTestPorts()
 	defer DeinitTestPorts()
 	txReq, err := Server.TransmitPDelayReq()
@@ -190,7 +190,7 @@ func TestPDelayReply(t *testing.T) {
 	}
 }
 
-func TestRxChannels(t *testing.T) {
+func TestPortRxChannels(t *testing.T) {
 	InitTestPorts()
 	defer DeinitTestPorts()
 
@@ -232,7 +232,7 @@ func TestRxChannels(t *testing.T) {
 	Client.Quit()
 }
 
-func TestLatencyCorrection(t *testing.T) {
+func TestPortLatencyCorrection(t *testing.T) {
 	InitTestPorts()
 	defer DeinitTestPorts()
 	sync := Server.BuildSync(0, 0)
