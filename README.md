@@ -88,12 +88,6 @@ python3 scripts/plot.py measurement.dat
 
 
 ## TODO
-### Finish this before initial release 
-- Write tests.
-- Log levels. Add debug/trace logs in many places.
-- Use App writer/quit for pkt/te modes
-
-### Other TODO
 - Test multicast UDP on HW. Veth ports in same namespace breaks multicast. TE
   should support netns?
 - Submit PR for sys/unix to add HWTSTAMP_TX_ONESTEP_P2P and rx filters: https://github.com/golang/sys/tree/master/unix
