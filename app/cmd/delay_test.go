@@ -47,7 +47,7 @@ func runDelayMode(t *testing.T, delayOpts DelayOpts) string {
 	return lines[1]
 }
 
-func TestDelay(t *testing.T) {
+func TestDelayE2e(t *testing.T) {
 	InitTestPorts()
 	defer DeinitTestPorts()
 
@@ -66,7 +66,7 @@ func TestDelay(t *testing.T) {
 
 }
 
-func TestPDelay(t *testing.T) {
+func TestDelayP2p(t *testing.T) {
 	InitTestPorts()
 	defer DeinitTestPorts()
 
