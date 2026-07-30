@@ -312,6 +312,8 @@ func StringToMessageType(str string) ptp.MessageType {
 		return ptp.MessageDelayReq
 	case "pdelay_req":
 		return ptp.MessagePDelayReq
+	case "pdelay_res": // Why does facebook/time define it like this?
+		fallthrough
 	case "pdelay_resp":
 		return ptp.MessagePDelayResp
 	case "follow_up":
