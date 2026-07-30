@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2026 Casper Andersson <casper.casan@gmail.com>
 package internal
 
 import (
