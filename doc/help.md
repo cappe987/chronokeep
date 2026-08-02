@@ -43,9 +43,11 @@ T1TE of -500 means that 500 ns of inaccuracy was incurred over the DUT. If
 this is an E2E TC, a positive T4TE of the same value is expected for the
 final TwowayTE have a precise result. A positive T1TE indicates an
 overcompensation by the DUT.
+
 $$
-t1\_te = (t_1 - t_2) + c_1 + c_2
+t1\\_te = (t_1 - t_2) + c_1 + c_2
 $$
+
 For Transparent Clock, this is the total error incurred through the DUT.
 
 For Boundary Clock, this is the difference between DUT and server/client
