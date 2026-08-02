@@ -43,9 +43,9 @@ T1TE of -500 means that 500 ns of inaccuracy was incurred over the DUT. If
 this is an E2E TC, a positive T4TE of the same value is expected for the
 final TwowayTE have a precise result. A positive T1TE indicates an
 overcompensation by the DUT.
-```
-t1_te = (t1 - t2) + c1 + c2
-```
+$$
+t1\_te = (t_1 - t_2) + c_1 + c_2
+$$
 For Transparent Clock, this is the total error incurred through the DUT.
 
 For Boundary Clock, this is the difference between DUT and server/client
@@ -59,9 +59,9 @@ client. `t4` is the timestamp of server or DUT (depending on TC
 or BC) receiving the DelayReq. T4TE is expected to be positive. A negative
 value indicates overcompensation by the DUT.
 
-```
-t4_te = t4 - t3 - c4 - c3
-```
+$$
+t4\_te = t_4 - t_3 - c_4 - c_3
+$$
 
 ### Twoway Time Error
 
@@ -73,9 +73,9 @@ should be the same value, except T1TE being negative. If T1 and T4 differ, there
 is likely an asymmetry in the ingress/egress latency of the ports' timestamping
 blocks.
 
-```
-twoway_te = (t1_te + t4_te) / 2
-```
+$$
+twoway\_te = \frac{t1\_te + t4\_te}{2}
+$$
 
 Note that two ports of the same media and speed can cancel out each others'
 ingress/egress latency. Test different media and speeds for the two ports to
@@ -87,9 +87,9 @@ Only for P2P. Total time the peer delay was corrected for by the DUT. Uses
 PDelayReq transmitted by server and PDelayResp/PDelayRespFup transmitted by
 DUT.
 
-```
-pdelay = ((t4 - t1) - (t3 - t2) - c1 - c2) / 2
-```
+$$
+pdelay = \frac{(t_4 - t_1) - (t_3 - t_2) - c_1 - c_2}{2}
+$$
 
 ### Forwarding Accuracy
 
@@ -97,9 +97,9 @@ Only for P2P. Similar to TwowayTE, this is the end result a client sees in
 P2P mode. The peer delay is added to the already negative value of T1TE to
 ideally bring that value to zero.
 
-```
-fwd_accuracy = t1_te + pdelay
-```
+$$
+fwd\_accuracy = t1\_te + pdelay
+$$
 
 
 ### T1 Latency
@@ -108,17 +108,17 @@ The total time a Sync is on the wire. Subtract OriginTS from the client RX
 timestamp. For Boundary Clock, this is the same as T1TE (except no
 correctionField is included here).
 
-```
-t1_lat = t2 - t1
-```
+$$
+t1\_lat = t_2 - t_1
+$$
 
 ### T4 Latency
 
 Only for E2E. Same as T1 Latency but for DelayReq.
 
-```
-t4_lat = t4 - t3
-```
+$$
+t4\_lat = t_4 - t_3
+$$
 
 ### PDelay Turnaround Latency
 
@@ -126,9 +126,9 @@ Only for P2P. Total time a peer delay transaction is on the wire. From when
 the PDelayReq transmits by the client, to when the PDelayResp is received by
 the client.
 
-```
-t4_lat = t4 - t1
-```
+$$
+pdelay\_turnaround = t_4 - t_1
+$$
 
 ---
 

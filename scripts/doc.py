@@ -16,7 +16,7 @@ except FileNotFoundError:
 
 for md, tmpl, dst in files:
     if has_pandoc:
-        txt = subprocess.check_output([cmd, "--from=markdown", "--to=html", md])
+        txt = subprocess.check_output([cmd, "--mathml", "--from=markdown", "--to=html", md])
         string = txt.decode(encoding="utf-8")
     else:
         string = "<p>Built without Pandoc</p>"
