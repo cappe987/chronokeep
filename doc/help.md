@@ -62,7 +62,7 @@ or BC) receiving the DelayReq. T4TE is expected to be positive. A negative
 value indicates overcompensation by the DUT.
 
 $$
-t4\_te = t_4 - t_3 - c_4 - c_3
+t4\\_te = t_4 - t_3 - c_4 - c_3
 $$
 
 ### Twoway Time Error
@@ -76,7 +76,7 @@ is likely an asymmetry in the ingress/egress latency of the ports' timestamping
 blocks.
 
 $$
-twoway\_te = \frac{t1\_te + t4\_te}{2}
+twoway\\_te = \frac{t1\_te + t4\_te}{2}
 $$
 
 Note that two ports of the same media and speed can cancel out each others'
@@ -100,7 +100,7 @@ P2P mode. The peer delay is added to the already negative value of T1TE to
 ideally bring that value to zero.
 
 $$
-fwd\_accuracy = t1\_te + pdelay
+fwd\\_accuracy = t1\_te + pdelay
 $$
 
 
@@ -111,7 +111,7 @@ timestamp. For Boundary Clock, this is the same as T1TE (except no
 correctionField is included here).
 
 $$
-t1\_lat = t_2 - t_1
+t1\\_lat = t_2 - t_1
 $$
 
 ### T4 Latency
@@ -119,7 +119,7 @@ $$
 Only for E2E. Same as T1 Latency but for DelayReq.
 
 $$
-t4\_lat = t_4 - t_3
+t4\\_lat = t_4 - t_3
 $$
 
 ### PDelay Turnaround Latency
@@ -129,7 +129,7 @@ the PDelayReq transmits by the client, to when the PDelayResp is received by
 the client.
 
 $$
-pdelay\_turnaround = t_4 - t_1
+pdelay\\_turnaround = t_4 - t_1
 $$
 
 ---
