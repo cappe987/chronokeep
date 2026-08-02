@@ -55,7 +55,7 @@ time (cable delay included).
 
 ### T4 Time Error
 
-Only for E2e. Similar to T1 Time Error, but for Delay request.
+Only for E2E. Similar to T1 Time Error, but for Delay request.
 `t3` is the timestamp of DelayReq being transmitted by the
 client. `t4` is the timestamp of server or DUT (depending on TC
 or BC) receiving the DelayReq. T4TE is expected to be positive. A negative
