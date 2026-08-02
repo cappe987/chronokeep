@@ -76,7 +76,7 @@ is likely an asymmetry in the ingress/egress latency of the ports' timestamping
 blocks.
 
 $$
-twoway\\_te = \frac{t1\_te + t4\_te}{2}
+twoway\\_te = \frac{t1\\_te + t4\\_te}{2}
 $$
 
 Note that two ports of the same media and speed can cancel out each others'
@@ -100,7 +100,7 @@ P2P mode. The peer delay is added to the already negative value of T1TE to
 ideally bring that value to zero.
 
 $$
-fwd\\_accuracy = t1\_te + pdelay
+fwd\\_accuracy = t1\\_te + pdelay
 $$
 
 
