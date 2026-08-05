@@ -1,8 +1,7 @@
 
+import os
 import subprocess
 import tempfile
-
-import os
 
 files = [
     ("doc/help.md", "app/pandoc_partial/help_template.html", "app/tmpl/help.html"),

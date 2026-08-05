@@ -47,6 +47,8 @@ func main() {
 		cmd.DelayMode()
 	case "te":
 		cmd.TeMode()
+	case "wt":
+		cmd.WiretimeMode()
 	case "web":
 		app.WebServer()
 	case "-v", "--version", "version":

@@ -68,6 +68,7 @@ func BuildTemplates() (map[string]*template.Template, error) {
 	navbar := Tmpl{name: "navbar"}
 	buttons := Tmpl{name: "buttons", deps: []Tmpl{navbar, chart}}
 	te := Tmpl{name: "te", deps: []Tmpl{buttons, config, navbar, chart}}
+	wiretime := Tmpl{name: "wiretime", deps: []Tmpl{buttons, config, navbar, chart}}
 	help := Tmpl{name: "help", deps: []Tmpl{navbar}}
 	examples := Tmpl{name: "examples", deps: []Tmpl{navbar}}
 	packet := Tmpl{name: "packet", deps: []Tmpl{navbar}}
@@ -83,6 +84,7 @@ func BuildTemplates() (map[string]*template.Template, error) {
 		examples,
 		packet,
 		index,
+		wiretime,
 	}
 
 	for _, t := range templates {

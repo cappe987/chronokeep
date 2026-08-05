@@ -19,6 +19,7 @@ type TeOpts struct {
 	Peertopeer  bool
 	DelayRecord uint32
 	Unicast     bool
+	Export      string
 
 	// Internal fields
 	IntervalTime time.Duration
@@ -28,7 +29,6 @@ type TeOpts struct {
 	Capturing    bool
 	HasStats     bool
 	Running      bool
-	Export       string
 }
 
 func TeMode() {
@@ -69,32 +69,6 @@ func InitTeOpts() (TeOpts, CommonOpts) {
 	return teOpts, opts
 }
 
-func TeGetPortnames(teOpts *TeOpts, opts *CommonOpts) (string, string, error) {
-	missingIp := false
-	gmCount := 0
-	p1name := ""
-	p2name := ""
-	for name, port := range teOpts.Ports {
-		if opts.Udp && port.IP == "" {
-			fmt.Printf("Missing IP on port %s\n", name)
-			missingIp = true
-		}
-		if port.GM {
-			p1name = name
-			gmCount += 1
-		} else {
-			p2name = name
-		}
-	}
-	if missingIp {
-		return "", "", fmt.Errorf("Missing IP on ports")
-	}
-	if gmCount != 1 {
-		return "", "", fmt.Errorf("Missing GM port")
-	}
-	return p1name, p2name, nil
-}
-
 func ValidateTeOpts(teOpts *TeOpts, opts *CommonOpts) error {
 	err := opts.Validate()
 	if err != nil {
@@ -108,7 +82,7 @@ func ValidateTeOpts(teOpts *TeOpts, opts *CommonOpts) error {
 	// TODO: Validate port tstamp modes. facebook/time has some helpers.
 	// Move out the above part to a validation function?
 
-	p1name, p2name, err := TeGetPortnames(teOpts, opts)
+	p1name, p2name, err := GetPortnames(teOpts.Ports, opts)
 	if err != nil {
 		return err
 	}

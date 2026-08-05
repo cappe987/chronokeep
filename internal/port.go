@@ -729,6 +729,22 @@ func (port *Port) TransmitSyncFup() (*PacketData, *PacketData, error) {
 	return sync, nil, nil
 }
 
+func (port *Port) TransmitSyncOnly() (*PacketData, error) {
+	var sync *PacketData
+	if port.opts.Onestep {
+		sync = port.BuildSync(port.syncSeq, port.opts.EgressLatency)
+	} else {
+		sync = port.BuildSync(port.syncSeq, 0)
+	}
+	err := port.Transmit(sync)
+	if err != nil {
+		return nil, err
+	}
+	port.ShowPacket(sync)
+	port.syncSeq += 1
+	return sync, nil
+}
+
 func (port *Port) TransmitAnnounce() (*PacketData, error) {
 	anno := port.BuildAnnounce(port.annoSeq)
 	err := port.Transmit(anno)

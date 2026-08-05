@@ -1,0 +1,27 @@
+{{ define "wiretime" }}
+
+{{ if .DoOob}}
+<span id="mode-title" hx-swap-oob="true"> {{ .ModeTitle }} </span>
+{{ template "navbar-oob" . }}
+{{ end }}
+
+  <form id="config-form">
+	{{ template "config" . }}
+	<hr style="color: var(--color-border)">
+	{{ template "buttons" . }}
+  </form>
+
+  <div hx-ext="ws" ws-connect="/ws" style="margin-top: 20px; margin-bottom: 20px;">
+          <div class="chart">
+            <p class="rounded color-text py-2 px-4">
+                    Time spent on wire
+            <p/>
+            <canvas id="wiretime-chart"></canvas>
+            <script>
+            make_chart("Wiretime", "wiretime-chart", "Time", [], "#ff9f40")
+            </script>
+          </div>
+
+  </div>
+
+{{ end }}

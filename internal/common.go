@@ -408,3 +408,29 @@ func (opts *CommonOpts) ValidateTstampMode(ifname string) error {
 	// TODO: Validate p2p1step once that is added as an option
 	return nil
 }
+
+func GetPortnames(ports map[string]PortOpts, opts *CommonOpts) (string, string, error) {
+	missingIp := false
+	gmCount := 0
+	p1name := ""
+	p2name := ""
+	for name, port := range ports {
+		if opts.Udp && port.IP == "" {
+			fmt.Printf("Missing IP on port %s\n", name)
+			missingIp = true
+		}
+		if port.GM {
+			p1name = name
+			gmCount += 1
+		} else {
+			p2name = name
+		}
+	}
+	if missingIp {
+		return "", "", fmt.Errorf("Missing IP on ports")
+	}
+	if gmCount != 1 {
+		return "", "", fmt.Errorf("Missing GM port")
+	}
+	return p1name, p2name, nil
+}

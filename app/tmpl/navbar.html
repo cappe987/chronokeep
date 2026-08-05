@@ -23,6 +23,16 @@
               TE Mode
       </button>
       <hr style="color: var(--color-border); margin-left: 10px; margin-right: 10px;">
+      <button class="color-text {{ if .WtRunning}} dot {{ end }} "
+          name="page"
+          value="wiretime"
+          hx-get="/wiretime.html"
+          hx-push-url="/wiretime.html"
+          hx-target="#page-content"
+          hx-swap="innerHTML">
+              Wiretime Mode
+      </button>
+      <hr style="color: var(--color-border); margin-left: 10px; margin-right: 10px;">
       <button class="color-text"
           name="page"
           value="packet"

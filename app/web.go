@@ -34,6 +34,7 @@ var content embed.FS
 type WebApp struct {
 	App    *App
 	TeOpts *TeOpts
+	WtOpts *WtOpts
 	Tmpl   map[string]*template.Template
 }
 
@@ -332,6 +333,7 @@ func fill_page_data(wa *WebApp, td map[string]any, mode, title string) {
 	td["Mode"] = mode
 	td["ModeTitle"] = title
 	td["TeRunning"] = wa.TeOpts.Running
+	td["WtRunning"] = wa.WtOpts.Running
 }
 
 func te_page(wa *WebApp, td map[string]any) {
@@ -340,7 +342,7 @@ func te_page(wa *WebApp, td map[string]any) {
 	td["Opts"] = wa.App.Opts
 	td["AllPorts"] = GetSystemPorts()
 	// TODO: handle errors for TeGetPortnames
-	p1name, p2name, _ := TeGetPortnames(wa.TeOpts, &wa.App.Opts)
+	p1name, p2name, _ := GetPortnames(wa.TeOpts.Ports, &wa.App.Opts)
 	td["Port1"] = p1name // Port 1 is always GM
 	td["Port2"] = p2name
 	td["Capturing"] = wa.TeOpts.Capturing
@@ -348,6 +350,10 @@ func te_page(wa *WebApp, td map[string]any) {
 		td["HasStats"] = true
 		td["Stats"] = wa.TeOpts.Stats.GetWebStats(wa.TeOpts.Peertopeer)
 	}
+}
+
+func wiretime_page(wa *WebApp, td map[string]any) {
+	fill_page_data(wa, td, "wiretime", "Wiretime")
 }
 
 func help_page(wa *WebApp, td map[string]any) {
@@ -378,6 +384,8 @@ func serve_index(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 			help_page(wa, td)
 		case "/examples.html":
 			examples_page(wa, td)
+		case "/wiretime.html":
+			wiretime_page(wa, td)
 		default:
 			return
 		}
@@ -419,8 +427,9 @@ func WebServer() {
 		LogError("Failed parsing file\n")
 		return
 	}
+	wtOpts, opts := InitWiretimeOpts(true)
 	app := NewApp(opts, true, false)
-	webapp := WebApp{App: app, TeOpts: &teOpts}
+	webapp := WebApp{App: app, TeOpts: &teOpts, WtOpts: &wtOpts}
 	tmpl, err := BuildTemplates()
 	if err != nil {
 		LogError("Parsing templates: %s\n", err)

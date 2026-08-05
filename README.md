@@ -90,6 +90,8 @@ python3 scripts/plot.py measurement.dat
 ## TODO
 - Fix data export to handle pdelay mode. Currently outputs incorrectly. And
   verify plotting script works correctly for P2P.
+- Wiretime: Add full web support
+- Wiretime: Add file export
 - Improve IP configuration. CLI vs config file.
 - PEROUT/EXTTS modes
 - Pkt mode:
