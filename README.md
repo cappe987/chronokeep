@@ -92,6 +92,7 @@ python3 scripts/plot.py measurement.dat
   verify plotting script works correctly for P2P.
 - Wiretime: Add full web support
 - Wiretime: Add file export
+- Wiretime: Add documentation
 - Improve IP configuration. CLI vs config file.
 - PEROUT/EXTTS modes
 - Pkt mode:
