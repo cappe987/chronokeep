@@ -127,14 +127,18 @@ func PktMode() {
 	app := NewApp(opts, false, true)
 
 	///////////////////////////////////////////////////
+	runPktMode(app, &port, &pktOpts, noWait)
 
+}
+
+func runPktMode(app *App, port *Port, pktOpts *PktOpts, noWait bool) {
 	cfg := Config{
-		NoWait:        noWait,
 		Count:         &pktOpts.Count,
 		SequenceTypes: pktOpts.SequenceTypes,
 		RxOnly:        pktOpts.RxMode,
 	}
-	if !cfg.RxOnly {
+	if !cfg.RxOnly { // RxOnly takes prededence over NoWait
+		cfg.NoWait = noWait
 		cfg.TxSequenceInterval = pktOpts.IntervalTime
 	}
 

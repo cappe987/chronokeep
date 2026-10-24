@@ -26,16 +26,18 @@ func getPktOpts() PktOpts {
 	return pktOpts
 }
 
-func runPktMode(poS, poC *PktOpts) (string, string) {
+func doPktMode(poS, poC *PktOpts) (string, string) {
 	var wg sync.WaitGroup
 	var outS bytes.Buffer
 	var outC bytes.Buffer
 	AppClient.SetOutput(&outC)
 	AppServer.SetOutput(&outS)
 	wg.Go(func() {
-		normalMode(AppServer, &Server, poS)
+		runPktMode(AppServer, &Server, poS, false)
 	})
-	normalMode(AppClient, &Client, poC)
+	// Give some time for server to start
+	time.Sleep(time.Duration(200) * time.Millisecond)
+	runPktMode(AppClient, &Client, poC, false)
 
 	AppServer.Quit()
 	wg.Wait()
@@ -43,14 +45,15 @@ func runPktMode(poS, poC *PktOpts) (string, string) {
 }
 
 func TestPktTxOne(t *testing.T) {
-	InitTestPorts()
-	defer DeinitTestPorts()
+	// InitTestPorts()
+	// defer DeinitTestPorts()
+	CreateTestPorts()
 	poS := getPktOpts()
 	poC := getPktOpts()
 	Server.Silent = false
 	Client.Silent = false
 
-	out, _ := runPktMode(&poS, &poC)
+	out, _ := doPktMode(&poS, &poC)
 	lines := ParseLines(out)
 	if len(lines) != 1 {
 		t.Errorf("Expected one line in output. Got %s", out)
@@ -58,8 +61,7 @@ func TestPktTxOne(t *testing.T) {
 }
 
 func TestPktTxMany(t *testing.T) {
-	InitTestPorts()
-	defer DeinitTestPorts()
+	CreateTestPorts()
 	poS := getPktOpts()
 	poC := getPktOpts()
 	Server.Silent = false
@@ -67,7 +69,7 @@ func TestPktTxMany(t *testing.T) {
 
 	poC.Count = 50
 	poS.RxMode = true
-	out, _ := runPktMode(&poS, &poC)
+	out, _ := doPktMode(&poS, &poC)
 	lines := ParseLines(out)
 	if len(lines) != 50 {
 		t.Errorf("Expected 50 lines in output. Got %s", out)
@@ -119,8 +121,7 @@ func msgtypeInList(msgtype ptp.MessageType, list []cliPkt) bool {
 }
 
 func TestPktSequence(t *testing.T) {
-	InitTestPorts()
-	defer DeinitTestPorts()
+	CreateTestPorts()
 	poS := getPktOpts()
 	poC := getPktOpts()
 	Server.Silent = false
@@ -141,7 +142,7 @@ func TestPktSequence(t *testing.T) {
 		// ptp.MessageManagement,
 	}
 
-	outS, outC := runPktMode(&poS, &poC)
+	outS, outC := doPktMode(&poS, &poC)
 	// Note: packets may be processed out-of-order on RX since event and general
 	// are independent of each other.
 	rxLines := ParseLines(outS)

@@ -927,6 +927,10 @@ func (port *Port) RunPort(app *App, config Config, wg *sync.WaitGroup) {
 	running := true
 	port.StartRxMode(rxChan)
 
+	if config.NoWait || config.TxSequenceInterval != 0 {
+		port.txSequence(&config, &seqCount, &running)
+	}
+
 	for running {
 		select {
 		case pd := <-rxChan:
