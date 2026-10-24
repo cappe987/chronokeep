@@ -248,7 +248,6 @@ func (port *Port) GetE2eTE() Stats {
 	// TODO: Use iterative mean calculation to avoid potential overflow
 	// TODO: Break out to groupings first? And then do calculations
 	for _, pd := range pkts {
-		// pd.Print()
 		if pd.IsInformationPacket() {
 			continue
 		}

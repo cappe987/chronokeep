@@ -103,6 +103,10 @@ func PktMode() {
 
 	port := Port{
 		Name: pname,
+		PortOpts: PortOpts{
+			IP:     opts.Ip,
+			DestIP: opts.DestIp,
+		},
 		// TODO: Fix IP parsing from file
 		// IP:       ip2,
 		// DestIP:   ip1,

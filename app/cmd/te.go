@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -145,103 +146,34 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 	}
 	teOpts.HasStats = false
 
-	// Port1 is always GM
-	app.Opts.Ip = server.PortOpts.IP
-	app.Opts.DestIp = client.PortOpts.IP
-	err := server.Init(app, 1)
-	if err != nil {
-		server.Deinit()
-		error_exit(teOpts, app)
-		return
-	}
-
-	app.Opts.Ip = teOpts.client.PortOpts.IP
-	app.Opts.DestIp = teOpts.server.PortOpts.IP
-	err = client.Init(app, 1)
-	if err != nil {
-		server.Deinit()
-		client.Deinit()
-		error_exit(teOpts, app)
-		return
-	}
-
 	sigs := make(chan os.Signal, 10)
 	if app.Cli {
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	}
-	serverRx := make(chan PacketData, 100)
-	clientRx := make(chan PacketData, 100)
-	serverTicker := time.NewTicker(teOpts.IntervalTime)
-	clientTicker := time.NewTicker(teOpts.IntervalTime)
-	running := true
 
-	delayRecordTimer := time.NewTimer(time.Duration(teOpts.DelayRecord) * time.Second)
-	if teOpts.DelayRecord != 0 {
-		server.RecordPackets = false
-		client.RecordPackets = false
+	serverCfg := Config{ReplyPDelay: true, ReplyDelay: true, TxSyncInterval: teOpts.IntervalTime}
+	var clientCfg Config
+	if teOpts.Peertopeer {
+		clientCfg = Config{TxPDelayInterval: teOpts.IntervalTime}
 	} else {
-		delayRecordTimer.Stop()
+		clientCfg = Config{TxDelayInterval: teOpts.IntervalTime}
 	}
 
-	if !app.Cli {
-		LogNotice("Starting TE Mode on ports (%s, %s)", server.Name, client.Name)
+	var wg sync.WaitGroup
+	wg.Add(2)
+	// TODO: Handle error reporting
+	go server.RunPort(app, serverCfg, &wg)
+	go client.RunPort(app, clientCfg, &wg)
+
+	select {
+	case <-sigs:
+	case <-app.QuitCh:
 	}
-	teOpts.Running = true
-	server.StartRxMode(serverRx)
-	client.StartRxMode(clientRx)
-	for running {
-		select {
-		case <-app.QuitCh:
-			running = false
-		case <-sigs:
-			running = false
-		case pd := <-serverRx:
-			if !teOpts.Peertopeer && pd.IsDelayReq() {
-				server.ReplyToDelayReq(&pd)
-			}
-			if teOpts.Peertopeer && pd.IsPDelayReq() {
-				server.ReplyToPDelayReq(&pd)
-			}
-		case pd := <-clientRx:
-			if teOpts.Peertopeer && pd.IsPDelayReq() {
-				client.ReplyToPDelayReq(&pd)
-			}
-		case <-serverTicker.C:
-			server.TransmitAnnounce()
-			server.TransmitSyncFup()
-			if teOpts.Peertopeer {
-				server.TransmitPDelayReq()
-			}
-		case <-clientTicker.C:
-			if teOpts.Peertopeer {
-				client.TransmitPDelayReq()
-			} else {
-				client.TransmitDelayReq()
-			}
-		case <-delayRecordTimer.C:
-			str1 := "========================"
-			str2 := " Starting recording "
-			str3 := "========================"
-			LogDebug("%s%s%s", str1, str2, str3)
-			server.RecordPackets = true
-			client.RecordPackets = true
-		case msg := <-app.In:
-			str := string(msg)
-			switch str {
-			case "exit":
-				running = false
-			case "record":
-				client.EnableRecording()
-			}
-		}
-	}
+	server.Exit()
+	client.Exit()
+	wg.Wait()
+
 	signal.Stop(sigs)
-	server.Quit()
-	client.Quit()
-	// close(serverQuit)
-	// close(clientQuit)
-	// server.Deinit()
-	// client.Deinit()
 
 	if app.Cli && !server.Silent {
 		fmt.Printf("\n")

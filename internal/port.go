@@ -58,6 +58,7 @@ type Port struct {
 	initialized   bool
 
 	MockTimestamps bool
+	Commands       chan PortCommand
 }
 
 func (port *Port) WaitExit() {
@@ -74,6 +75,10 @@ func (port *Port) EnableRecording() {
 	LogInfo("Enabling recording on %s", port.Name)
 	port.opts.RecordPackets = true
 	port.RecordPackets = true
+}
+
+func (port *Port) IsInitialized() bool {
+	return port.initialized
 }
 
 func (port *Port) recordRx(data PacketData) {
@@ -587,10 +592,11 @@ func (port *Port) Init(app *App, portnum uint16) error {
 	if port.initialized {
 		return fmt.Errorf("Init on already initialised port")
 	}
+	// TODO: Improve IP handling. Don't pass via App struct
 	if app.Opts.Udp {
-		ip := net.ParseIP(app.Opts.Ip)
-		if app.Opts.DestIp != "" {
-			dest := net.ParseIP(app.Opts.DestIp)
+		ip := net.ParseIP(port.PortOpts.IP)
+		if port.PortOpts.DestIP != "" {
+			dest := net.ParseIP(port.PortOpts.DestIP)
 			port.DestIP = dest
 		}
 		port.Layer = LayerUDPv4
@@ -663,6 +669,7 @@ func (port *Port) Init(app *App, portnum uint16) error {
 	unix.SetsockoptTimeval(port.gfd, unix.SOL_SOCKET, unix.SO_RCVTIMEO, &tmo)
 
 	port.quit = make(chan int)
+	port.Commands = make(chan PortCommand, 50)
 	port.initialized = true
 	LogDebug("Initialising port %s complete", port.Name)
 	return nil
@@ -803,4 +810,150 @@ func (port *Port) ReplyToPDelayReq(pd *PacketData) (*PacketData, *PacketData, er
 	}
 	port.ShowPacket(respFup)
 	return resp, respFup, nil
+}
+
+type portTicker struct {
+	ticker *time.Ticker
+	c      <-chan time.Time
+}
+
+func initTicker(duration time.Duration) portTicker {
+	if duration == 0 {
+		return portTicker{ticker: nil, c: nil}
+	}
+	ticker := time.NewTicker(duration)
+	return portTicker{ticker: ticker, c: ticker.C}
+}
+
+func (pt *portTicker) stop() {
+	if pt.ticker != nil {
+		pt.ticker.Stop()
+	}
+}
+
+// Copied from pkt.go
+func txSinglePacket(port *Port, seq uint16, msgtype ptp.MessageType) {
+	pd, err := port.BuildPacket(msgtype, seq)
+	if err != nil {
+		LogWarn("Failed building packet: %s", err)
+		return
+	}
+	port.Transmit(pd)
+	port.ShowPacket(pd)
+}
+
+// Copied from pkt.go
+func txPackets(port *Port, config *Config, seq *uint32) {
+	if len(config.SequenceTypes) == 0 {
+		txSinglePacket(port, uint16(*seq), ptp.MessageSync)
+	} else {
+		for _, msgtype := range config.SequenceTypes {
+			txSinglePacket(port, uint16(*seq), msgtype)
+		}
+	}
+	*seq += 1
+}
+
+type PortCmd string
+
+const (
+	Exit        PortCmd = "exit"
+	RecordStart PortCmd = "record_start"
+)
+
+type PortCommand struct {
+	cmd PortCmd
+}
+
+func (port *Port) Exit() {
+	if port.IsInitialized() {
+		port.Commands <- PortCommand{cmd: Exit}
+	}
+}
+
+type Config struct {
+	ReplyPDelay      bool
+	ReplyDelay       bool
+	TxAnnoInterval   time.Duration
+	TxSyncInterval   time.Duration
+	TxDelayInterval  time.Duration
+	TxPDelayInterval time.Duration
+
+	// PktMode
+	NoWait             bool
+	TxSequenceInterval time.Duration
+	SequenceTypes      []ptp.MessageType
+	Count              *uint32 // Stops after repeating sequence X times
+}
+
+// TODO: Move Port.App.WsOut to just a Out channel so the port owner can manage
+// any packets it receives. Maybe don't print at all in ShowPacket? Just keep
+// the LogDebug there.
+//
+// TODO: Break out CommonOpts from App. Try getting rid of App.
+//
+// TODO: Make this generic enough so all modes can run this
+func (port *Port) RunPort(app *App, config Config, wg *sync.WaitGroup) {
+	defer wg.Done()
+	// app.Opts.Ip = server.PortOpts.IP
+	// app.Opts.DestIp = client.PortOpts.IP
+	err := port.Init(app, 1)
+	if err != nil {
+		port.Deinit()
+		// error_exit(teOpts, app)
+		return
+	}
+
+	rxChan := make(chan PacketData, 100)
+	// TODO: Only start tickers that have a value set
+	txAnnoTicker := initTicker(config.TxAnnoInterval)
+	txSyncTicker := initTicker(config.TxSyncInterval)
+	txPDelayTicker := initTicker(config.TxPDelayInterval)
+	txDelayTicker := initTicker(config.TxDelayInterval)
+	txSequenceTicker := initTicker(config.TxSequenceInterval)
+	seqCount := uint32(0)
+	running := true
+	port.StartRxMode(rxChan)
+
+	for running {
+		select {
+		case pd := <-rxChan:
+			if config.ReplyDelay && pd.IsDelayReq() {
+				port.ReplyToDelayReq(&pd)
+			}
+			if config.ReplyPDelay && pd.IsPDelayReq() {
+				port.ReplyToPDelayReq(&pd)
+			}
+		case <-txAnnoTicker.c:
+			port.TransmitAnnounce()
+		case <-txSyncTicker.c:
+			port.TransmitSyncFup()
+		case <-txDelayTicker.c:
+			port.TransmitDelayReq()
+		case <-txPDelayTicker.c:
+			port.TransmitPDelayReq()
+		case <-txSequenceTicker.c:
+			if config.Count == nil {
+				txPackets(port, &config, &seqCount)
+			} else {
+				if seqCount < *config.Count {
+					txPackets(port, &config, &seqCount)
+				}
+				if seqCount >= *config.Count {
+					running = false
+				}
+			}
+		case msg := <-port.Commands: // TODO: Use context instead?
+			switch msg.cmd {
+			case Exit:
+				running = false
+			case RecordStart:
+				port.EnableRecording()
+			}
+		}
+	}
+	txSyncTicker.stop()
+	txDelayTicker.stop()
+	txPDelayTicker.stop()
+	port.Quit()
 }

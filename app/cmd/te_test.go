@@ -59,11 +59,18 @@ func validateTeMode(t *testing.T, out string) {
 	if len(lines) != 3 {
 		t.Errorf("Expected three lines in output. Got %s", out)
 	}
+	lines_zero := 0
 	for _, line := range lines {
 		val := parseTeOutput(line)
 		if val > 5000 || val < -5000 {
 			t.Errorf("Sanity check failed. Expected value below +-5000. Got %s", line)
 		}
+		if val == 0 {
+			lines_zero += 1
+		}
+	}
+	if lines_zero == 3 {
+		t.Errorf("All values should not be zero")
 	}
 }
 

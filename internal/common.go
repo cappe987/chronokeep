@@ -62,7 +62,7 @@ type PortOpts struct {
 	Prio           uint8
 
 	// Internal fields
-	destIp string
+	DestIP string
 }
 
 type App struct {
