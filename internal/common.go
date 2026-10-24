@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"os/signal"
 	"sort"
 	"strings"
 	"syscall"
@@ -73,6 +74,7 @@ type App struct {
 	Cli    bool
 	W      io.Writer
 	QuitCh chan int
+	Sigs   chan os.Signal
 }
 
 func NewApp(opts CommonOpts, init_channels bool, cli bool) *App {
@@ -86,6 +88,7 @@ func NewApp(opts CommonOpts, init_channels bool, cli bool) *App {
 			Cli:    cli,
 			W:      os.Stdout,
 			QuitCh: make(chan int),
+			Sigs:   make(chan os.Signal, 10),
 		}
 	} else {
 		return &App{
@@ -93,6 +96,7 @@ func NewApp(opts CommonOpts, init_channels bool, cli bool) *App {
 			Cli:    cli,
 			W:      os.Stdout,
 			QuitCh: make(chan int),
+			Sigs:   make(chan os.Signal, 10),
 		}
 	}
 }
@@ -103,6 +107,18 @@ func (app *App) SetOutput(w io.Writer) {
 
 func (app *App) Quit() {
 	close(app.QuitCh)
+}
+
+func (app *App) EnableSignals() {
+	if app.Cli {
+		signal.Notify(app.Sigs, syscall.SIGINT, syscall.SIGTERM)
+	}
+}
+
+func (app *App) DisableSignals() {
+	if app.Cli {
+		signal.Stop(app.Sigs)
+	}
 }
 
 func (opts *CommonOpts) AddOpt(v interface{}, short rune, long string, usage string, help string) Opt {

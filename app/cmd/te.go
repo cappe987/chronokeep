@@ -6,10 +6,7 @@ import (
 	. "ckeep/internal"
 	"fmt"
 	"net"
-	"os"
-	"os/signal"
 	"sync"
-	"syscall"
 	"time"
 )
 
@@ -146,11 +143,6 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 	}
 	teOpts.HasStats = false
 
-	sigs := make(chan os.Signal, 10)
-	if app.Cli {
-		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	}
-
 	serverCfg := Config{ReplyPDelay: true, ReplyDelay: true, TxSyncInterval: teOpts.IntervalTime}
 	var clientCfg Config
 	if teOpts.Peertopeer {
@@ -159,6 +151,7 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 		clientCfg = Config{TxDelayInterval: teOpts.IntervalTime}
 	}
 
+	app.EnableSignals()
 	var wg sync.WaitGroup
 	wg.Add(2)
 	// TODO: Handle error reporting
@@ -166,14 +159,13 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 	go client.RunPort(app, clientCfg, &wg)
 
 	select {
-	case <-sigs:
+	case <-app.Sigs:
 	case <-app.QuitCh:
 	}
 	server.Exit()
 	client.Exit()
 	wg.Wait()
-
-	signal.Stop(sigs)
+	app.DisableSignals()
 
 	if app.Cli && !server.Silent {
 		fmt.Printf("\n")

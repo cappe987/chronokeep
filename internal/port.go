@@ -831,7 +831,6 @@ func (pt *portTicker) stop() {
 	}
 }
 
-// Copied from pkt.go
 func txSinglePacket(port *Port, seq uint16, msgtype ptp.MessageType) {
 	pd, err := port.BuildPacket(msgtype, seq)
 	if err != nil {
@@ -842,7 +841,6 @@ func txSinglePacket(port *Port, seq uint16, msgtype ptp.MessageType) {
 	port.ShowPacket(pd)
 }
 
-// Copied from pkt.go
 func txPackets(port *Port, config *Config, seq *uint32) {
 	if len(config.SequenceTypes) == 0 {
 		txSinglePacket(port, uint16(*seq), ptp.MessageSync)
@@ -852,6 +850,19 @@ func txPackets(port *Port, config *Config, seq *uint32) {
 		}
 	}
 	*seq += 1
+}
+
+func (port *Port) txSequence(config *Config, seqCount *uint32, running *bool) {
+	if config.Count == nil {
+		txPackets(port, config, seqCount)
+	} else {
+		if *seqCount < *config.Count {
+			txPackets(port, config, seqCount)
+		}
+		if *seqCount >= *config.Count {
+			*running = false
+		}
+	}
 }
 
 type PortCmd string
@@ -880,26 +891,27 @@ type Config struct {
 	TxPDelayInterval time.Duration
 
 	// PktMode
-	NoWait             bool
 	TxSequenceInterval time.Duration
 	SequenceTypes      []ptp.MessageType
 	Count              *uint32 // Stops after repeating sequence X times
+	NoWait             bool
+	RxOnly             bool
 }
 
 // TODO: Move Port.App.WsOut to just a Out channel so the port owner can manage
 // any packets it receives. Maybe don't print at all in ShowPacket? Just keep
-// the LogDebug there.
+// the LogDebug there. Or maybe just keep it as is. But web channels need a bit
+// of cleanup.
 //
 // TODO: Break out CommonOpts from App. Try getting rid of App.
-//
-// TODO: Make this generic enough so all modes can run this
 func (port *Port) RunPort(app *App, config Config, wg *sync.WaitGroup) {
 	defer wg.Done()
-	// app.Opts.Ip = server.PortOpts.IP
-	// app.Opts.DestIp = client.PortOpts.IP
+	// Can we stop passing App to port?
 	err := port.Init(app, 1)
 	if err != nil {
 		port.Deinit()
+		LogError("Failed to initialise port: %v", err)
+		// TODO: Fix error passing for web
 		// error_exit(teOpts, app)
 		return
 	}
@@ -933,22 +945,17 @@ func (port *Port) RunPort(app *App, config Config, wg *sync.WaitGroup) {
 		case <-txPDelayTicker.c:
 			port.TransmitPDelayReq()
 		case <-txSequenceTicker.c:
-			if config.Count == nil {
-				txPackets(port, &config, &seqCount)
-			} else {
-				if seqCount < *config.Count {
-					txPackets(port, &config, &seqCount)
-				}
-				if seqCount >= *config.Count {
-					running = false
-				}
-			}
+			port.txSequence(&config, &seqCount, &running)
 		case msg := <-port.Commands: // TODO: Use context instead?
 			switch msg.cmd {
 			case Exit:
 				running = false
 			case RecordStart:
 				port.EnableRecording()
+			}
+		default:
+			if config.NoWait {
+				port.txSequence(&config, &seqCount, &running)
 			}
 		}
 	}

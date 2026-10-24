@@ -4,9 +4,7 @@ package cmd
 
 import (
 	. "ckeep/internal"
-	"os"
-	"os/signal"
-	"syscall"
+	"sync"
 	"time"
 
 	ptp "github.com/cappe987/facebook-time/ptp/protocol"
@@ -128,121 +126,34 @@ func PktMode() {
 
 	app := NewApp(opts, false, true)
 
-	err = port.Init(app, 1)
-	if err != nil {
-		LogError("Failed initializing port: %s", err)
-		return
+	///////////////////////////////////////////////////
+
+	cfg := Config{
+		NoWait:        noWait,
+		Count:         &pktOpts.Count,
+		SequenceTypes: pktOpts.SequenceTypes,
+		RxOnly:        pktOpts.RxMode,
+	}
+	if !cfg.RxOnly {
+		cfg.TxSequenceInterval = pktOpts.IntervalTime
 	}
 
-	if noWait {
-		noWaitMode(app, &port, &pktOpts)
-	} else {
-		normalMode(app, &port, &pktOpts)
-	}
-}
+	app.EnableSignals()
+	var wg sync.WaitGroup
+	wg.Add(1)
+	done := make(chan bool)
+	go func() {
+		port.RunPort(app, cfg, &wg)
+		done <- true
+	}()
 
-func normalMode(app *App, port *Port, pktOpts *PktOpts) {
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	defer signal.Stop(sigs)
-	rxCh := make(chan PacketData, 100)
-	var ticker *time.Ticker
-	txCount := uint32(1)
-	infinite := false
-	running := true
-
-	port.StartRxMode(rxCh)
-	if pktOpts.RxMode {
-		// Create a ticker and stop it just so the channel exists.
-		// It will never be used in RX mode.
-		ticker = time.NewTicker(time.Second * 100)
-		ticker.Stop()
-	} else { // Start TX
-		if pktOpts.Count == 1 {
-			running = false
-		} else {
-			ticker = time.NewTicker(pktOpts.IntervalTime)
-			if pktOpts.Count == 0 {
-				infinite = true
-			}
-		}
-		txPackets(port, pktOpts)
+	// Wait for signal, app exit signal, or port is finished
+	select {
+	case <-app.Sigs:
+	case <-app.QuitCh:
+	case <-done:
 	}
-
-	if !app.Cli {
-		LogNotice("Starting Packet Mode on %s", port.Name)
-	}
-	for running {
-		select {
-		case <-app.QuitCh:
-			running = false
-		case <-sigs:
-			running = false
-		case _ = <-rxCh:
-		case <-ticker.C:
-			txPackets(port, pktOpts)
-			if infinite {
-				continue
-			}
-			txCount += 1
-			if txCount >= pktOpts.Count {
-				ticker.Stop()
-				running = false
-				continue
-			}
-		}
-	}
-	port.Quit()
-	if !app.Cli {
-		LogNotice("Exiting Packet Mode on %s", port.Name)
-	}
-}
-
-func noWaitMode(app *App, port *Port, pktOpts *PktOpts) {
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	defer signal.Stop(sigs)
-	txCount := uint32(1)
-	running := true
-	infinite := (pktOpts.Count == 0)
-	txPackets(port, pktOpts)
-	for running {
-		select {
-		case <-app.QuitCh:
-			running = false
-		case <-sigs:
-			running = false
-		default:
-			txPackets(port, pktOpts)
-			if infinite {
-				continue
-			}
-			txCount += 1
-			if txCount >= pktOpts.Count {
-				running = false
-			}
-		}
-	}
-	port.Quit()
-}
-
-func txSinglePacket(port *Port, pktOpts *PktOpts, msgtype ptp.MessageType) {
-	pd, err := port.BuildPacket(msgtype, pktOpts.Seq)
-	if err != nil {
-		LogWarn("Failed building packet: %s", err)
-		return
-	}
-	port.Transmit(pd)
-	port.ShowPacket(pd)
-}
-
-func txPackets(port *Port, pktOpts *PktOpts) {
-	if len(pktOpts.SequenceTypes) == 0 {
-		txSinglePacket(port, pktOpts, ptp.MessageSync)
-	} else {
-		for _, msgtype := range pktOpts.SequenceTypes {
-			txSinglePacket(port, pktOpts, msgtype)
-		}
-	}
-	pktOpts.Seq += 1
+	port.Exit()
+	wg.Wait()
+	app.DisableSignals()
 }
