@@ -917,12 +917,20 @@ func (port *Port) RunPort(app *App, config Config, wg *sync.WaitGroup) {
 	}
 
 	rxChan := make(chan PacketData, 100)
-	// TODO: Only start tickers that have a value set
+	// TODO: How do handle triggering tickers immediately?
+	// Not super necessary but it's nice to have.
 	txAnnoTicker := initTicker(config.TxAnnoInterval)
 	txSyncTicker := initTicker(config.TxSyncInterval)
 	txPDelayTicker := initTicker(config.TxPDelayInterval)
 	txDelayTicker := initTicker(config.TxDelayInterval)
 	txSequenceTicker := initTicker(config.TxSequenceInterval)
+	defer txAnnoTicker.stop()
+	defer txSyncTicker.stop()
+	defer txDelayTicker.stop()
+	defer txPDelayTicker.stop()
+	defer txSequenceTicker.stop()
+	defer port.Quit()
+
 	seqCount := uint32(0)
 	running := true
 	port.StartRxMode(rxChan)
@@ -963,8 +971,4 @@ func (port *Port) RunPort(app *App, config Config, wg *sync.WaitGroup) {
 			}
 		}
 	}
-	txSyncTicker.stop()
-	txDelayTicker.stop()
-	txPDelayTicker.stop()
-	port.Quit()
 }

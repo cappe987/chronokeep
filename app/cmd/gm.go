@@ -4,13 +4,8 @@ package cmd
 
 import (
 	. "ckeep/internal"
-	"log"
-	"os"
-	"os/signal"
-	"syscall"
+	"sync"
 	"time"
-
-	ptp "github.com/cappe987/facebook-time/ptp/protocol"
 )
 
 type gmOpts struct {
@@ -48,79 +43,19 @@ func GmMode() {
 	Interval := time.Duration(interval_ms) * time.Millisecond
 
 	app := NewApp(opts, false, true)
-	err := port.Init(app, 1)
-	if err != nil {
-		LogError("Failed initializing port: %s", err)
-		return
+	serverCfg := Config{ReplyPDelay: true, ReplyDelay: true, TxSyncInterval: Interval, TxAnnoInterval: Interval}
+
+	app.EnableSignals()
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go port.RunPort(app, serverCfg, &wg)
+
+	select {
+	case <-app.Sigs:
+	case <-app.QuitCh:
 	}
+	port.Exit()
+	wg.Wait()
+	app.DisableSignals()
 
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	rxCh := make(chan PacketData, 100)
-	var ticker *time.Ticker
-	running := true
-	seq := uint16(0)
-
-	ticker = time.NewTicker(Interval)
-	gmTxPackets(&port, &seq, gmOpts.Peertopeer)
-
-	if !app.Cli {
-		LogNotice("Starting GM Mode on %s", port.Name)
-	}
-	port.StartRxMode(rxCh)
-	for running {
-		select {
-		case <-sigs:
-			running = false
-		case pd := <-rxCh:
-			port.ShowPacket(&pd)
-			replyToDelay(&port, &pd, gmOpts.Peertopeer)
-		case <-ticker.C:
-			gmTxPackets(&port, &seq, gmOpts.Peertopeer)
-		}
-	}
-	if !app.Cli {
-		LogNotice("Exiting GM Mode on %s", port.Name)
-	}
-	port.Quit()
-}
-
-func replyToDelay(port *Port, pd *PacketData, pdelayMode bool) {
-	if !pdelayMode && pd.IsDelayReq() {
-		resp := port.MakeResponseDelay(pd)
-		port.Transmit(resp)
-		port.ShowPacket(resp)
-	} else if pdelayMode && pd.IsPDelayReq() {
-		resp := port.MakeResponsePDelay(pd)
-		port.Transmit(resp)
-		port.ShowPacket(resp)
-		respFup := port.MakeFollowUpPDelay(resp)
-		port.Transmit(respFup)
-		port.ShowPacket(respFup)
-	}
-}
-
-func gmTxPackets(port *Port, seq *uint16, pdelayMode bool) {
-
-	anno := port.BuildAnnounce(*seq)
-	port.Transmit(anno)
-	port.ShowPacket(anno)
-
-	sync, err := port.BuildPacket(ptp.MessageSync, *seq)
-	if err != nil {
-		log.Fatalf("Failed building packet: %s", err)
-	}
-	port.Transmit(sync)
-	port.ShowPacket(sync)
-	fup := port.MakeFollowUp(sync)
-	port.Transmit(fup)
-	port.ShowPacket(fup)
-
-	if pdelayMode {
-		pdelayReq := port.BuildPDelayReq(*seq)
-		port.Transmit(pdelayReq)
-		port.ShowPacket(pdelayReq)
-	}
-
-	*seq += uint16(1)
 }
