@@ -88,6 +88,8 @@ python3 scripts/plot.py measurement.dat
 
 
 ## TODO
+- Migrate Delay/Wiretime to new port handling. Requires some reworking of things
+  to handle calculations
 - Fix data export to handle pdelay mode. Currently outputs incorrectly. And
   verify plotting script works correctly for P2P.
 - Wiretime: Add full web support

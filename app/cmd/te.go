@@ -180,9 +180,6 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 		stats.GenerateFile(false, teOpts.Export)
 		teOpts.Stats = stats
 		teOpts.HasStats = true
-		if app.Out != nil {
-			app.Out <- []byte("exited")
-		}
 	} else {
 		stats := client.GetE2eTE()
 		if app.Cli {
@@ -194,9 +191,9 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 		stats.GenerateFile(false, teOpts.Export)
 		teOpts.Stats = stats
 		teOpts.HasStats = true
-		if app.Out != nil {
-			app.Out <- []byte("exited")
-		}
+	}
+	if app.Out != nil {
+		app.Out <- []byte("exited")
 	}
 	if !app.Cli {
 		LogNotice("Exiting TE Mode on ports (%s, %s)", server.Name, client.Name)

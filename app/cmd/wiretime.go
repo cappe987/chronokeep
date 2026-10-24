@@ -62,7 +62,7 @@ func WiretimeMode() {
 }
 func InitWiretimeOpts(init_channel bool) (WtOpts, CommonOpts) {
 	var wtOpts = WtOpts{}
-	var opts = CommonOpts{Mode: "te"}
+	var opts = CommonOpts{Mode: "wiretime"}
 	opts.InitDefaults()
 	wtOpts.Interval = uint32(1000)
 

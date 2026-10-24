@@ -306,6 +306,7 @@ func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 			}
 			td["Exiting"] = true
 			wa.App.In <- []byte("exit")
+			wa.App.QuitCh <- 1
 			msg := string(<-wa.App.Out)
 			if msg != "exited" {
 				fmt.Printf("Expected mode to exit\n")
@@ -427,7 +428,9 @@ func WebServer() {
 		LogError("Failed parsing file\n")
 		return
 	}
-	wtOpts, opts := InitWiretimeOpts(true)
+	fmt.Printf("SwTstamp %v\n", opts.SwTstamp)
+	// TODO: For now, reuse the same opts from file parsing above.
+	wtOpts, _ := InitWiretimeOpts(true)
 	app := NewApp(opts, true, false)
 	webapp := WebApp{App: app, TeOpts: &teOpts, WtOpts: &wtOpts}
 	tmpl, err := BuildTemplates()
