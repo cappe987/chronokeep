@@ -699,6 +699,9 @@ func (port *Port) GetVersion() uint8 {
 }
 
 func (port *Port) ShowPacket(pd *PacketData) {
+	if port.output != nil {
+		port.output <- *pd
+	}
 	if port.Silent {
 		return
 	}
@@ -707,9 +710,6 @@ func (port *Port) ShowPacket(pd *PacketData) {
 		fmt.Fprint(port.App.W, s)
 	} else {
 		LogDebug("%s", s)
-	}
-	if port.output != nil {
-		port.output <- *pd
 	}
 }
 
