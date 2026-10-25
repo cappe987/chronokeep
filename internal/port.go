@@ -973,10 +973,11 @@ func (port *Port) RunPort(app *App, config Config, wg *sync.WaitGroup, output ch
 			case StartRecording:
 				port.EnableRecording()
 			}
-		default:
-			if config.NoWait {
-				port.txSequence(&config, &seqCount, &running)
-			}
+			// TODO: Fix nowait mode. This doesn't work well.
+			// default:
+			// 	if config.NoWait {
+			// 		port.txSequence(&config, &seqCount, &running)
+			// 	}
 		}
 	}
 }

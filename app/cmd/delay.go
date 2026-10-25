@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -103,12 +104,16 @@ func DelayMode() {
 
 	app := NewApp(opts, false, true)
 
-	err := port.Init(app, 1, app.WsOut)
-	if err != nil {
-		log.Fatalf("Failed initializing port: %s", err)
-	}
-
 	if delayOpts.Client {
+		// TODO: allow setting zero
+		if delayOpts.Count == 0 {
+			LogError("No count selected\n")
+			return
+		}
+		err := port.Init(app, 1, app.WsOut)
+		if err != nil {
+			log.Fatalf("Failed initializing port: %s", err)
+		}
 		client(app, &delayOpts, &port)
 	} else if delayOpts.Server {
 		server(app, &delayOpts, &port)
@@ -244,35 +249,36 @@ func getPkt(pkts []PacketData, seq uint16) *PacketData {
 }
 
 func server(app *App, do *DelayOpts, port *Port) {
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	defer signal.Stop(sigs)
-	rxCh := make(chan PacketData, 100)
-	running := true
-
-	if app.Cli {
-		fmt.Fprintf(app.W, "Listening...\n")
-	} else {
+	if !app.Cli {
 		LogNotice("Starting Delay Mode: server on %s", port.Name)
 	}
-	port.StartRxMode(rxCh)
+	app.EnableSignals()
+	var wg sync.WaitGroup
+	wg.Add(1)
+	cfg := Config{}
+	if do.Peertopeer {
+		cfg.ReplyPDelay = true
+	} else {
+		cfg.ReplyDelay = true
+	}
+	pkts := make(chan PacketData, 100)
+	go port.RunPort(app, cfg, &wg, pkts)
+
+	running := true
 	for running {
 		select {
+		case <-app.Sigs:
+			running = false
 		case <-app.QuitCh:
 			running = false
-		case <-sigs:
-			running = false
-		case pd := <-rxCh:
-			if !do.Peertopeer && pd.IsDelayReq() {
-				port.ReplyToDelayReq(&pd)
-			}
-			if do.Peertopeer && pd.IsPDelayReq() {
-				port.ReplyToPDelayReq(&pd)
-			}
+		case pd := <-pkts:
+			fmt.Printf("%v\n", pd)
 		}
 	}
+	port.Exit()
+	wg.Wait()
+	app.DisableSignals()
 	if !app.Cli {
 		LogNotice("Exiting Delay Mode: server on %s", port.Name)
 	}
-	port.Quit()
 }
