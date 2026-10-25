@@ -906,12 +906,9 @@ type Config struct {
 	RxOnly             bool
 }
 
-// TODO: Move Port.App.WsOut to just a Out channel so the port owner can manage
-// any packets it receives. Maybe don't print at all in ShowPacket? Just keep
-// the LogDebug there. Or maybe just keep it as is. But web channels need a bit
-// of cleanup.
-//
+// TODO: Allow generic `Count` instead of just tied to sequences
 // TODO: Break out CommonOpts from App. Try getting rid of App.
+// TODO: Add delayed exit (so it has time to receive packets for a brief moment)
 func (port *Port) RunPort(app *App, config Config, wg *sync.WaitGroup, output chan PacketData) {
 	defer wg.Done()
 	// Can we stop passing App to port?
@@ -938,6 +935,7 @@ func (port *Port) RunPort(app *App, config Config, wg *sync.WaitGroup, output ch
 	defer txPDelayTicker.stop()
 	defer txSequenceTicker.stop()
 	defer port.Quit()
+	defer close(output)
 
 	seqCount := uint32(0)
 	running := true

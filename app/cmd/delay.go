@@ -5,12 +5,10 @@ package cmd
 import (
 	. "ckeep/internal"
 	"fmt"
-	"log"
-	"os"
-	"os/signal"
 	"sync"
-	"syscall"
 	"time"
+
+	ptp "github.com/cappe987/facebook-time/ptp/protocol"
 )
 
 type DelayOpts struct {
@@ -110,10 +108,6 @@ func DelayMode() {
 			LogError("No count selected\n")
 			return
 		}
-		err := port.Init(app, 1, app.WsOut)
-		if err != nil {
-			log.Fatalf("Failed initializing port: %s", err)
-		}
 		client(app, &delayOpts, &port)
 	} else if delayOpts.Server {
 		server(app, &delayOpts, &port)
@@ -123,117 +117,132 @@ func DelayMode() {
 	port.Deinit()
 }
 
-func client(app *App, do *DelayOpts, port *Port) {
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	defer signal.Stop(sigs)
-	rxCh := make(chan PacketData, 100)
-	var ticker *time.Ticker
-	running := true
-	reqs := make([]PacketData, 0, 100)
-	resps := make([]PacketData, 0, 100)
-	respFups := make([]PacketData, 0, 100)
+type clientData struct {
+	reqs     []PacketData
+	resps    []PacketData
+	respFups []PacketData
+	count    uint32
+	do       *DelayOpts
+	app      *App
+}
 
-	port.StartRxMode(rxCh)
-	ticker = time.NewTicker(do.IntervalTime)
-	count := uint32(0)
-
-	if app.Cli {
-		fmt.Fprintf(app.W, "Transmitting...\n")
-	} else {
-		LogNotice("Starting Delay Mode: client on %s", port.Name)
+func process_packet(data *clientData, pd *PacketData, count *uint32, running *bool) {
+	if pd.IsTx {
+		data.reqs = append(data.reqs, *pd)
+		return
 	}
-	for running {
-		select {
-		case <-app.QuitCh:
-			running = false
-		case <-sigs:
-			running = false
-		case pd := <-rxCh:
-			var resp *PacketData
-			var respFup *PacketData
-			req := getPkt(reqs, pd.GetSequenceID())
-			if req == nil {
-				LogWarn("No matching Req for Resp")
-				continue
-			}
-			if pd.IsPDelayResp() {
-				resp = &pd
-				resps = append(resps, *resp)
-				if resp.IsTwostepFlagSet() {
-					respFup = getPkt(respFups, resp.GetSequenceID())
-					if respFup == nil {
-						continue
-					}
-				}
-			} else if pd.IsPDelayRespFollowUp() {
-				respFup = &pd
-				respFups = append(respFups, *respFup)
-				resp = getPkt(resps, respFup.GetSequenceID())
-				if resp == nil {
-					continue
-				}
-			} else if pd.IsDelayResp() {
-				resp = &pd
-			}
-			// Calculate
-			if count >= do.Count {
-				running = false
-			}
-			if do.Peertopeer {
-				ns := CalcPDelay(req, resp, respFup)
-				if ns == nil {
-					LogWarn("Failed to calculate pdelay\n")
-					continue
-				}
-				if app.Cli {
-					fmt.Fprintf(app.W, "PDelay seq %d: %d\n", req.GetSequenceID(), *ns)
-				} else {
-					LogDebug("PDelay seq %d: %d\n", req.GetSequenceID(), *ns)
-				}
-			} else {
-				if !app.Cli {
-					continue
-				}
-				t4 := resp.GetDelayRespOriginTimestamp().Time()
-				t4_ns := t4.Nanosecond()
-				t4_s := t4.Unix()
-				t3 := req.HwTstamp
-				t3_ns := t3.Nanosecond()
-				t3_s := t3.Unix()
-				cf := resp.GetCorrectionField()
-				str := fmt.Sprintf("Seq %d | ReqTS %d.%09d | RespTs %d.%09d | Cf %d\n",
-					req.GetSequenceID(), t3_s, t3_ns, t4_s, t4_ns, cf)
-				if app.Cli {
-					fmt.Fprint(app.W, str)
-				} else {
-					LogDebug("%s", str)
-				}
-			}
-		case <-ticker.C:
-			var req *PacketData
-			var err error
-			if count >= do.Count {
-				ticker.Stop()
-				continue
-			}
-			count += 1
-			if do.Peertopeer {
-				req, err = port.TransmitPDelayReq()
-			} else {
-				req, err = port.TransmitDelayReq()
-			}
-			if err != nil {
-				LogError("%s", err)
-			} else {
-				reqs = append(reqs, *req)
+
+	var resp *PacketData
+	var respFup *PacketData
+	req := getPkt(data.reqs, pd.GetSequenceID())
+	if req == nil {
+		LogWarn("No matching Req for Resp")
+		return
+	}
+	if pd.IsPDelayResp() {
+		resp = pd
+		data.resps = append(data.resps, *resp)
+		if resp.IsTwostepFlagSet() {
+			respFup = getPkt(data.respFups, resp.GetSequenceID())
+			if respFup == nil {
+				return
 			}
 		}
+	} else if pd.IsPDelayRespFollowUp() {
+		respFup = pd
+		data.respFups = append(data.respFups, *respFup)
+		resp = getPkt(data.resps, respFup.GetSequenceID())
+		if resp == nil {
+			return
+		}
+	} else if pd.IsDelayResp() {
+		resp = pd
 	}
+	// Calculate
+	if *count >= data.count {
+		*running = false
+	}
+	if data.do.Peertopeer {
+		ns := CalcPDelay(req, resp, respFup)
+		if ns == nil {
+			LogWarn("Failed to calculate pdelay\n")
+			return
+		}
+		if data.app.Cli {
+			fmt.Fprintf(data.app.W, "PDelay seq %d: %d\n", req.GetSequenceID(), *ns)
+		} else {
+			LogDebug("PDelay seq %d: %d\n", req.GetSequenceID(), *ns)
+		}
+	} else {
+		if !data.app.Cli {
+			return
+		}
+		t4 := resp.GetDelayRespOriginTimestamp().Time()
+		t4_ns := t4.Nanosecond()
+		t4_s := t4.Unix()
+		t3 := req.HwTstamp
+		t3_ns := t3.Nanosecond()
+		t3_s := t3.Unix()
+		cf := resp.GetCorrectionField()
+		str := fmt.Sprintf("Seq %d | ReqTS %d.%09d | RespTs %d.%09d | Cf %d\n",
+			req.GetSequenceID(), t3_s, t3_ns, t4_s, t4_ns, cf)
+		if data.app.Cli {
+			fmt.Fprint(data.app.W, str)
+		} else {
+			LogDebug("%s", str)
+		}
+	}
+}
+
+// TODO: Port needs delayed exit to process the final requests sent.
+func client(app *App, do *DelayOpts, port *Port) {
+	if !app.Cli {
+		LogNotice("Starting Delay Mode: client on %s", port.Name)
+	}
+	app.EnableSignals()
+	var wg sync.WaitGroup
+	wg.Add(1)
+	// Use Sequence system to define what we send. Allows using Count correctly.
+	cnt := do.Count
+	cfg := Config{TxSequenceInterval: do.IntervalTime, Count: &cnt}
+	if do.Peertopeer {
+		cfg.SequenceTypes = append(cfg.SequenceTypes, ptp.MessagePDelayReq)
+	} else {
+		cfg.SequenceTypes = append(cfg.SequenceTypes, ptp.MessageDelayReq)
+	}
+	pkts := make(chan PacketData, 100)
+	data := clientData{
+		reqs:     make([]PacketData, 0, 100),
+		resps:    make([]PacketData, 0, 100),
+		respFups: make([]PacketData, 0, 100),
+		app:      app,
+		do:       do,
+		count:    do.Count,
+	}
+	go port.RunPort(app, cfg, &wg, pkts)
+	pktCount := uint32(0)
+
+	running := true
+	for running {
+		select {
+		case <-app.Sigs:
+			running = false
+		case <-app.QuitCh:
+			running = false
+		case pd, ok := <-pkts:
+			if !ok {
+				running = false
+				continue
+			}
+			process_packet(&data, &pd, &pktCount, &running)
+		}
+	}
+	port.Exit()
+	wg.Wait()
+	app.DisableSignals()
 	if !app.Cli {
 		LogNotice("Exiting Delay Mode: client on %s", port.Name)
 	}
-	port.Quit()
 }
 
 func getPkt(pkts []PacketData, seq uint16) *PacketData {
@@ -256,11 +265,12 @@ func server(app *App, do *DelayOpts, port *Port) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	cfg := Config{}
-	if do.Peertopeer {
-		cfg.ReplyPDelay = true
-	} else {
-		cfg.ReplyDelay = true
-	}
+	// For now, reply to requests regardless of mode
+	// if do.Peertopeer {
+	cfg.ReplyPDelay = true
+	// } else {
+	cfg.ReplyDelay = true
+	// }
 	pkts := make(chan PacketData, 100)
 	go port.RunPort(app, cfg, &wg, pkts)
 
