@@ -298,14 +298,14 @@ func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 		case "record":
 			wa.TeOpts.Capturing = true
 			if wa.TeOpts.Running {
-				wa.App.In <- []byte(action)
+				wa.TeOpts.StartRecording()
 			}
 		case "stop":
 			if !wa.TeOpts.Running {
 				break
 			}
 			td["Exiting"] = true
-			wa.App.In <- []byte("exit")
+			// wa.App.In <- []byte("exit")
 			wa.App.QuitCh <- 1
 			msg := string(<-wa.App.Out)
 			if msg != "exited" {
@@ -428,7 +428,6 @@ func WebServer() {
 		LogError("Failed parsing file\n")
 		return
 	}
-	fmt.Printf("SwTstamp %v\n", opts.SwTstamp)
 	// TODO: For now, reuse the same opts from file parsing above.
 	wtOpts, _ := InitWiretimeOpts(true)
 	app := NewApp(opts, true, false)

@@ -103,7 +103,7 @@ func DelayMode() {
 
 	app := NewApp(opts, false, true)
 
-	err := port.Init(app, 1)
+	err := port.Init(app, 1, app.WsOut)
 	if err != nil {
 		log.Fatalf("Failed initializing port: %s", err)
 	}

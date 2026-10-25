@@ -48,8 +48,8 @@ func CreateTestPorts() {
 
 func InitTestPorts() {
 	CreateTestPorts()
-	Server.Init(AppServer, 0)
-	Client.Init(AppClient, 0)
+	Server.Init(AppServer, 0, AppServer.WsOut)
+	Client.Init(AppClient, 0, AppClient.WsOut)
 }
 
 func (port *Port) SetTestIngressLatency(lat int64) {

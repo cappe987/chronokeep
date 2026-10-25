@@ -151,7 +151,7 @@ func RunWiretimeMode(wtOpts *WtOpts, app *App) {
 	// Port1 is always GM
 	app.Opts.Ip = server.PortOpts.IP
 	app.Opts.DestIp = client.PortOpts.IP
-	err := server.Init(app, 1)
+	err := server.Init(app, 1, app.WsOut)
 	if err != nil {
 		server.Deinit()
 		wiretime_error_exit(wtOpts, app)
@@ -160,7 +160,7 @@ func RunWiretimeMode(wtOpts *WtOpts, app *App) {
 
 	app.Opts.Ip = wtOpts.client.PortOpts.IP
 	app.Opts.DestIp = wtOpts.server.PortOpts.IP
-	err = client.Init(app, 1)
+	err = client.Init(app, 1, app.WsOut)
 	if err != nil {
 		server.Deinit()
 		client.Deinit()

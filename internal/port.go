@@ -56,6 +56,7 @@ type Port struct {
 	rxWg          sync.WaitGroup
 	quit          chan int
 	initialized   bool
+	output        chan PacketData
 
 	MockTimestamps bool
 	Commands       chan PortCommand
@@ -587,7 +588,7 @@ func enableTimestamps(ts string, connFd int, iface *net.Interface, transp timest
 	return nil
 }
 
-func (port *Port) Init(app *App, portnum uint16) error {
+func (port *Port) Init(app *App, portnum uint16, output chan PacketData) error {
 	LogDebug("Initialising port %s", port.Name)
 	if port.initialized {
 		return fmt.Errorf("Init on already initialised port")
@@ -668,6 +669,7 @@ func (port *Port) Init(app *App, portnum uint16) error {
 	unix.SetsockoptTimeval(port.efd, unix.SOL_SOCKET, unix.SO_RCVTIMEO, &tmo)
 	unix.SetsockoptTimeval(port.gfd, unix.SOL_SOCKET, unix.SO_RCVTIMEO, &tmo)
 
+	port.output = output
 	port.quit = make(chan int)
 	port.Commands = make(chan PortCommand, 50)
 	port.initialized = true
@@ -706,8 +708,8 @@ func (port *Port) ShowPacket(pd *PacketData) {
 	} else {
 		LogDebug("%s", s)
 	}
-	if port.App.WsOut != nil {
-		port.App.WsOut <- *pd
+	if port.output != nil {
+		port.output <- *pd
 	}
 }
 
@@ -868,8 +870,8 @@ func (port *Port) txSequence(config *Config, seqCount *uint32, running *bool) {
 type PortCmd string
 
 const (
-	Exit        PortCmd = "exit"
-	RecordStart PortCmd = "record_start"
+	Exit           PortCmd = "exit"
+	StartRecording PortCmd = "record_start"
 )
 
 type PortCommand struct {
@@ -879,6 +881,12 @@ type PortCommand struct {
 func (port *Port) Exit() {
 	if port.IsInitialized() {
 		port.Commands <- PortCommand{cmd: Exit}
+	}
+}
+
+func (port *Port) StartRecording() {
+	if port.IsInitialized() {
+		port.Commands <- PortCommand{cmd: StartRecording}
 	}
 }
 
@@ -904,10 +912,10 @@ type Config struct {
 // of cleanup.
 //
 // TODO: Break out CommonOpts from App. Try getting rid of App.
-func (port *Port) RunPort(app *App, config Config, wg *sync.WaitGroup) {
+func (port *Port) RunPort(app *App, config Config, wg *sync.WaitGroup, output chan PacketData) {
 	defer wg.Done()
 	// Can we stop passing App to port?
-	err := port.Init(app, 1)
+	err := port.Init(app, 1, output)
 	if err != nil {
 		port.Deinit()
 		LogError("Failed to initialise port: %v", err)
@@ -962,7 +970,7 @@ func (port *Port) RunPort(app *App, config Config, wg *sync.WaitGroup) {
 			switch msg.cmd {
 			case Exit:
 				running = false
-			case RecordStart:
+			case StartRecording:
 				port.EnableRecording()
 			}
 		default:

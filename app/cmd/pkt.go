@@ -147,7 +147,7 @@ func runPktMode(app *App, port *Port, pktOpts *PktOpts, noWait bool) {
 	wg.Add(1)
 	done := make(chan bool)
 	go func() {
-		port.RunPort(app, cfg, &wg)
+		port.RunPort(app, cfg, &wg, nil)
 		done <- true
 	}()
 

@@ -48,7 +48,7 @@ func GmMode() {
 	app.EnableSignals()
 	var wg sync.WaitGroup
 	wg.Add(1)
-	go port.RunPort(app, serverCfg, &wg)
+	go port.RunPort(app, serverCfg, &wg, nil)
 
 	select {
 	case <-app.Sigs:

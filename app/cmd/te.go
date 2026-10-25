@@ -29,6 +29,10 @@ type TeOpts struct {
 	Running      bool
 }
 
+func (te *TeOpts) StartRecording() {
+	te.client.StartRecording()
+}
+
 func TeMode() {
 	teOpts, opts := InitTeOpts()
 
@@ -151,12 +155,15 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 		clientCfg = Config{TxDelayInterval: teOpts.IntervalTime}
 	}
 
+	if !app.Cli {
+		LogNotice("Starting TE Mode on ports (%s, %s)", server.Name, client.Name)
+	}
 	app.EnableSignals()
 	var wg sync.WaitGroup
 	wg.Add(2)
 	// TODO: Handle error reporting
-	go server.RunPort(app, serverCfg, &wg)
-	go client.RunPort(app, clientCfg, &wg)
+	go server.RunPort(app, serverCfg, &wg, nil)
+	go client.RunPort(app, clientCfg, &wg, app.WsOut)
 
 	select {
 	case <-app.Sigs:
