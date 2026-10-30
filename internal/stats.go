@@ -179,14 +179,14 @@ func GetPDelayLatency(req, resp *PacketData) time.Duration {
 func outputValues(f *os.File, header string, list []PacketStat) {
 	_, _ = f.WriteString(header)
 	for _, ps := range list {
-		_, _ = f.WriteString(fmt.Sprintf("%s\n", ps.ToString()))
+		_, _ = fmt.Fprintf(f, "%s\n", ps.ToString())
 	}
 }
 
 func outputLatency(f *os.File, header string, list []PacketStat) {
 	_, _ = f.WriteString(header)
 	for _, ps := range list {
-		_, _ = f.WriteString(fmt.Sprintf("%s %d\n", ps.TimeToString(), ps.latency))
+		_, _ = fmt.Fprintf(f, "%s %d\n", ps.TimeToString(), ps.latency)
 	}
 }
 

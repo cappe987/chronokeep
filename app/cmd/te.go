@@ -184,7 +184,7 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 			fmt.Fprintf(app.W, "Mean Pdelay: %d\n", stats.PDelayM.Mean)
 			fmt.Fprintf(app.W, "Mean FwdAcc: %d\n", stats.FwdAccM.Mean)
 		}
-		stats.GenerateFile(false, teOpts.Export)
+		stats.GenerateFile(true, teOpts.Export)
 		teOpts.Stats = stats
 		teOpts.HasStats = true
 	} else {
