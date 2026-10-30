@@ -68,6 +68,9 @@ func (port *Port) WaitExit() {
 
 func (port *Port) Quit() {
 	close(port.quit)
+	if port.output != nil {
+		close(port.output)
+	}
 	port.WaitExit()
 	port.Deinit()
 }
@@ -935,7 +938,6 @@ func (port *Port) RunPort(app *App, config Config, wg *sync.WaitGroup, output ch
 	defer txPDelayTicker.stop()
 	defer txSequenceTicker.stop()
 	defer port.Quit()
-	defer close(output)
 
 	seqCount := uint32(0)
 	running := true
