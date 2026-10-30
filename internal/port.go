@@ -857,15 +857,16 @@ func txPackets(port *Port, config *Config, seq *uint32) {
 	*seq += 1
 }
 
-func (port *Port) txSequence(config *Config, seqCount *uint32, running *bool) {
+func (port *Port) txSequence(config *Config, seqdata *sequenceData) {
 	if config.Count == nil {
-		txPackets(port, config, seqCount)
+		txPackets(port, config, &seqdata.seqCount)
 	} else {
-		if *seqCount < *config.Count {
-			txPackets(port, config, seqCount)
+		if seqdata.seqCount < *config.Count {
+			txPackets(port, config, &seqdata.seqCount)
 		}
-		if *seqCount >= *config.Count {
-			*running = false
+		if seqdata.seqCount >= *config.Count && !seqdata.timerSet {
+			seqdata.timerSet = true
+			seqdata.exit_timer = time.After(time.Duration(50) * time.Millisecond)
 		}
 	}
 }
@@ -909,6 +910,12 @@ type Config struct {
 	RxOnly             bool
 }
 
+type sequenceData struct {
+	exit_timer <-chan time.Time
+	timerSet   bool
+	seqCount   uint32
+}
+
 // TODO: Allow generic `Count` instead of just tied to sequences
 // TODO: Break out CommonOpts from App. Try getting rid of App.
 // TODO: Add delayed exit (so it has time to receive packets for a brief moment)
@@ -932,6 +939,10 @@ func (port *Port) RunPort(app *App, config Config, wg *sync.WaitGroup, output ch
 	txPDelayTicker := initTicker(config.TxPDelayInterval)
 	txDelayTicker := initTicker(config.TxDelayInterval)
 	txSequenceTicker := initTicker(config.TxSequenceInterval)
+	sequenceData := sequenceData{
+		timerSet: false,
+		seqCount: 0,
+	}
 	defer txAnnoTicker.stop()
 	defer txSyncTicker.stop()
 	defer txDelayTicker.stop()
@@ -939,12 +950,11 @@ func (port *Port) RunPort(app *App, config Config, wg *sync.WaitGroup, output ch
 	defer txSequenceTicker.stop()
 	defer port.Quit()
 
-	seqCount := uint32(0)
 	running := true
 	port.StartRxMode(rxChan)
 
 	if config.NoWait || config.TxSequenceInterval != 0 {
-		port.txSequence(&config, &seqCount, &running)
+		port.txSequence(&config, &sequenceData)
 	}
 
 	for running {
@@ -965,7 +975,9 @@ func (port *Port) RunPort(app *App, config Config, wg *sync.WaitGroup, output ch
 		case <-txPDelayTicker.c:
 			port.TransmitPDelayReq()
 		case <-txSequenceTicker.c:
-			port.txSequence(&config, &seqCount, &running)
+			port.txSequence(&config, &sequenceData)
+		case <-sequenceData.exit_timer:
+			running = false
 		case msg := <-port.Commands: // TODO: Use context instead?
 			switch msg.cmd {
 			case Exit:

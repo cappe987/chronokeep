@@ -198,6 +198,8 @@ func process_packet(data *clientData, pd *PacketData, count *uint32, running *bo
 func client(app *App, do *DelayOpts, port *Port) {
 	if !app.Cli {
 		LogNotice("Starting Delay Mode: client on %s", port.Name)
+	} else {
+		fmt.Fprintf(app.W, "Transmitting...\n")
 	}
 	app.EnableSignals()
 	var wg sync.WaitGroup
