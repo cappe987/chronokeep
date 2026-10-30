@@ -11,7 +11,7 @@ require (
 	github.com/facebook/time v0.0.0-20260721164901-c85daed2dfdd
 	github.com/pborman/getopt/v2 v2.1.0
 	golang.org/x/net v0.57.0
-	golang.org/x/sys v0.47.0
+	golang.org/x/sys v0.49.0
 )
 
 require github.com/coder/websocket v1.8.15
