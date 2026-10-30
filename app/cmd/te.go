@@ -27,6 +27,7 @@ type TeOpts struct {
 	Capturing    bool
 	HasStats     bool
 	Running      bool
+	PdfFile      string // Empty string if not created
 }
 
 func (te *TeOpts) StartRecording() {
@@ -146,6 +147,7 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 		server.Silent = true
 	}
 	teOpts.HasStats = false
+	teOpts.PdfFile = ""
 
 	serverCfg := Config{ReplyPDelay: true, ReplyDelay: true, TxSyncInterval: teOpts.IntervalTime}
 	var clientCfg Config
@@ -186,7 +188,6 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 		}
 		stats.GenerateFile(true, teOpts.Export)
 		teOpts.Stats = stats
-		teOpts.HasStats = true
 	} else {
 		stats := client.GetE2eTE()
 		if app.Cli {
@@ -197,8 +198,8 @@ func RunTeMode(teOpts *TeOpts, app *App) {
 
 		stats.GenerateFile(false, teOpts.Export)
 		teOpts.Stats = stats
-		teOpts.HasStats = true
 	}
+	teOpts.HasStats = true
 	if app.Out != nil {
 		app.Out <- []byte("exited")
 	}

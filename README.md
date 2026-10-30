@@ -80,11 +80,15 @@ desired. 14 MB vs 2.8 MB at the time of writing.
 
 A data file is generated when Time Error capture is stopped if enabled with `-e
 <filename>` (CLI) or `Export = <filename>` (config file). Running the plotting
-script on it will create the file `output.pdf`.
+script on it will create the file `output.pdf`. Script depends on Numpy and
+Matplotlib.
 
 ```bash
-python3 scripts/plot.py measurement.dat
+python3 app/static/plot.py measurement.dat
 ```
+
+The web displays a Download button that creates a PDF using this script in the
+background, and thus also has the dependency on Python and its libraries.
 
 
 ## TODO

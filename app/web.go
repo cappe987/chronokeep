@@ -11,9 +11,12 @@ import (
 	"fmt"
 	"html"
 	"html/template"
+	"io"
 	"io/fs"
 	"log"
 	"net/http"
+	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -36,6 +39,43 @@ type WebApp struct {
 	TeOpts *TeOpts
 	WtOpts *WtOpts
 	Tmpl   map[string]*template.Template
+}
+
+func webTeCreatePdf(wa *WebApp) (error, string) {
+	const dir = "/tmp/chronokeep/"
+	const datafile = dir + "data.txt"
+	const scriptfile = dir + "plot.py"
+	const outfile = dir + "output.pdf"
+
+	var err error
+	if _, err = os.Stat(dir); os.IsNotExist(err) {
+		err = os.Mkdir(dir, 0755)
+	}
+	if err != nil {
+		return err, ""
+	}
+	script, err := content.ReadFile("static/plot.py")
+	if err != nil {
+		return err, ""
+	}
+	f, err := os.Create(scriptfile)
+	if err != nil {
+		return err, ""
+	}
+	_, err = f.WriteString(string(script))
+	if err != nil {
+		return err, ""
+	}
+	f.Close()
+	stats := wa.TeOpts.Stats
+	stats.GenerateFile(wa.TeOpts.Peertopeer, datafile)
+
+	cmd := exec.Command("python3", scriptfile, datafile, outfile)
+	err = cmd.Run()
+	if err != nil {
+		return err, ""
+	}
+	return nil, outfile
 }
 
 func buildHtmxPacket(pd PacketData) string {
@@ -135,14 +175,20 @@ func wsHandler(wa *WebApp) http.HandlerFunc {
 		// }()
 
 		// Writer loop
+		// TODO: Fix this so it properly aggregates packets from port
+		// Now the port closes the channel when it's done. It shouldn't
+		// use WsOut directly.
 		for {
 			select {
 			case <-ctx.Done():
 				conn.Close(websocket.StatusNormalClosure, "")
 				return
 
-			case pd := <-wa.App.WsOut:
+			case pd, ok := <-wa.App.WsOut:
 				// TODO: Add command to start recording manually
+				if !ok {
+					continue
+				}
 				msg := buildHtmxPacket(pd)
 				// if string(msg) == "exit" {
 				// 	conn.Close(websocket.StatusNormalClosure, "")
@@ -169,6 +215,7 @@ func send_buttons_error(td map[string]any, w http.ResponseWriter, wa *WebApp, er
 func send_buttons(td map[string]any, w http.ResponseWriter, wa *WebApp) {
 	td["TeRunning"] = wa.TeOpts.Running
 	td["Capturing"] = wa.TeOpts.Capturing
+	td["HasStats"] = wa.TeOpts.HasStats
 	err := wa.Tmpl["buttons"].Execute(w, td)
 	if err != nil {
 		fmt.Printf("Error executing buttons template: %s\n", err)
@@ -321,6 +368,38 @@ func toggle(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func teDownload(wa *WebApp) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !wa.TeOpts.HasStats {
+			return
+		}
+		if wa.TeOpts.PdfFile == "" {
+			err, filename := webTeCreatePdf(wa)
+			if err != nil {
+				LogError("Problem creating PDF: %v", err)
+			}
+			wa.TeOpts.PdfFile = filename
+		}
+		f, err := os.Open(wa.TeOpts.PdfFile)
+		if err != nil {
+			LogError("Problem opening PDF: %s", err)
+			w.WriteHeader(500)
+			return
+		}
+		defer f.Close()
+
+		//Set header
+		w.Header().Set("Content-type", "application/pdf")
+
+		//Stream to response
+		if _, err := io.Copy(w, f); err != nil {
+			LogError("Problem serving PDF: %s", err)
+			w.WriteHeader(500)
+		}
+		LogInfo("Serving PDF")
+	}
+}
+
 func start_app(wa *WebApp, capture bool) {
 	wa.App.Opts.RecordPackets = capture
 	go RunTeMode(wa.TeOpts, wa.App)
@@ -448,6 +527,7 @@ func WebServer() {
 	http.Handle("/static/", handler)
 	http.HandleFunc("/ws", wsHandler(&webapp))
 	http.HandleFunc("/te-toggle", toggle(&webapp))
+	http.HandleFunc("/te_report.pdf", teDownload(&webapp))
 	http.HandleFunc("/", serve_index(&webapp))
 
 	LogNotice("Serving on http://localhost:%d", 8080)

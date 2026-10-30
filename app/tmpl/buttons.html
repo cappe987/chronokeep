@@ -55,6 +55,13 @@
 	  hx-target="#buttons">
     Stop
   </button>
+  {{ if .HasStats }}
+  	<a href="/te_report.pdf" target="_blank"
+  	id="download-button"
+  	class="bg-quat bg-quat-hover color-text rounded py-3 px-4">
+  	Download Report
+  	</a>
+  {{ end }}
 
   {{ if .Error }}
   <p style="color: red">{{ .Error }}</p>

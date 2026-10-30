@@ -79,7 +79,11 @@ texts = {
 with open(sys.argv[1], 'r') as f:
     data = f.read().split('\n\n')
 
-pdf = PdfPages("output.pdf")
+output = "output.pdf"
+if len(sys.argv) > 2:
+    output = sys.argv[2]
+
+pdf = PdfPages(output)
 for x in data:
     lines = x.split('\n')
     measure = lines[0].strip()

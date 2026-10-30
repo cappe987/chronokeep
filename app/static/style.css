@@ -69,6 +69,11 @@
     color: var(--color-text);
 }
 
+/* Was needed to get hover effect on the Download button */
+a:hover {
+	background-color: var(--color-button-hover);
+}
+
 html {
     /*scrollbar-gutter: stable;*/
     overflow-y: scroll;
