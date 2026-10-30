@@ -282,7 +282,7 @@ func server(app *App, do *DelayOpts, port *Port) {
 		case <-app.QuitCh:
 			running = false
 		case pd := <-pkts:
-			fmt.Printf("%v", pd.ToString())
+			fmt.Fprintf(app.W, "%v", pd.ToString())
 		}
 	}
 	port.Exit()

@@ -48,8 +48,9 @@ func runDelayMode(t *testing.T, delayOpts DelayOpts) string {
 }
 
 func TestDelayE2e(t *testing.T) {
-	InitTestPorts()
-	defer DeinitTestPorts()
+	// InitTestPorts()
+	// defer DeinitTestPorts()
+	CreateTestPorts()
 
 	const expectReqTs = "1.000000000"
 	const expectRespTs = "1.000001000"
@@ -67,8 +68,9 @@ func TestDelayE2e(t *testing.T) {
 }
 
 func TestDelayP2p(t *testing.T) {
-	InitTestPorts()
-	defer DeinitTestPorts()
+	// InitTestPorts()
+	// defer DeinitTestPorts()
+	CreateTestPorts()
 
 	Client.SetTestIngressLatency(150)
 	Client.SetTestEgressLatency(125)
