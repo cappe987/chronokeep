@@ -52,12 +52,12 @@ func InitTestPorts() {
 	Client.Init(AppClient, 0, AppClient.WsOut)
 }
 
-func (port *Port) SetTestIngressLatency(lat int64) {
-	Client.opts.IngressLatency = lat
+func SetTestIngressLatency(app *App, lat int64) {
+	app.Opts.IngressLatency = lat
 }
 
-func (port *Port) SetTestEgressLatency(lat int64) {
-	Client.opts.EgressLatency = lat
+func SetTestEgressLatency(app *App, lat int64) {
+	app.Opts.EgressLatency = lat
 }
 
 func DeinitTestPorts() {

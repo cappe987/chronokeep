@@ -72,16 +72,16 @@ func TestDelayP2p(t *testing.T) {
 	// defer DeinitTestPorts()
 	CreateTestPorts()
 
-	Client.SetTestIngressLatency(150)
-	Client.SetTestEgressLatency(125)
-	Server.SetTestIngressLatency(250)
-	Server.SetTestEgressLatency(195)
-	const expectPdelay = "777"
+	SetTestIngressLatency(AppClient, 150)
+	SetTestEgressLatency(AppClient, 125)
+	SetTestIngressLatency(AppServer, 250)
+	SetTestEgressLatency(AppServer, 195)
+	const expectPdelay = "640"
 	delayOpts := getDelayOpts()
 	delayOpts.Peertopeer = true
 
 	line := runDelayMode(t, delayOpts)
-	// Output: PDelay seq 0: 1000
+	// Output: PDelay seq 0: 640
 	words := strings.Split(line, " ")
 	pdelay := words[len(words)-1]
 	if pdelay != expectPdelay {
